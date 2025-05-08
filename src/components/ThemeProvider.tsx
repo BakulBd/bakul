@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import { ThemeProvider as NextThemesProvider, Attribute } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -9,6 +10,20 @@ interface ThemeProviderProps {
   attribute?: string;
 }
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+export function ThemeProvider({ children, enableSystem = true, attribute = 'class', ...props }: ThemeProviderProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="loading-placeholder">Loading...</div>;
+  }
+
+  return (
+    <NextThemesProvider enableSystem={enableSystem} attribute={attribute as Attribute} {...props}>
+      {children}
+    </NextThemesProvider>
+  );
 }

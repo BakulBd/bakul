@@ -1,56 +1,61 @@
-import Image from "next/image";
-import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <section className="flex flex-col items-center justify-center min-h-screen text-center relative bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
+    <main className="container mx-auto px-4 py-8">
       {/* Hero Section */}
-      <div className="absolute inset-0 -z-10 flex items-center justify-center opacity-30 pointer-events-none">
-        <svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="400" cy="400" r="300" fill="url(#paint0_radial)" />
-          <defs>
-            <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientTransform="translate(400 400) scale(300)" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#6366f1" stopOpacity="0.3" />
-              <stop offset="1" stopColor="#a5b4fc" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-        </svg>
-      </div>
-      <div className="mb-6">
-        <Image
-          src="/file.svg"
-          alt="Bakul Ahmed profile"
-          width={150}
-          height={150}
-          className="rounded-full border-4 border-indigo-500 shadow-lg mx-auto"
-        />
-      </div>
-      <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4 animate-fade-in">
-        Bakul Ahmed
-      </h1>
-      <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto mb-6 animate-fade-in delay-100">
-        Passionate Computer Science and Engineering student at Green University of Bangladesh. Focused on AI, Full-Stack, and Open Source.
-      </p>
-      <div className="flex justify-center gap-6 mb-8 animate-fade-in delay-200">
-        <a href="https://github.com/bakulahmed" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-3xl text-gray-700 dark:text-gray-200 hover:text-indigo-500 transition">
-          <FaGithub />
-        </a>
-        <a href="https://linkedin.com/in/bakulahmed" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-3xl text-gray-700 dark:text-gray-200 hover:text-blue-600 transition">
-          <FaLinkedin />
-        </a>
-        <a href="https://twitter.com/bakulahmed" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-3xl text-gray-700 dark:text-gray-200 hover:text-sky-400 transition">
-          <FaTwitter />
-        </a>
-      </div>
-      {/* Call to Action */}
-      <div className="mt-6 animate-fade-in delay-300">
+      <section className="text-center py-16 bg-gradient-to-b from-indigo-50 to-white dark:from-gray-900 dark:to-gray-950">
+        <h1 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-6">
+          Welcome to My Professional Portfolio
+        </h1>
+        <p className="text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+          Showcasing my projects, skills, and achievements as a passionate developer and designer.
+        </p>
+        <Image src="/globe.svg" alt="Portfolio Thumbnail" width={300} height={300} className="mx-auto" />
+      </section>
+
+      {/* Projects Section */}
+      <section className="mt-16">
+        <h2 className="text-4xl font-bold text-center mb-8 text-indigo-600 dark:text-indigo-400">
+          Featured Projects
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Project Card Example */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <Image src="/file.svg" alt="Project Image" width={400} height={300} className="w-full h-48 object-cover" />
+            <div className="p-6">
+              <h3 className="text-2xl font-semibold mb-2 text-indigo-600 dark:text-indigo-300">Personal Portfolio</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                A modern developer portfolio with integrated blog/vlog CMS using Next.js and Supabase.
+              </p>
+              <div className="flex gap-4">
+                <Link href="https://github.com/bakulahmed/portfolio-cms" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                  View Code
+                </Link>
+                <Link href="https://bakul.dev" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                  Live Demo
+                </Link>
+              </div>
+            </div>
+          </div>
+          {/* Add more project cards here */}
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="mt-16 text-center py-12 bg-gradient-to-b from-white to-indigo-50 dark:from-gray-950 dark:to-gray-900">
+        <h2 className="text-4xl font-bold mb-6 text-indigo-600 dark:text-indigo-400">Get in Touch</h2>
+        <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto mb-8">
+          Feel free to reach out to me for collaborations, freelance work, or just to say hi!
+        </p>
         <a
-          href="#projects"
-          className="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition text-lg font-medium"
+          href="mailto:contact@professionalportfolio.com"
+          className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition"
         >
-          View My Projects
+          Contact Me
         </a>
-      </div>
-    </section>
+      </section>
+    </main>
   );
 }

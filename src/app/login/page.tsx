@@ -46,7 +46,8 @@ export default function LoginPage() {
             name, 
             avatar_url: '', 
             role: 'user', 
-            email 
+            email,
+            bio: '' // Initialize bio as an empty string
           });
         }
         

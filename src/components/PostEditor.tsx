@@ -7,14 +7,15 @@ import { Post } from '@/types/supabase';
 
 interface PostEditorProps {
   initial?: Partial<Post>;
-  onSave: (data: Pick<Post, 'title' | 'slug' | 'content' | 'image_url' | 'type'>) => Promise<void>;
+  onSave: (data: Pick<Post, 'title' | 'slug' | 'content' | 'media_url' | 'type'>) => Promise<void>;
   onCancel: () => void;
 }
 
 export default function PostEditor({ initial, onSave, onCancel }: PostEditorProps) {
   const [title, setTitle] = useState(initial?.title || '');
   const [slug, setSlug] = useState(initial?.slug || '');
-  const [imageUrl, setImageUrl] = useState(initial?.image_url || '');
+  const [imageUrl, setImageUrl] = useState(initial?.media_url || '');
+  const [mediaUrl, setMediaUrl] = useState(initial?.media_url || '');
   const [type, setType] = useState<Post['type']>(initial?.type || 'blog');
   const [editorState, setEditorState] = useState(
     initial?.content
@@ -25,7 +26,6 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Auto-generate slug from title
   useEffect(() => {
     if (!initial?.slug && title && !slug) {
       const generatedSlug = title
@@ -38,12 +38,10 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-
     if (!title.trim()) errors.title = 'Title is required';
     if (!slug.trim()) errors.slug = 'Slug is required';
     if (slug.includes(' ')) errors.slug = 'Slug cannot contain spaces';
     if (!editorState.getCurrentContent().hasText()) errors.content = 'Content is required';
-
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -67,9 +65,7 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsSubmitting(true);
     try {
       const contentState = editorState.getCurrentContent();
@@ -77,7 +73,7 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
       await onSave({
         title,
         slug,
-        image_url: imageUrl,
+        media_url: imageUrl,
         type,
         content: rawContent,
       });
@@ -91,6 +87,7 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden relative">
+        {/* Cancel Button */}
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-gray-400 hover:text-red-500 focus:outline-none z-10"
@@ -104,122 +101,137 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
         <div className="p-6 overflow-y-auto max-h-[90vh]">
           <h2 className="text-2xl font-bold mb-4">{initial?.id ? 'Edit Post' : 'New Post'}</h2>
 
+          {/* Tabs */}
           <div className="flex gap-2 mb-6 border-b dark:border-gray-700">
-            <button
-              onClick={() => setTab('edit')}
-              className={`px-4 py-2 ${tab === 'edit' ? 'border-b-2 border-indigo-500 text-indigo-600 font-medium' : 'text-gray-500'}`}
-              aria-pressed={tab === 'edit'}
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => setTab('preview')}
-              className={`px-4 py-2 ${tab === 'preview' ? 'border-b-2 border-indigo-500 text-indigo-600 font-medium' : 'text-gray-500'}`}
-              aria-pressed={tab === 'preview'}
-            >
-              Preview
-            </button>
+            {['edit', 'preview'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t as 'edit' | 'preview')}
+                className={`px-4 py-2 ${
+                  tab === t ? 'border-b-2 border-indigo-500 text-indigo-600 font-medium' : 'text-gray-500'
+                }`}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
           </div>
 
           {tab === 'edit' ? (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Title Input */}
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                <label htmlFor="title" className="block text-sm font-medium">Title</label>
                 <input
                   id="title"
                   value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="Post Title"
-                  className={`w-full px-3 py-2 rounded border ${validationErrors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500`}
-                  aria-invalid={!!validationErrors.title}
-                  aria-describedby={validationErrors.title ? "title-error" : undefined}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={`w-full px-3 py-2 rounded border ${
+                    validationErrors.title ? 'border-red-500' : 'border-gray-300'
+                  } dark:bg-gray-800`}
                 />
                 {validationErrors.title && (
-                  <p id="title-error" className="mt-1 text-sm text-red-600">{validationErrors.title}</p>
+                  <p className="text-sm text-red-600 mt-1">{validationErrors.title}</p>
                 )}
               </div>
 
+              {/* Slug Input */}
               <div>
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Slug (for URL)
-                </label>
+                <label htmlFor="slug" className="block text-sm font-medium">Slug (URL)</label>
                 <div className="flex items-center">
-                  <span className="text-gray-500 dark:text-gray-400 mr-1">/blog/</span>
+                  <span className="mr-1 text-gray-500">/blog/</span>
                   <input
                     id="slug"
                     value={slug}
-                    onChange={e => setSlug(e.target.value.replace(/\s+/g, '-').toLowerCase())}
-                    placeholder="post-url-slug"
-                    className={`flex-1 px-3 py-2 rounded border ${validationErrors.slug ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500`}
-                    aria-invalid={!!validationErrors.slug}
-                    aria-describedby={validationErrors.slug ? "slug-error" : undefined}
+                    onChange={(e) => setSlug(e.target.value.replace(/\s+/g, '-').toLowerCase())}
+                    className={`flex-1 px-3 py-2 rounded border ${
+                      validationErrors.slug ? 'border-red-500' : 'border-gray-300'
+                    } dark:bg-gray-800`}
                   />
                 </div>
-                {validationErrors.slug ? (
-                  <p id="slug-error" className="mt-1 text-sm text-red-600">{validationErrors.slug}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-gray-500">This will be the URL of your post. No spaces allowed.</p>
+                {validationErrors.slug && (
+                  <p className="text-sm text-red-600 mt-1">{validationErrors.slug}</p>
                 )}
               </div>
 
+              {/* Image URL */}
               <div>
-                <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Image URL</label>
+                <label htmlFor="imageUrl" className="block text-sm font-medium">Image URL</label>
                 <input
                   id="imageUrl"
                   value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-800"
                 />
-                <p className="mt-1 text-xs text-gray-500">Direct link to featured image (optional)</p>
               </div>
 
+              {/* Media URL */}
               <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                <label htmlFor="mediaUrl" className="block text-sm font-medium">Media URL</label>
+                <input
+                  id="mediaUrl"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-800"
+                />
+                {mediaUrl &&
+                  (mediaUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                    <Image
+                      src={mediaUrl}
+                      alt="Media preview"
+                      width={800}
+                      height={400}
+                      className="mt-2 rounded"
+                    />
+                  ) : (
+                    <iframe src={mediaUrl} className="mt-2 w-full h-48 rounded" allowFullScreen />
+                  ))}
+              </div>
+
+              {/* Post Type */}
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium">Post Type</label>
                 <select
                   id="type"
                   value={type}
-                  onChange={e => setType(e.target.value as Post['type'])}
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => setType(e.target.value as Post['type'])}
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:bg-gray-800"
                 >
                   <option value="blog">Blog</option>
                   <option value="vlog">Vlog</option>
                 </select>
               </div>
 
+              {/* Editor */}
               <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content</label>
-                <div className="toolbar mb-2">
-                  <button onClick={() => toggleInlineStyle('BOLD')}>Bold</button>
-                  <button onClick={() => toggleInlineStyle('ITALIC')}>Italic</button>
-                  <button onClick={() => toggleInlineStyle('UNDERLINE')}>Underline</button>
-                  <button onClick={() => toggleBlockType('unordered-list-item')}>Bullet List</button>
-                  <button onClick={() => toggleBlockType('ordered-list-item')}>Numbered List</button>
+                <label htmlFor="content" className="block text-sm font-medium">Content</label>
+                <div className="flex space-x-2 mb-2">
+                  {['BOLD', 'ITALIC', 'UNDERLINE'].map(style => (
+                    <button key={style} type="button" onClick={() => toggleInlineStyle(style)}>{style}</button>
+                  ))}
+                  <button type="button" onClick={() => toggleBlockType('unordered-list-item')}>UL</button>
+                  <button type="button" onClick={() => toggleBlockType('ordered-list-item')}>OL</button>
                 </div>
-                <div className="editor bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                <div className="bg-white dark:bg-gray-800 border rounded p-2 min-h-[150px]">
                   <Editor
                     editorState={editorState}
                     onChange={setEditorState}
                     handleKeyCommand={handleKeyCommand}
-                    placeholder="Write your content here..."
+                    placeholder="Write your post content here..."
                   />
                 </div>
                 {validationErrors.content && (
-                  <p id="content-error" className="mt-1 text-sm text-red-600">{validationErrors.content}</p>
+                  <p className="text-sm text-red-600 mt-1">{validationErrors.content}</p>
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
+              {/* Submit */}
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={onCancel} className="bg-gray-300 px-4 py-2 rounded">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Saving...' : 'Save'}
@@ -227,32 +239,38 @@ export default function PostEditor({ initial, onSave, onCancel }: PostEditorProp
               </div>
             </form>
           ) : (
-            <div className="bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700 p-6">
-              <h1 className="text-2xl font-bold mb-4">{title || 'Post Title'}</h1>
+            <div className="prose dark:prose-invert max-w-none">
+              <h1>{title || 'Untitled Post'}</h1>
 
               {imageUrl && (
-                <div className="mb-6 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                  <Image src={imageUrl} alt="Preview" width={800} height={400} className="w-full h-auto object-contain max-h-[400px]" />
-                </div>
+                <Image
+                  src={imageUrl}
+                  alt={title ? `${title} image` : 'Post image'}
+                  width={800}
+                  height={400}
+                  className="my-4 rounded-lg"
+                />
               )}
 
-              <div className="prose dark:prose-invert max-w-none">
-                {editorState.getCurrentContent().hasText() ? (
-                  <div dangerouslySetInnerHTML={{ __html: editorState.getCurrentContent().getPlainText() }} />
+              {mediaUrl && (
+                mediaUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                  <Image
+                    src={mediaUrl}
+                    alt={title ? `${title} media` : 'Media'}
+                    width={800}
+                    height={400}
+                    className="my-4 rounded-lg"
+                  />
                 ) : (
-                  <p className="text-gray-400 italic">No content to preview. Add content in the Edit tab.</p>
-                )}
-              </div>
+                  <iframe src={mediaUrl} className="w-full h-64 my-4 rounded" allowFullScreen />
+                )
+              )}
 
-              <div className="flex justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={() => setTab('edit')}
-                  className="px-4 py-2 text-sm rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200"
-                >
-                  Back to editing
-                </button>
-              </div>
+              {editorState.getCurrentContent().hasText() ? (
+                <p>{editorState.getCurrentContent().getPlainText()}</p>
+              ) : (
+                <p className="italic text-gray-500">No content available for preview.</p>
+              )}
             </div>
           )}
         </div>

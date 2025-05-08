@@ -14,7 +14,7 @@ export default function AdminUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('profiles').select('*').order('name', { ascending: true });
+    const { data, error } = await supabase.from('profiles').select('id, name, avatar_url, role, email, bio').order('name', { ascending: true });
     if (!error) setUsers(data as Profile[] || []);
     setLoading(false);
   }, [supabase]);
@@ -41,13 +41,15 @@ export default function AdminUsersPage() {
     fetchUserAndProfiles();
   }, [supabase, fetchUsers]);
 
+  // Added client-side validation and secure role change logic
   async function handleRoleChange(id: string, newRole: 'admin' | 'user') {
+    if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) return;
+
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
     if (error) {
       setToast({ message: error.message, type: 'error' });
     } else {
-      setToast({ message: 'Role updated!', type: 'success' });
-      // Auto-dismiss success message after 3 seconds
+      setToast({ message: 'Role updated successfully!', type: 'success' });
       setTimeout(() => setToast(null), 3000);
       fetchUsers();
     }

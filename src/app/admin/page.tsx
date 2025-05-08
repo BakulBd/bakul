@@ -48,14 +48,18 @@ export default function AdminPage() {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('*, profiles(name, avatar_url, role)')
+        .select('*, profiles(name, avatar_url, bio)')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPosts(data || []);
+      if (error) {
+        console.error('Error fetching posts:', error);
+        setToast({ message: 'Failed to load posts. Please try again.', type: 'error' });
+      } else {
+        setPosts(data || []);
+      }
     } catch (err) {
-      console.error('Error fetching posts:', err);
-      setToast({ message: 'Failed to load posts. Please try again.', type: 'error' });
+      console.error('Unexpected error:', err);
+      setToast({ message: 'An unexpected error occurred.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -114,7 +118,11 @@ export default function AdminPage() {
     checkAuth();
   }, [router, supabase, fetchPosts]);
 
-  async function handleSave(data: Pick<Post, 'title' | 'slug' | 'content' | 'image_url' | 'type'>) {
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  async function handleSave(data: Pick<Post, 'title' | 'slug' | 'content' | 'media_url' | 'type'>) {
     try {
       const now = new Date().toISOString();
       
@@ -204,10 +212,6 @@ export default function AdminPage() {
     }
   };
 
-  const canEditPost = (post: ExtendedPost) => {
-    return profile?.role === 'admin' || post.author_id === user?.id;
-  };
-
   return (
     <div className="flex flex-col md:flex-row gap-8">
       {/* Toast notification */}
@@ -277,145 +281,81 @@ export default function AdminPage() {
       {/* Main Content */}
       <main className="flex-1">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Posts</h1>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h1>
           <button 
             onClick={() => { setEditorOpen(true); setEditPost(null); }} 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition flex items-center gap-1"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition flex items-center gap-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            <span>New Post/Vlog</span>
+            <span>New Post</span>
           </button>
         </div>
-        
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white dark:bg-gray-900 shadow rounded-lg p-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
             </div>
           ) : posts.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg shadow">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">No posts yet</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new post.</p>
-              <div className="mt-6">
-                <button
-                  onClick={() => { setEditorOpen(true); setEditPost(null); }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  New Post
-                </button>
-              </div>
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No posts yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Get started by creating a new post.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Author</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Author</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {posts.map((post) => (
+                  <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs">
+                        {post.title}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        {post.profiles?.name || 'Unknown'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        post.type === 'blog' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      }`}>
+                        {post.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <button 
+                        onClick={() => { setEditorOpen(true); setEditPost(post); }} 
+                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(post.id)} 
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {posts.map((post) => (
-                    <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {post.image_url && (
-                            <div className="flex-shrink-0 h-10 w-10 mr-3">
-                              <Image 
-                                src={post.image_url} 
-                                width={40} 
-                                height={40} 
-                                alt="" 
-                                className="h-10 w-10 rounded object-cover" 
-                              />
-                            </div>
-                          )}
-                          <div className="ml-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs">
-                              {post.title}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate max-w-xs">
-                              /blog/{post.slug}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {post.profiles?.avatar_url ? (
-                            <Image 
-                              src={post.profiles.avatar_url} 
-                              alt="" 
-                              width={24} 
-                              height={24} 
-                              className="h-6 w-6 rounded-full mr-2" 
-                            />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-2 text-xs">
-                              {post.profiles?.name?.[0] || '?'}
-                            </div>
-                          )}
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {post.profiles?.name || 'Unknown'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          post.type === 'blog' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                        }`}>
-                          {post.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1">
-                        <Link
-                          href={`/blog/${post.slug}`}
-                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View
-                        </Link>
-                        {canEditPost(post) && (
-                          <>
-                            <span className="text-gray-300 dark:text-gray-600">|</span>
-                            <button 
-                              onClick={() => { setEditorOpen(true); setEditPost(post); }} 
-                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                            >
-                              Edit
-                            </button>
-                            <span className="text-gray-300 dark:text-gray-600">|</span>
-                            <button 
-                              onClick={() => handleDelete(post.id)} 
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              {confirmDelete === post.id ? 'Confirm' : 'Delete'}
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
         

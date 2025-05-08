@@ -29,7 +29,8 @@ export default function AdminProfilePage() {
           name: '', 
           avatar_url: '', 
           role: 'user',
-          email: data.user.email
+          email: data.user.email,
+          bio: ''
         }]).select().single();
         profileData = newProfile;
       }
@@ -47,7 +48,8 @@ export default function AdminProfilePage() {
     setSaving(true);
     const { error } = await supabase.from('profiles').update({ 
       name: profile.name, 
-      avatar_url: profile.avatar_url 
+      avatar_url: profile.avatar_url,
+      bio: profile.bio
     }).eq('id', user.id);
     
     setSaving(false);
@@ -104,6 +106,13 @@ export default function AdminProfilePage() {
           className="w-full px-3 py-2 rounded border dark:bg-gray-800 text-gray-400"
           value={profile?.role || 'user'}
           disabled
+        />
+        <label className="block font-semibold">Bio</label>
+        <textarea
+          className="w-full px-3 py-2 rounded border dark:bg-gray-800"
+          value={profile?.bio || ''}
+          onChange={e => setProfile(profile ? { ...profile, bio: e.target.value } : null)}
+          placeholder="Write a short bio about yourself"
         />
         <button
           type="submit"
