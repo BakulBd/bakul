@@ -73,7 +73,8 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
         angry: 0
       };
 
-      data?.forEach((reaction: Reaction) => {
+      data?.forEach((item: any) => {
+        const reaction = item as Reaction;
         reactionCounts[reaction.reaction_type]++;
       });
 

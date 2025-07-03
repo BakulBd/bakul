@@ -1,27 +1,38 @@
 {
-  "name": "bakul",
-  "version": "0.1.0",
+  "name": "bakul-portfolio",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.49.4",
+    "@tailwindcss/typography": "^0.5.15",
+    "clsx": "^2.1.1",
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.468.0",
     "next": "15.3.2",
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
+    "react-hot-toast": "^2.4.1",
     "react-icons": "^5.5.0",
+    "react-intersection-observer": "^9.14.0",
     "react-markdown": "^10.1.0",
     "react-simple-typewriter": "^5.0.1",
-    "supabase": "^2.22.12"
+    "react-syntax-highlighter": "^15.5.0",
+    "supabase": "^2.22.12",
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -31,6 +42,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-icons": "^2.2.7",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "eslint": "^9.26.0",
     "eslint-config-next": "^15.3.2",
     "tailwindcss": "^4",

@@ -8,9 +8,11 @@ interface ThemeProviderProps {
   children: React.ReactNode;
   enableSystem?: boolean;
   attribute?: string;
+  defaultTheme?: string;
+  disableTransitionOnChange?: boolean;
 }
 
-export function ThemeProvider({ children, enableSystem = true, attribute = 'class', ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children, enableSystem = true, attribute = 'class', defaultTheme = 'system', disableTransitionOnChange = false, ...props }: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -22,7 +24,13 @@ export function ThemeProvider({ children, enableSystem = true, attribute = 'clas
   }
 
   return (
-    <NextThemesProvider enableSystem={enableSystem} attribute={attribute as Attribute} {...props}>
+    <NextThemesProvider 
+      enableSystem={enableSystem} 
+      attribute={attribute as Attribute} 
+      defaultTheme={defaultTheme}
+      disableTransitionOnChange={disableTransitionOnChange}
+      {...props}
+    >
       {children}
     </NextThemesProvider>
   );
