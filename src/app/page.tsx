@@ -314,7 +314,7 @@ export default function HomePage() {
             transition={{ delay: 0.1 }}
             className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
           >
-            Don't just take my word for it - here's what my clients have to say about working with me
+            Don&apos;t just take my word for it - here&apos;s what my clients have to say about working with me
           </motion.p>
         </div>
 
@@ -348,7 +348,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <p className="text-gray-700 dark:text-gray-300 mb-4 italic">
-                  "{testimonial.content}"
+                  &quot;{testimonial.content}&quot;
                 </p>
                 <div className="flex gap-1">
                   {Array.from({ length: testimonial.rating }).map((_, i) => (
@@ -386,7 +386,7 @@ export default function HomePage() {
             transition={{ delay: 0.1 }}
             className="text-xl text-indigo-100 max-w-2xl mx-auto mb-8"
           >
-            Let's work together to bring your ideas to life. I'm here to help you build something amazing.
+            Let&apos;s work together to bring your ideas to life. I&apos;m here to help you build something amazing.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

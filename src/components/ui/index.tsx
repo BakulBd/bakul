@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 import { cn } from '@/lib/utils';
 
@@ -71,9 +71,9 @@ export function Button({
   const buttonClasses = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement<any>, {
-      className: cn(buttonClasses, (children as any).props?.className),
-    });
+    return React.cloneElement(children, {
+      className: cn(buttonClasses, (children.props as { className?: string })?.className),
+    } as Partial<React.HTMLAttributes<HTMLElement>>);
   }
 
   return (
@@ -175,9 +175,11 @@ export function Avatar({ src, alt, name, size = 'md', className = '' }: AvatarPr
 
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt || name || 'Avatar'}
+        width={sizes[size].includes('w-8') ? 32 : sizes[size].includes('w-10') ? 40 : sizes[size].includes('w-12') ? 48 : 64}
+        height={sizes[size].includes('h-8') ? 32 : sizes[size].includes('h-10') ? 40 : sizes[size].includes('h-12') ? 48 : 64}
         className={`
           ${sizes[size]} 
           rounded-full object-cover border-2 border-gray-200 dark:border-gray-700

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { ReactionType, Reaction } from '@/types/supabase';
 
@@ -40,7 +40,7 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
   const supabase = createClientComponentClient();
 
   // Get user's IP address for tracking reactions
-  const getUserIP = async (): Promise<string> => {
+  const getUserIP = useCallback(async (): Promise<string> => {
     try {
       const response = await fetch('https://api.ipify.org?format=json');
       const data = await response.json();
@@ -48,14 +48,9 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
     } catch {
       return 'unknown';
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    fetchReactions();
-    checkUserReaction();
-  }, [postId]);
-
-  const fetchReactions = async () => {
+  const fetchReactions = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('reactions')
@@ -73,7 +68,7 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
         angry: 0
       };
 
-      data?.forEach((item: any) => {
+      data?.forEach((item: unknown) => {
         const reaction = item as Reaction;
         reactionCounts[reaction.reaction_type]++;
       });
@@ -82,9 +77,9 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
     } catch (error) {
       console.error('Error fetching reactions:', error);
     }
-  };
+  }, [postId, supabase]);
 
-  const checkUserReaction = async () => {
+  const checkUserReaction = useCallback(async () => {
     try {
       const userIP = await getUserIP();
       const { data, error } = await supabase
@@ -102,7 +97,12 @@ export default function ReactionSystem({ postId }: ReactionSystemProps) {
     } catch (error) {
       console.error('Error checking user reaction:', error);
     }
-  };
+  }, [postId, supabase, getUserIP]);
+
+  useEffect(() => {
+    fetchReactions();
+    checkUserReaction();
+  }, [fetchReactions, checkUserReaction]);
 
   const handleReaction = async (reactionType: ReactionType) => {
     if (loading) return;

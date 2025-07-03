@@ -14,7 +14,6 @@ import {
   HomeIcon,
   UserIcon,
   BriefcaseIcon,
-  ChatBubbleLeftRightIcon,
   DocumentTextIcon,
   PhoneIcon
 } from '@heroicons/react/24/outline';

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useTheme as useNextTheme } from 'next-themes';
 
 // Enhanced theme hook
@@ -195,6 +195,7 @@ export function useIntersectionObserver(
     observer.observe(node);
 
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, callback, options.threshold, options.root, options.rootMargin]);
 
   return entry;
@@ -261,7 +262,7 @@ export function useAsync<T>(
   const [loading, setLoading] = useState<boolean>(immediate);
   const [error, setError] = useState<Error | null>(null);
 
-  const execute = async () => {
+  const execute = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -272,19 +273,19 @@ export function useAsync<T>(
     } finally {
       setLoading(false);
     }
-  };
+  }, [asyncFunction]);
 
   useEffect(() => {
     if (immediate) {
       execute();
     }
-  }, [immediate]);
+  }, [immediate, execute]);
 
   return { data, loading, error, execute };
 }
 
 // Form validation hook
-export function useFormValidation<T extends Record<string, any>>(
+export function useFormValidation<T extends Record<string, unknown>>(
   initialValues: T,
   validate: (values: T) => Partial<T>
 ) {
@@ -292,7 +293,7 @@ export function useFormValidation<T extends Record<string, any>>(
   const [errors, setErrors] = useState<Partial<T>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (name: keyof T, value: any) => {
+  const handleChange = (name: keyof T, value: unknown) => {
     setValues(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));

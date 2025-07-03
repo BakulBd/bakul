@@ -142,16 +142,16 @@ export function useClickOutside<T extends HTMLElement>(
 }
 
 // Custom hook for form validation
-export function useFormValidation<T extends Record<string, any>>(
+export function useFormValidation<T extends Record<string, unknown>>(
   initialValues: T,
-  validationRules: Record<keyof T, (value: any) => string | null>
+  validationRules: Record<keyof T, (value: unknown) => string | null>
 ) {
   const [values, setValues] = useState<T>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateField = useCallback(
-    (name: keyof T, value: any) => {
+    (name: keyof T, value: unknown) => {
       const rule = validationRules[name];
       return rule ? rule(value) : null;
     },
@@ -173,7 +173,7 @@ export function useFormValidation<T extends Record<string, any>>(
   }, [values, validateField]);
 
   const handleChange = useCallback(
-    (name: keyof T, value: any) => {
+    (name: keyof T, value: unknown) => {
       setValues(prev => ({ ...prev, [name]: value }));
       
       // Clear error when user starts typing
