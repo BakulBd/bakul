@@ -93,8 +93,10 @@ export default function RootLayout({
           <EnhancedLoadingScreen />
           <div className="flex flex-col min-h-screen">
             <EnhancedNavbar />
-            <main className="flex-1 pt-16 lg:pt-20">
-              {children}
+            <main className="flex-1 relative">
+              <div className="pt-16 lg:pt-20 min-h-screen">
+                {children}
+              </div>
             </main>
             <EnhancedFooter />
           </div>
