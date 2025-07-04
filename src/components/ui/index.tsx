@@ -98,17 +98,31 @@ interface CardProps {
   className?: string;
   padding?: boolean;
   hover?: boolean;
+  variant?: 'default' | 'premium' | 'glass' | 'gradient';
 }
 
-export function Card({ children, className = '', padding = true, hover = false }: CardProps) {
+export function Card({ 
+  children, 
+  className = '', 
+  padding = true, 
+  hover = false,
+  variant = 'default'
+}: CardProps) {
+  const variants = {
+    default: 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700',
+    premium: 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-white/60 dark:border-slate-700/60 shadow-xl',
+    glass: 'bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/40 dark:border-slate-700/40',
+    gradient: 'bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-slate-800 dark:via-slate-700 dark:to-indigo-900 border border-white/60 dark:border-slate-700/60'
+  };
+
   return (
-    <div className={`
-      card 
-      ${padding ? 'p-6' : ''} 
-      ${hover ? 'hover:shadow-lg transition-shadow duration-200' : ''} 
-      shadow-sm 
-      ${className}
-    `}>
+    <div className={cn(
+      'card rounded-3xl transition-all duration-500',
+      variants[variant],
+      padding ? 'p-6 lg:p-8' : '',
+      hover ? 'hover:shadow-2xl hover:-translate-y-2 group' : '',
+      className
+    )}>
       {children}
     </div>
   );
@@ -450,5 +464,97 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
 
   return (
     <div className={cn('animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600', sizes[size], className)} />
+  );
+}
+
+// Enhanced Section Component
+interface SectionCardProps {
+  children: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  gradient?: string;
+  bgGradient?: string;
+  className?: string;
+}
+
+export function SectionCard({ 
+  children, 
+  title, 
+  subtitle, 
+  icon, 
+  gradient = "from-blue-500 to-purple-500",
+  bgGradient = "from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50",
+  className = "" 
+}: SectionCardProps) {
+  return (
+    <Card variant="premium" hover className={cn("group relative overflow-hidden", className)}>
+      {/* Background gradient overlay */}
+      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500", bgGradient)} />
+      
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="flex items-center gap-6 mb-8">
+          {icon && (
+            <div className={cn("text-5xl lg:text-6xl bg-gradient-to-r p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform duration-500 relative overflow-hidden", gradient)}>
+              <div className="absolute inset-0 bg-white/20 dark:bg-black/20" />
+              <span className="relative z-10">{icon}</span>
+            </div>
+          )}
+          <div>
+            <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        {/* Content */}
+        {children}
+      </div>
+      
+      {/* Decorative elements */}
+      <div className="absolute top-4 right-4 w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
+    </Card>
+  );
+}
+
+// Enhanced Stat Card Component
+interface StatCardProps {
+  label: string;
+  value: number;
+  suffix?: string;
+  icon?: string;
+  gradient?: string;
+}
+
+export function StatCard({ label, value, suffix = "", icon, gradient = "from-blue-600 via-purple-600 to-indigo-600" }: StatCardProps) {
+  return (
+    <div className="text-center group">
+      <Card variant="premium" hover className="relative overflow-hidden">
+        {/* Enhanced glowing border effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/25 via-purple-500/25 to-indigo-500/25 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
+        
+        {icon && (
+          <div className="text-4xl mb-4 flex justify-center">{icon}</div>
+        )}
+        
+        <div className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6">
+          <GradientText className={cn("bg-gradient-to-r", gradient)}>
+            <AnimatedCounter end={value} duration={2500} />
+            {suffix}
+          </GradientText>
+        </div>
+        <p className="text-slate-700 dark:text-slate-300 font-semibold text-lg lg:text-xl tracking-wide">{label}</p>
+        
+        {/* Enhanced decorative elements */}
+        <div className="absolute -top-4 -right-4 w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse" />
+        <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse delay-300" />
+      </Card>
+    </div>
   );
 }
