@@ -172,7 +172,7 @@ export default function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50/99 via-blue-50/98 to-indigo-50/99 dark:from-slate-950/99 dark:via-slate-900/99 dark:to-indigo-950/99 relative overflow-hidden">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50/99 via-blue-50/98 to-indigo-50/99 dark:from-slate-950/99 dark:via-slate-900/99 dark:to-indigo-950/99 relative overflow-x-hidden">
       {/* Premium Background Mesh */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#8b5cf640_1px,transparent_1px),linear-gradient(to_bottom,#8b5cf640_1px,transparent_1px)] bg-[size:14px_24px] opacity-20" />
       
@@ -216,36 +216,24 @@ export default function HomePage() {
       </div>
       
       {/* Enhanced Hero Section */}
-      <div className="relative">
+      <div className="relative z-10">
         <EnhancedHero />
-        
-        {/* Subtle transition gradient */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white/90 via-white/50 to-transparent dark:from-slate-900/90 dark:via-slate-900/50 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white/90 via-white/50 to-transparent dark:from-slate-900/90 dark:via-slate-900/50 pointer-events-none" />
       </div>
 
-      {/* Stats Section - Enhanced Responsive */}
+      {/* Stats Section - Responsive, No Overlap */}
       <SectionWrapper className="relative bg-gradient-to-br from-white/80 via-blue-50/30 to-indigo-50/40 dark:from-slate-900/90 dark:via-indigo-950/30 dark:to-slate-800/40 z-10">
         <div className="relative z-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-6 sm:mb-8 md:mb-12 relative"
+            className="text-center mb-8 md:mb-12"
           >
-            {/* Background glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-indigo-600/5 rounded-3xl blur-3xl" />
-            
-            <div className="relative z-10">
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
-                Portfolio Stats
-              </h2>
-              <p className="text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto px-4 leading-relaxed">
-                Numbers that reflect my commitment to excellence
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Portfolio Stats</h2>
+            <p className="text-sm md:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto px-4 leading-relaxed">Numbers that reflect my commitment to excellence</p>
           </motion.div>
-
-          <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 max-w-4xl mx-auto">
+          <div ref={statsRef} className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 max-w-3xl mx-auto">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -266,7 +254,7 @@ export default function HomePage() {
         </div>
       </SectionWrapper>
 
-      {/* Services Section - Enhanced Mobile-First */}
+      {/* Services Section - Responsive, No Overlap */}
       <SectionWrapper className="relative bg-gradient-to-br from-indigo-50/60 via-white/40 to-purple-50/60 dark:from-indigo-950/60 dark:via-slate-900/40 dark:to-purple-950/60 z-10">
         {/* Optimized background decorations */}
         <div className="absolute top-5 right-5 sm:top-10 sm:right-10 w-8 h-8 sm:w-12 sm:h-12 bg-indigo-200/15 dark:bg-indigo-800/8 rounded-full blur-xl animate-pulse" />
@@ -347,36 +335,29 @@ export default function HomePage() {
         </div>
       </SectionWrapper>
 
-      {/* Technologies Section - Fully Optimized */}
+      {/* Technologies Section - Responsive, No Overlap */}
       <SectionWrapper className="relative bg-gradient-to-br from-slate-50/80 via-white/60 to-gray-50/80 dark:from-slate-950/80 dark:via-slate-900/60 dark:to-gray-950/80 z-10">
         <div className="relative z-20">
-          <div className="text-center mb-6 sm:mb-8 md:mb-12 relative">
-            {/* Enhanced background effects */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-700/5 via-gray-600/5 to-slate-800/5 dark:from-slate-200/5 dark:via-gray-300/5 dark:to-slate-100/5 rounded-3xl blur-3xl" />
-            
+          <div className="text-center mb-8 md:mb-12">
             <motion.h2 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 leading-tight relative z-10"
+              className="text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-slate-700 via-gray-600 to-slate-800 dark:from-slate-200 dark:via-gray-300 dark:to-slate-100 bg-clip-text text-transparent"
             >
-              <GradientText className="bg-gradient-to-r from-slate-700 via-gray-600 to-slate-800 dark:from-slate-200 dark:via-gray-300 dark:to-slate-100">
-                Technologies I Love Working With
-              </GradientText>
+              Technologies I Love Working With
             </motion.h2>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-xs sm:text-sm md:text-base lg:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto px-4 leading-relaxed relative z-10"
+              className="text-sm md:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto px-4 leading-relaxed"
             >
-              Modern technologies that I use to build exceptional digital experiences
+              Modern technologies I use to build exceptional digital experiences
             </motion.p>
           </div>
-
-          {/* Enhanced Responsive Grid Layout */}
-          <div className="space-y-4 sm:space-y-6 md:space-y-8 max-w-6xl mx-auto">
+          <div className="space-y-4 md:space-y-6 max-w-3xl mx-auto">
             {technologies.map((category, categoryIndex) => (
               <motion.div
                 key={category.category}
@@ -391,89 +372,29 @@ export default function HomePage() {
                   hover 
                   className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border border-gray-200/70 dark:border-slate-700/70 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                 >
-                  {/* Enhanced shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-1000 -skew-x-12" />
-                  
-                  <div className="relative z-10 p-3 sm:p-4 md:p-6">
-                    {/* Category Header - Optimized */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 pb-3 sm:pb-4 mb-4 sm:mb-6 border-b border-gray-100 dark:border-slate-700">
-                      <div className={`text-2xl sm:text-3xl md:text-4xl p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-md bg-gradient-to-r ${category.gradient} text-white group-hover:scale-105 transition-transform duration-300 flex-shrink-0`}>
+                  <div className="relative z-10 p-3 sm:p-4">
+                    <div className="flex items-center gap-3 pb-3 mb-4 border-b border-gray-100 dark:border-slate-700">
+                      <div className={`text-2xl sm:text-3xl p-2 rounded-lg shadow-md bg-gradient-to-r ${category.gradient} text-white group-hover:scale-105 transition-transform duration-300 flex-shrink-0`}>
                         {category.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 leading-tight">
+                        <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 leading-tight">
                           {category.category}
                         </h3>
-                        <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-400">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                           {category.techs.length} Technologies
                         </p>
                       </div>
                     </div>
-
-                    {/* Technologies List - Vertical Layout to Prevent Overlaps */}
-                    <div className="space-y-3 sm:space-y-4">
-                      {category.techs.map((tech, techIndex) => (
-                        <motion.div
-                          key={tech.name}
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: (categoryIndex * 0.05) + (techIndex * 0.03), duration: 0.4 }}
-                          className="group/tech w-full"
-                        >
-                          <div className="bg-gradient-to-r from-white/95 via-gray-50/95 to-white/95 dark:from-slate-700/90 dark:via-slate-600/90 dark:to-slate-700/90 rounded-xl p-3 sm:p-4 border border-gray-200/80 dark:border-slate-600/60 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-300 hover:shadow-lg group-hover/tech:shadow-xl relative overflow-hidden backdrop-blur-sm">
-                            {/* Premium shine effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/tech:opacity-100 group-hover/tech:translate-x-full transition-all duration-700 -skew-x-12" />
-                            
-                            {/* Content Layout - No Overlap */}
-                            <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
-                              {/* Tech Name and Level */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className={cn(
-                                    "font-bold text-sm sm:text-base md:text-lg group-hover/tech:scale-105 transition-transform duration-300 truncate", 
-                                    tech.color, 
-                                    "dark:opacity-90"
-                                  )} title={tech.name}>
-                                    {tech.name}
-                                  </span>
-                                  <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold ml-2 flex-shrink-0">
-                                    {tech.level}%
-                                  </span>
-                                </div>
-                                
-                                {/* Progress Bar - Full Width with Proper Spacing */}
-                                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 sm:h-2.5 overflow-hidden shadow-inner relative">
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    whileInView={{ width: `${tech.level}%` }}
-                                    viewport={{ once: true }}
-                                    transition={{ 
-                                      delay: (categoryIndex * 0.05) + (techIndex * 0.03) + 0.1, 
-                                      duration: 0.8, 
-                                      ease: "easeOut" 
-                                    }}
-                                    className={cn("h-full bg-gradient-to-r rounded-full shadow-lg relative overflow-hidden", category.gradient)}
-                                  >
-                                    {/* Subtle shimmer effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse opacity-40" />
-                                  </motion.div>
-                                </div>
-                              </div>
-                              
-                              {/* Success Indicator */}
-                              <div className="flex-shrink-0 ml-3">
-                                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md group-hover/tech:scale-110 transition-transform duration-300">
-                                  ✓
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Floating glow effects */}
-                            <div className="absolute top-1 right-1 w-1 h-1 bg-blue-400/40 rounded-full opacity-0 group-hover/tech:opacity-100 group-hover/tech:animate-ping transition-opacity duration-500" />
-                            <div className="absolute bottom-1 left-1 w-1 h-1 bg-purple-400/40 rounded-full opacity-0 group-hover/tech:opacity-100 group-hover/tech:animate-ping transition-opacity duration-500 delay-200" />
+                    <div className="flex flex-wrap gap-2">
+                      {category.techs.map((tech) => (
+                        <div key={tech.name} className="flex flex-col items-center w-1/2 sm:w-1/3 md:w-1/4 mb-2">
+                          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-700 dark:to-slate-800 shadow-md mb-1">
+                            <span className={cn('text-lg', tech.color)}>{tech.name[0]}</span>
                           </div>
-                        </motion.div>
+                          <span className={cn('text-xs font-semibold', tech.color)}>{tech.name}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{tech.level}%</span>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -481,36 +402,6 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
-
-          {/* Optimized CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-6 sm:mt-8 md:mt-12 text-center"
-          >
-            <Card variant="default" className="max-w-xl mx-auto bg-gradient-to-r from-slate-50/90 to-gray-50/90 dark:from-slate-800/90 dark:to-gray-800/90 border-slate-200 dark:border-slate-600 shadow-lg hover:shadow-xl transition-all duration-300 group overflow-hidden">
-              {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-700 -skew-x-12" />
-              
-              <div className="relative z-10 p-4 sm:p-6 md:p-8 text-center">
-                <h4 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
-                  Ready to Build Something Amazing?
-                </h4>
-                <p className="text-slate-600 dark:text-slate-400 mb-3 sm:mb-4 text-xs sm:text-sm md:text-base leading-relaxed">
-                  Let&apos;s discuss how these technologies can bring your project to life
-                </p>
-                <Button asChild className="bg-gradient-to-r from-slate-600 to-gray-600 hover:from-slate-700 hover:to-gray-700 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 text-sm sm:text-base">
-                  <Link href="/contact" className="flex items-center gap-2 justify-center">
-                    Start Your Project
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </Link>
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
         </div>
       </SectionWrapper>
 
