@@ -52,20 +52,20 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-semibold transition-all duration-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group transform hover:scale-105 active:scale-95';
   
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
-    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-100 focus:ring-gray-500',
-    outline: 'border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500',
-    ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500',
-    destructive: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+    primary: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white focus:ring-indigo-500 shadow-lg hover:shadow-xl magnetic-button',
+    secondary: 'bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-900 dark:from-gray-800 dark:to-gray-700 dark:hover:from-gray-700 dark:hover:to-gray-600 dark:text-gray-100 focus:ring-gray-500 shadow-md hover:shadow-lg',
+    outline: 'border-2 border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500 hover:border-gray-400 dark:hover:border-gray-500 shadow-sm hover:shadow-md',
+    ghost: 'bg-transparent hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-800 dark:hover:to-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500',
+    destructive: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white focus:ring-red-500 shadow-lg hover:shadow-xl',
   };
 
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'px-4 py-2 text-sm rounded-lg',
+    md: 'px-6 py-3 text-base rounded-xl',
+    lg: 'px-8 py-4 text-lg rounded-2xl',
   };
 
   const buttonClasses = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
@@ -82,13 +82,16 @@ export function Button({
       disabled={disabled || loading}
       {...props}
     >
+      {/* Shimmer effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+      
       {loading && (
         <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
       )}
-      {children}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 }
@@ -109,20 +112,28 @@ export function Card({
   variant = 'default'
 }: CardProps) {
   const variants = {
-    default: 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700',
-    premium: 'bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border border-white/70 dark:border-slate-700/70 shadow-xl',
-    glass: 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/50 dark:border-slate-700/50',
-    gradient: 'bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-slate-800 dark:via-slate-700 dark:to-indigo-900 border border-white/60 dark:border-slate-700/60'
+    default: 'bg-white/95 dark:bg-slate-800/95 border border-gray-200/70 dark:border-slate-700/70',
+    premium: 'bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl border border-white/80 dark:border-slate-700/80 shadow-2xl',
+    glass: 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl border border-white/60 dark:border-slate-700/60',
+    gradient: 'bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-slate-800 dark:via-slate-700/80 dark:to-indigo-900/30 border border-white/70 dark:border-slate-700/70'
   };
 
   return (
     <div className={cn(
-      'card rounded-2xl lg:rounded-3xl transition-all duration-500 overflow-hidden',
+      'card rounded-xl lg:rounded-2xl xl:rounded-3xl transition-all duration-500 overflow-hidden relative group',
       variants[variant],
-      padding ? 'p-4 sm:p-6 lg:p-8' : '',
-      hover ? 'hover:shadow-2xl hover:-translate-y-2 group' : '',
+      padding ? 'p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8' : '',
+      hover ? 'hover:shadow-3xl hover:-translate-y-2 hover:scale-[1.02] cursor-pointer' : '',
       className
     )}>
+      {/* Premium glow effect on hover */}
+      {hover && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-xl lg:rounded-2xl xl:rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10 scale-110" />
+          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        </>
+      )}
+      
       {children}
     </div>
   );
@@ -303,7 +314,7 @@ export function Tooltip({ children, content, position = 'top' }: TooltipProps) {
   );
 }
 
-// SectionWrapper Component
+// SectionWrapper Component - Optimized
 interface SectionWrapperProps {
   children: React.ReactNode;
   className?: string;
@@ -312,8 +323,8 @@ interface SectionWrapperProps {
 export const SectionWrapper = React.forwardRef<HTMLElement, SectionWrapperProps>(
   ({ children, className = '' }, ref) => {
     return (
-      <section ref={ref} className={cn('py-16 md:py-20 lg:py-24 xl:py-28 overflow-hidden', className)}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+      <section ref={ref} className={cn('py-12 md:py-16 lg:py-20 overflow-hidden', className)}>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           {children}
         </div>
       </section>
@@ -523,7 +534,7 @@ export function SectionCard({
   );
 }
 
-// Enhanced Stat Card Component
+// Enhanced Stat Card Component - Fully Responsive
 interface StatCardProps {
   label: string;
   value: number;
@@ -534,26 +545,34 @@ interface StatCardProps {
 
 export function StatCard({ label, value, suffix = "", icon, gradient = "from-blue-600 via-purple-600 to-indigo-600" }: StatCardProps) {
   return (
-    <div className="text-center group">
-      <Card variant="premium" hover className="relative overflow-hidden">
+    <div className="text-center group w-full">
+      <Card variant="default" hover className="relative overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border border-white/80 dark:border-slate-700/80 shadow-lg hover:shadow-xl transition-all duration-300 h-full">
+        {/* Premium shine effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-700 -skew-x-12" />
+        
         {/* Enhanced glowing border effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/25 via-purple-500/25 to-indigo-500/25 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl lg:rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10" />
         
-        {icon && (
-          <div className="text-4xl mb-4 flex justify-center">{icon}</div>
-        )}
-        
-        <div className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6">
-          <GradientText className={cn("bg-gradient-to-r", gradient)}>
-            <AnimatedCounter end={value} duration={2500} />
-            {suffix}
-          </GradientText>
+        <div className="relative z-10 p-3 sm:p-4 md:p-5 lg:p-6 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[140px] md:min-h-[160px]">
+          {icon && (
+            <div className="text-xl sm:text-2xl md:text-3xl mb-2 sm:mb-3 flex justify-center opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300">{icon}</div>
+          )}
+          
+          <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-2 sm:mb-3 leading-none">
+            <GradientText className={cn("bg-gradient-to-r", gradient)}>
+              <AnimatedCounter end={value} duration={2000} />
+              {suffix}
+            </GradientText>
+          </div>
+          
+          <p className="text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm md:text-base lg:text-lg tracking-wide leading-tight text-center px-1 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-300 break-words hyphens-auto">
+            {label}
+          </p>
         </div>
-        <p className="text-slate-700 dark:text-slate-300 font-semibold text-lg lg:text-xl tracking-wide">{label}</p>
         
         {/* Enhanced decorative elements */}
-        <div className="absolute -top-4 -right-4 w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse" />
-        <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse delay-300" />
+        <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-70 transition-all duration-500 animate-pulse shadow-lg" />
+        <div className="absolute -bottom-1.5 -left-1.5 sm:-bottom-2 sm:-left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-70 transition-all duration-500 animate-pulse delay-300 shadow-lg" />
       </Card>
     </div>
   );

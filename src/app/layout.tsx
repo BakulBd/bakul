@@ -17,12 +17,12 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Bakul Ahmed - Premium Full Stack Developer | Modern Web Solutions",
+    default: "Bakul Ahmed - Full Stack Developer | Modern Web Solutions",
     template: "%s | Bakul Ahmed - Expert Developer"
   },
-  description: "🚀 Premium Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences for 50+ projects and 30+ satisfied clients worldwide. Expert in UI/UX design, cloud deployment & scalable applications.",
+  description: "🚀 Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences for 50+ projects and 30+ satisfied clients worldwide. Expert in UI/UX design, cloud deployment & scalable applications.",
   keywords: [
-    "Premium Full Stack Developer",
+    "Full Stack Developer",
     "Expert React Developer", 
     "Next.js Specialist",
     "TypeScript Expert",
@@ -61,7 +61,10 @@ export const metadata = {
     "Software Engineer",
     "Web Performance",
     "Mobile First Design",
-    "Cross Browser Compatibility"
+    "Cross Browser Compatibility",
+    "Clean Code",
+    "Modern Architecture",
+    "Scalable Solutions"
   ],
   authors: [{ name: "Bakul Ahmed", url: "https://bakul.dev" }],
   creator: "Bakul Ahmed",
@@ -79,15 +82,15 @@ export const metadata = {
     type: "website",
     locale: "en_US",
     url: "https://bakul.dev",
-    title: "Bakul Ahmed - Premium Full Stack Developer | Modern Web Solutions",
-    description: "🚀 Premium Full Stack Developer with 5+ years experience. Expert in React, Next.js, TypeScript. 50+ projects completed, 30+ satisfied clients worldwide. Building exceptional digital experiences with modern technologies and best practices.",
+    title: "Bakul Ahmed - Full Stack Developer | Modern Web Solutions",
+    description: "🚀 Full Stack Developer with 5+ years experience. Expert in React, Next.js, TypeScript. 50+ projects completed, 30+ satisfied clients worldwide. Building exceptional digital experiences with modern technologies and best practices.",
     siteName: "Bakul Ahmed Portfolio",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Bakul Ahmed - Premium Full Stack Developer Portfolio",
+        alt: "Bakul Ahmed - Full Stack Developer Portfolio",
       },
       {
         url: "/og-image-square.jpg",
@@ -99,7 +102,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bakul Ahmed - Premium Full Stack Developer",
+    title: "Bakul Ahmed - Full Stack Developer",
     description: "🚀 Expert Full Stack Developer | React, Next.js, TypeScript | 5+ years experience | 50+ projects | 30+ satisfied clients worldwide",
     creator: "@bakulahmed",
     site: "@bakulahmed",
