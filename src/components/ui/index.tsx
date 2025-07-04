@@ -110,16 +110,16 @@ export function Card({
 }: CardProps) {
   const variants = {
     default: 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700',
-    premium: 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-white/60 dark:border-slate-700/60 shadow-xl',
-    glass: 'bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/40 dark:border-slate-700/40',
+    premium: 'bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border border-white/70 dark:border-slate-700/70 shadow-xl',
+    glass: 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/50 dark:border-slate-700/50',
     gradient: 'bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-slate-800 dark:via-slate-700 dark:to-indigo-900 border border-white/60 dark:border-slate-700/60'
   };
 
   return (
     <div className={cn(
-      'card rounded-3xl transition-all duration-500',
+      'card rounded-2xl lg:rounded-3xl transition-all duration-500 overflow-hidden',
       variants[variant],
-      padding ? 'p-6 lg:p-8' : '',
+      padding ? 'p-4 sm:p-6 lg:p-8' : '',
       hover ? 'hover:shadow-2xl hover:-translate-y-2 group' : '',
       className
     )}>
@@ -312,8 +312,8 @@ interface SectionWrapperProps {
 export const SectionWrapper = React.forwardRef<HTMLElement, SectionWrapperProps>(
   ({ children, className = '' }, ref) => {
     return (
-      <section ref={ref} className={cn('py-20', className)}>
-        <div className="max-w-6xl mx-auto px-4">
+      <section ref={ref} className={cn('py-16 md:py-20 lg:py-24 xl:py-28 overflow-hidden', className)}>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           {children}
         </div>
       </section>

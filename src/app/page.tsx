@@ -1,7 +1,7 @@
 'use client';
 
 import EnhancedHero from '@/components/sections/EnhancedHero';
-import { SectionWrapper, Card, Button, Badge, GradientText, AnimatedCounter, SectionCard, StatCard } from '@/components/ui';
+import { SectionWrapper, Card, Button, Badge, GradientText, SectionCard, StatCard } from '@/components/ui';
 import { useIntersectionObserver } from '@/hooks/enhanced';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,7 +14,7 @@ const stats = [
   { label: 'Projects Completed', value: 50, suffix: '+' },
   { label: 'Happy Clients', value: 30, suffix: '+' },
   { label: 'Years Experience', value: 5, suffix: '+' },
-  { label: 'Technologies', value: 20, suffix: '+' },
+  { label: 'Technologies', value: 25, suffix: '+' },
 ];
 
 // Services data
@@ -283,18 +283,18 @@ export default function HomePage() {
       </SectionWrapper>
 
       {/* Technologies Section */}
-      <SectionWrapper className="relative bg-gradient-to-br from-slate-50/90 via-white/80 to-gray-50/90 dark:from-slate-950/90 dark:via-slate-900/80 dark:to-gray-950/90 py-24 lg:py-32 backdrop-blur-sm overflow-hidden">
+      <SectionWrapper className="relative bg-gradient-to-br from-slate-50/95 via-white/90 to-gray-50/95 dark:from-slate-950/95 dark:via-slate-900/90 dark:to-gray-950/95 py-20 sm:py-24 md:py-28 lg:py-32 xl:py-40 backdrop-blur-sm">
         {/* Background decorative elements */}
-        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-200/30 dark:bg-blue-800/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-40 h-40 bg-purple-200/30 dark:bg-purple-800/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-200/20 dark:bg-blue-800/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-purple-200/20 dark:bg-purple-800/10 rounded-full blur-3xl animate-pulse delay-1000" />
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-20 lg:mb-24">
+        <div className="relative z-10">
+          <div className="text-center mb-16 sm:mb-20 md:mb-24 lg:mb-32">
             <motion.h2 
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl lg:text-5xl xl:text-6xl font-bold mb-8"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 lg:mb-8 leading-tight"
             >
               <GradientText className="bg-gradient-to-r from-slate-700 via-gray-600 to-slate-800 dark:from-slate-200 dark:via-gray-300 dark:to-slate-100">
                 Technologies I Love Working With
@@ -305,66 +305,111 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-xl lg:text-2xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl lg:text-2xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto leading-relaxed px-4"
             >
-              A comprehensive toolkit of modern technologies and frameworks that I use to build exceptional digital experiences
+              A comprehensive toolkit of cutting-edge technologies and frameworks that I master to build exceptional digital experiences
             </motion.p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-10 lg:gap-12">
+          {/* Enhanced Grid Layout with better spacing */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-20">
             {technologies.map((category, categoryIndex) => (
               <motion.div
                 key={category.category}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: categoryIndex * 0.2, duration: 0.8 }}
+                transition={{ delay: categoryIndex * 0.15, duration: 0.8 }}
+                className="w-full"
               >
-                <SectionCard
-                  title={category.category}
-                  subtitle={`${category.techs.length} Technologies`}
-                  icon={category.icon}
-                  gradient={category.gradient}
-                  bgGradient={category.bgGradient}
-                  className="h-full hover:-translate-y-3"
+                <Card 
+                  variant="premium" 
+                  hover 
+                  className={`h-full bg-gradient-to-br ${category.bgGradient} hover:shadow-2xl hover:-translate-y-3 border-white/70 dark:border-slate-700/70 relative overflow-hidden min-h-[600px] lg:min-h-[700px]`}
                 >
-                  {/* Technologies List */}
-                  <div className="space-y-6">
-                    {category.techs.map((tech, techIndex) => (
-                      <motion.div
-                        key={tech.name}
-                        initial={{ opacity: 0, x: -20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: (categoryIndex * 0.2) + (techIndex * 0.1), duration: 0.6 }}
-                        className="group/tech"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={cn("font-semibold text-lg group-hover/tech:scale-105 transition-transform duration-300", tech.color, "dark:opacity-90")}>
-                            {tech.name}
-                          </span>
-                          <span className="text-slate-600 dark:text-slate-400 font-medium text-lg">
-                            {tech.level}%
-                          </span>
-                        </div>
-                        
-                        {/* Skill Progress Bar */}
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${tech.level}%` }}
-                            viewport={{ once: true }}
-                            transition={{ delay: (categoryIndex * 0.2) + (techIndex * 0.1) + 0.3, duration: 1, ease: "easeOut" }}
-                            className={cn("h-full bg-gradient-to-r rounded-full shadow-lg relative overflow-hidden", category.gradient)}
-                          >
-                            {/* Animated shine effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    ))}
+                  {/* Enhanced gradient overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${category.bgGradient} opacity-0 group-hover:opacity-40 transition-opacity duration-500`} />
+                  
+                  <div className="relative z-10 h-full flex flex-col">
+                    {/* Category Header - Fixed height to prevent overlap */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-8 lg:mb-12 min-h-[120px]">
+                      <div className={`text-5xl lg:text-6xl bg-gradient-to-r ${category.gradient} p-5 lg:p-6 rounded-2xl lg:rounded-3xl shadow-2xl group-hover:scale-105 transition-transform duration-500 relative overflow-hidden flex-shrink-0`}>
+                        <div className="absolute inset-0 bg-white/20 dark:bg-black/20" />
+                        <span className="relative z-10">{category.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 lg:mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 leading-tight">
+                          {category.category}
+                        </h3>
+                        <p className="text-base lg:text-xl text-slate-600 dark:text-slate-400 font-medium">
+                          {category.techs.length} Advanced Technologies
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Technologies List - Improved spacing */}
+                    <div className="flex-1 space-y-6 lg:space-y-8">
+                      {category.techs.map((tech, techIndex) => (
+                        <motion.div
+                          key={tech.name}
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: (categoryIndex * 0.15) + (techIndex * 0.08), duration: 0.6 }}
+                          className="group/tech p-1"
+                        >
+                          {/* Technology Header - Better responsive layout */}
+                          <div className="flex items-center justify-between mb-3 lg:mb-4 gap-4">
+                            <span className={cn(
+                              "font-bold text-lg sm:text-xl lg:text-2xl group-hover/tech:scale-105 transition-transform duration-300 flex-shrink-0", 
+                              tech.color, 
+                              "dark:opacity-90"
+                            )}>
+                              {tech.name}
+                            </span>
+                            <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+                              <span className="text-slate-600 dark:text-slate-400 font-semibold text-base lg:text-xl whitespace-nowrap">
+                                {tech.level}%
+                              </span>
+                              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-xs lg:text-sm shadow-lg flex-shrink-0">
+                                ✓
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Enhanced Skill Progress Bar with better sizing */}
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 lg:h-4 overflow-hidden shadow-inner mb-2 lg:mb-3">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{ width: `${tech.level}%` }}
+                              viewport={{ once: true }}
+                              transition={{ 
+                                delay: (categoryIndex * 0.15) + (techIndex * 0.08) + 0.3, 
+                                duration: 1.2, 
+                                ease: "easeOut" 
+                              }}
+                              className={cn("h-full bg-gradient-to-r rounded-full shadow-lg relative overflow-hidden", category.gradient)}
+                            >
+                              {/* Enhanced animated shine effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse opacity-60" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-ping opacity-40" />
+                            </motion.div>
+                          </div>
+                          
+                          {/* Experience indicator - Better spacing */}
+                          <div className="flex justify-between text-xs lg:text-sm text-slate-500 dark:text-slate-400 px-1">
+                            <span>Beginner</span>
+                            <span>Expert</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </SectionCard>
+
+                  {/* Enhanced floating decoration */}
+                  <div className="absolute top-4 lg:top-6 right-4 lg:right-6 w-3 h-3 lg:w-4 lg:h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
+                  <div className="absolute bottom-4 lg:bottom-6 left-4 lg:left-6 w-2 h-2 lg:w-3 lg:h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse delay-300" />
+                </Card>
               </motion.div>
             ))}
           </div>
@@ -374,19 +419,19 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mt-16 lg:mt-20"
+            className="text-center mt-12 sm:mt-16 lg:mt-20 xl:mt-24"
           >
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-white/60 dark:border-slate-700/60 rounded-3xl p-10 lg:p-12 max-w-2xl mx-auto shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-              <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-4">
+            <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border border-white/70 dark:border-slate-700/70 rounded-2xl lg:rounded-3xl p-8 sm:p-10 lg:p-12 max-w-3xl mx-auto shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-4 lg:mb-6">
                 Let&apos;s Build Something Amazing Together
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-lg lg:text-xl mb-8 leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-base sm:text-lg lg:text-xl mb-6 lg:mb-8 leading-relaxed px-2">
                 Ready to leverage these technologies for your next project?
               </p>
-              <Button asChild size="lg" className="bg-gradient-to-r from-slate-600 via-gray-600 to-slate-700 hover:from-slate-700 hover:via-gray-700 hover:to-slate-800 text-white border-none shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 px-10 py-4 rounded-2xl text-lg font-semibold">
-                <Link href="/contact" className="flex items-center gap-3">
+              <Button asChild size="lg" className="bg-gradient-to-r from-slate-600 via-gray-600 to-slate-700 hover:from-slate-700 hover:via-gray-700 hover:to-slate-800 text-white border-none shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 px-8 sm:px-10 py-3 sm:py-4 rounded-xl lg:rounded-2xl text-base lg:text-lg font-semibold">
+                <Link href="/contact" className="flex items-center gap-2 lg:gap-3">
                   Start a Project
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </Link>
