@@ -541,11 +541,13 @@ interface StatCardProps {
   suffix?: string;
   icon?: string;
   gradient?: string;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export function StatCard({ label, value, suffix = "", icon, gradient = "from-blue-600 via-purple-600 to-indigo-600" }: StatCardProps) {
+export function StatCard({ label, value, suffix = "", icon, gradient = "from-blue-600 via-purple-600 to-indigo-600", className, style }: StatCardProps) {
   return (
-    <div className="text-center group w-full">
+    <div className={cn("text-center group w-full", className)} style={style}>
       <Card variant="default" hover className="relative overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-lg border border-white/80 dark:border-slate-700/80 shadow-lg hover:shadow-xl transition-all duration-300 h-full">
         {/* Premium shine effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-full transition-all duration-700 -skew-x-12" />
