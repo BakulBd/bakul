@@ -221,6 +221,116 @@ export default function HomePage() {
 				</div>
 			</SectionWrapper>
 
+			{/* Services Section */}
+			<SectionWrapper className="py-8 sm:py-12 md:py-16 lg:py-20 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30 dark:from-slate-900/50 dark:via-slate-950 dark:to-indigo-950/30 relative">
+				<div className="container mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+					<motion.div
+						initial={{ opacity: 0, y: 50 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8, ease: 'easeOut' }}
+						viewport={{ once: true }}
+						className="text-center mb-8 sm:mb-12 md:mb-16"
+					>
+						<motion.div
+							initial={{ scale: 0.8, opacity: 0 }}
+							whileInView={{ scale: 1, opacity: 1 }}
+							transition={{ duration: 0.6, delay: 0.2 }}
+							className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-emerald-100 to-blue-100 dark:from-emerald-900/30 dark:to-blue-900/30 text-emerald-700 dark:text-emerald-300 text-sm font-medium mb-4 border border-emerald-200/50 dark:border-emerald-800/50"
+						>
+							<CodeBracketIcon className="w-4 h-4 mr-2" />
+							What I Do
+						</motion.div>
+						<h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
+							Services I Offer
+						</h2>
+						<p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg md:text-xl max-w-xs sm:max-w-xl md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
+							Comprehensive digital solutions tailored to transform your ideas into powerful, scalable applications
+						</p>
+					</motion.div>
+
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+						{[
+							{
+								title: 'Frontend Development',
+								description: 'Modern, responsive web applications using React, Next.js, and TypeScript with pixel-perfect UI/UX design.',
+								icon: '🎨',
+								color: 'from-blue-500 to-cyan-500',
+								features: ['React & Next.js', 'TypeScript', 'Responsive Design', 'Modern UI/UX']
+							},
+							{
+								title: 'Backend Development',
+								description: 'Robust server-side solutions with Node.js, Python, and cloud infrastructure for scalable applications.',
+								icon: '⚡',
+								color: 'from-green-500 to-emerald-500',
+								features: ['Node.js & Python', 'API Development', 'Database Design', 'Cloud Integration']
+							},
+							{
+								title: 'Full Stack Solutions',
+								description: 'End-to-end development from concept to deployment, ensuring seamless integration and optimal performance.',
+								icon: '🚀',
+								color: 'from-purple-500 to-pink-500',
+								features: ['Complete Solutions', 'DevOps & Deployment', 'Performance Optimization', 'Maintenance & Support']
+							}
+						].map((service, index) => (
+							<motion.div
+								key={index}
+								initial={{ opacity: 0, y: 50 }}
+								whileInView={{ opacity: 1, y: 0 }}
+								transition={{ 
+									duration: 0.6, 
+									delay: index * 0.2,
+									type: "spring",
+									stiffness: 100
+								}}
+								viewport={{ once: true }}
+								whileHover={{ 
+									y: -8, 
+									scale: 1.02,
+									transition: { duration: 0.2 }
+								}}
+								className="group"
+							>
+								<Card
+									variant="premium"
+									className="h-full p-6 sm:p-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-white/20 dark:border-slate-700/20 hover:border-gray-200/50 dark:hover:border-slate-600/50 transition-all duration-300"
+								>
+									<motion.div
+										className={`text-4xl mb-4 bg-gradient-to-r ${service.color} bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300`}
+										whileHover={{ rotate: [0, -5, 5, 0] }}
+										transition={{ duration: 0.3 }}
+									>
+										{service.icon}
+									</motion.div>
+									
+									<h3 className="text-xl sm:text-2xl font-bold mb-3 text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+										{service.title}
+									</h3>
+									
+									<p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+										{service.description}
+									</p>
+									
+									<ul className="space-y-2">
+										{service.features.map((feature, i) => (
+											<motion.li
+												key={i}
+												initial={{ opacity: 0, x: -10 }}
+												whileInView={{ opacity: 1, x: 0 }}
+												transition={{ delay: 0.1 * i }}
+												className="flex items-center text-sm text-gray-500 dark:text-gray-400"
+											>
+												<span className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mr-3 flex-shrink-0"></span>
+												{feature}
+											</motion.li>
+										))}
+									</ul>
+								</Card>
+							</motion.div>
+						))}
+					</div>
+				</div>
+			</SectionWrapper>
+
 			{/* Technologies Section */}
 			<SectionWrapper className="py-8 sm:py-12 md:py-16 lg:py-20 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-pink-50/30 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 relative">
 				{/* Animated background pattern */}
@@ -254,7 +364,7 @@ export default function HomePage() {
 						</p>
 					</motion.div>
 
-					<div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 md:gap-6 max-w-6xl mx-auto">
 						{[
 							{ name: 'React', icon: '⚛️', color: 'from-blue-500 to-cyan-500', description: 'UI Library' },
 							{ name: 'Next.js', icon: '▲', color: 'from-gray-700 to-gray-900', description: 'Framework' },
@@ -281,9 +391,8 @@ export default function HomePage() {
 								}}
 								viewport={{ once: true }}
 								whileHover={{ 
-									scale: 1.08, 
-									y: -5,
-									rotateY: 5,
+									scale: 1.05, 
+									y: -3,
 									transition: { duration: 0.2 }
 								}}
 								className="group relative"
@@ -291,12 +400,12 @@ export default function HomePage() {
 								{/* Glow effect on hover */}
 								<motion.div
 									className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tech.color} opacity-0 group-hover:opacity-20 blur-xl transition-all duration-300`}
-									whileHover={{ scale: 1.2 }}
+									whileHover={{ scale: 1.1 }}
 								/>
 								
 								<Card
 									variant="glass"
-									className="relative p-2 sm:p-3 md:p-4 text-center h-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/20 dark:border-slate-700/20 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 min-h-[80px] sm:min-h-[90px] md:min-h-[100px] lg:min-h-[110px] overflow-hidden"
+									className="relative p-4 text-center h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/30 dark:border-slate-700/30 hover:bg-white/95 dark:hover:bg-slate-800/95 transition-all duration-300 min-h-[120px] flex flex-col justify-center items-center overflow-hidden"
 								>
 									{/* Animated shine effect */}
 									<motion.div
@@ -305,16 +414,16 @@ export default function HomePage() {
 									/>
 									
 									<motion.div 
-										className={`text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2 md:mb-3 bg-gradient-to-r ${tech.color} bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300`}
-										whileHover={{ rotate: [0, -10, 10, 0] }}
+										className={`text-3xl mb-3 bg-gradient-to-r ${tech.color} bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300`}
+										whileHover={{ rotate: [0, -5, 5, 0] }}
 										transition={{ duration: 0.3 }}
 									>
 										{tech.icon}
 									</motion.div>
-									<h3 className="font-semibold text-xs sm:text-sm md:text-sm text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors leading-tight break-words mb-1">
+									<h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors leading-tight mb-1">
 										{tech.name}
 									</h3>
-									<p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+									<p className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
 										{tech.description}
 									</p>
 								</Card>

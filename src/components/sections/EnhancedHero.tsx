@@ -149,8 +149,9 @@ export default function EnhancedHero() {
             transition={{ delay: 0.8, duration: 0.6 }}
             className="text-lg text-muted-foreground leading-relaxed max-w-xl"
           >
-            I specialize in creating exceptional digital experiences through modern web technologies, 
-            intuitive design, and scalable solutions that drive business growth.
+            I create exceptional digital experiences through modern web technologies, 
+            intuitive design, and scalable solutions. Passionate about crafting clean, 
+            efficient code that drives business growth and user satisfaction.
           </motion.p>
 
           {/* Call to Action Buttons */}
@@ -158,11 +159,11 @@ export default function EnhancedHero() {
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 1, duration: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4"
+            className="flex flex-col sm:flex-row gap-4 items-start sm:items-center"
           >
             <Button
               size="lg"
-              className="group"
+              className="group w-full sm:w-auto"
               asChild
             >
               <Link href="/projects">
@@ -174,11 +175,34 @@ export default function EnhancedHero() {
             <Button
               variant="outline"
               size="lg"
+              className="w-full sm:w-auto"
               asChild
             >
               <Link href="/contact">
                 Get In Touch
               </Link>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="lg"
+              className="group bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
+              asChild
+            >
+              <a 
+                href="/cv/Bakul_Ahmed_CV.pdf" 
+                download="Bakul_Ahmed_CV.pdf"
+                className="flex items-center justify-center"
+              >
+                📄 Download CV
+                <motion.span
+                  className="ml-2"
+                  whileHover={{ y: -2 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  ⬇️
+                </motion.span>
+              </a>
             </Button>
           </motion.div>
 
