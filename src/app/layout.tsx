@@ -17,16 +17,16 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Bakul Ahmed - Full Stack Developer | Modern Web Solutions",
-    template: "%s | Bakul Ahmed - Expert Developer"
+    default: "Bakul Ahmed - Premium Website Developer | Digital Experience Creator",
+    template: "%s | Bakul Ahmed - Premium Developer"
   },
-  description: "🚀 Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences for 50+ projects and 30+ satisfied clients worldwide. Expert in UI/UX design, cloud deployment & scalable applications.",
+  description: "🌟 Premium Website Developer & Digital Experience Creator. Specializing in cutting-edge web technologies, exceptional UI/UX design, and scalable digital solutions. Transforming ideas into premium web experiences that drive results.",
   keywords: [
-    "Full Stack Developer",
-    "Expert React Developer", 
-    "Next.js Specialist",
-    "TypeScript Expert",
-    "Modern UI/UX Designer",
+    "Premium Website Developer",
+    "Digital Experience Creator", 
+    "Expert Web Developer",
+    "Modern Web Solutions",
+    "Premium UI/UX Design",
     "Professional Web Development",
     "Bakul Ahmed Portfolio",
     "Custom Web Applications",
