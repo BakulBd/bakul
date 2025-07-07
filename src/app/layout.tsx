@@ -1,8 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { EnhancedNavbar, EnhancedFooter } from "@/components/layout/EnhancedLayout";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import EnhancedLoadingScreen from "@/components/EnhancedLoadingScreen";
 import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
@@ -204,15 +202,10 @@ export default function RootLayout({
           enableSystem={true}
           disableTransitionOnChange={true}
         >
-          <EnhancedLoadingScreen />
           <div className="flex flex-col min-h-screen">
-            <EnhancedNavbar />
             <main className="flex-1 relative">
-              <div className="pt-16 lg:pt-20 min-h-screen">
-                {children}
-              </div>
+              {children}
             </main>
-            <EnhancedFooter />
           </div>
           <Toaster
             position="bottom-right"
