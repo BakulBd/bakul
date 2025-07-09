@@ -17,8 +17,6 @@ import {
 import { Post } from '@/types/supabase';
 import { convertFromRaw } from 'draft-js';
 import { stateToHTML } from 'draft-js-export-html';
-import { Button, Input, Card, Badge } from '@/components/ui';
-import { cn } from '@/lib/utils';
 import 'draft-js/dist/Draft.css';
 
 export default function BlogPage() {
@@ -98,25 +96,86 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-28 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 dark:from-blue-400/10 dark:to-purple-400/10" />
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.1)_50%,transparent_75%)] bg-[length:20px_20px] opacity-20" />
-        </div>
+    <div className="min-h-screen bg-black text-white">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-slate-900 to-black" />
         
+        {/* Floating Orbs */}
+        <motion.div
+          className="absolute top-20 right-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
+          animate={{
+            y: [0, -30, 0],
+            x: [0, 20, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 left-20 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl"
+          animate={{
+            y: [0, 30, 0],
+            x: [0, -20, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
+        
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px] opacity-40" />
+        
+        {/* Floating Particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-white rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.3, 1, 0.3],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Hero Section */}
+      <section className="relative py-20 lg:py-32 overflow-hidden">
         <div className="relative container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center max-w-4xl mx-auto"
+            className="text-center max-w-5xl mx-auto"
           >
-            <h1 className="text-5xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 backdrop-blur-sm mb-8"
+            >
+              <DocumentTextIcon className="w-5 h-5 mr-2 text-blue-400" />
+              <span className="text-blue-300 font-medium">Insights & Stories</span>
+            </motion.div>
+
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent leading-tight">
               Blog & Insights
             </h1>
-            <p className="text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl lg:text-2xl text-white/70 max-w-4xl mx-auto leading-relaxed">
               Thoughts, tutorials, and insights about web development, design, and technology. 
               Join me on my journey of continuous learning and sharing.
             </p>
@@ -125,7 +184,7 @@ export default function BlogPage() {
       </section>
 
       {/* Search and Filters */}
-      <section className="py-8 lg:py-12">
+      <section className="py-8 lg:py-12 relative">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -135,13 +194,13 @@ export default function BlogPage() {
           >
             {/* Search Bar */}
             <div className="relative mb-8">
-              <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
+              <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+              <input
                 type="text"
                 placeholder="Search articles, tutorials, and insights..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-4 py-4 text-lg bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-white/20 dark:border-slate-700/30 rounded-2xl"
+                className="w-full pl-12 pr-4 py-4 text-lg bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300"
               />
             </div>
 
@@ -152,42 +211,42 @@ export default function BlogPage() {
                 { key: 'blog', label: 'Articles', icon: DocumentTextIcon },
                 { key: 'vlog', label: 'Videos', icon: VideoCameraIcon }
               ].map(({ key, label, icon: Icon }) => (
-                <Button
+                <motion.button
                   key={key}
                   onClick={() => setFilter(key as 'all' | 'blog' | 'vlog')}
-                  variant={filter === key ? 'primary' : 'outline'}
-                  size="lg"
-                  className={cn(
-                    'px-6 py-3 rounded-xl font-medium transition-all duration-300',
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center ${
                     filter === key
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg transform scale-105'
-                      : 'bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-white/20 dark:border-slate-700/30 hover:bg-white/80 dark:hover:bg-slate-700/60'
-                  )}
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                      : 'bg-white/5 backdrop-blur-sm border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
                   {label}
-                </Button>
+                </motion.button>
               ))}
             </div>
 
             {/* Category Filter */}
             <div className="flex flex-wrap justify-center gap-2">
               {categories.map((category) => (
-                <button
+                <motion.button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={cn(
-                    'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
                     selectedCategory === category.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-white/20 dark:border-slate-700/30 text-muted-foreground hover:text-foreground hover:bg-white/80 dark:hover:bg-slate-700/60'
-                  )}
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                      : 'bg-white/5 backdrop-blur-sm border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
                   {category.name}
-                  <Badge variant="secondary" className="ml-2">
+                  <span className="bg-white/20 text-white px-2 py-1 rounded-full text-xs">
                     {category.count}
-                  </Badge>
-                </button>
+                  </span>
+                </motion.button>
               ))}
             </div>
           </motion.div>
@@ -195,7 +254,7 @@ export default function BlogPage() {
       </section>
 
       {/* Posts Grid */}
-      <section className="pb-20 lg:pb-28">
+      <section className="pb-20 lg:pb-28 relative">
         <div className="container mx-auto px-4">
           {loading ? (
             <div className="flex justify-center py-20">
@@ -212,13 +271,13 @@ export default function BlogPage() {
               transition={{ duration: 0.6 }}
               className="text-center py-20"
             >
-              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
-                <DocumentTextIcon className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">
+                <DocumentTextIcon className="w-12 h-12 text-blue-400" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl font-bold text-white mb-4">
                 No posts found
               </h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              <p className="text-white/70 mb-6 max-w-md mx-auto">
                 {searchTerm 
                   ? `No posts match "${searchTerm}". Try adjusting your search or filters.`
                   : filter === 'all' 
@@ -226,16 +285,18 @@ export default function BlogPage() {
                     : `No ${filter} posts found. Try a different filter.`
                 }
               </p>
-              <Button 
+              <motion.button
                 onClick={() => {
                   setSearchTerm('');
                   setFilter('all');
                   setSelectedCategory('all');
                 }}
-                variant="outline"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25"
               >
                 Clear Filters
-              </Button>
+              </motion.button>
             </motion.div>
           ) : (
             <motion.div
@@ -257,9 +318,9 @@ export default function BlogPage() {
                     className="group"
                   >
                     <Link href={`/blog/${post.slug}`}>
-                      <Card className="h-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-white/20 dark:border-slate-700/30 overflow-hidden hover:bg-white/80 dark:hover:bg-slate-700/60 transition-all duration-300">
+                      <div className="h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:border-white/20">
                         {/* Post Image */}
-                        <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 overflow-hidden">
+                        <div className="relative aspect-video bg-gradient-to-br from-blue-500/20 to-purple-500/20 overflow-hidden">
                           {post.media_url ? (
                             <Image
                               src={post.media_url}
@@ -271,31 +332,32 @@ export default function BlogPage() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <DocumentTextIcon className="w-16 h-16 text-blue-400 dark:text-blue-500" />
+                              <DocumentTextIcon className="w-16 h-16 text-blue-400" />
                             </div>
                           )}
                           
                           {/* Overlay */}
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
+                          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors duration-300" />
                           
                           {/* Post Type Badge */}
                           <div className="absolute top-4 left-4">
-                            <Badge 
-                              variant={post.type === 'blog' ? 'primary' : 'secondary'}
-                              className="bg-white/90 dark:bg-slate-900/90 text-foreground backdrop-blur-sm"
-                            >
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                              post.type === 'blog' 
+                                ? 'bg-blue-500/80 text-white' 
+                                : 'bg-purple-500/80 text-white'
+                            }`}>
                               {post.type === 'blog' ? (
                                 <>
-                                  <DocumentTextIcon className="w-3 h-3 mr-1" />
+                                  <DocumentTextIcon className="w-3 h-3 mr-1 inline" />
                                   Article
                                 </>
                               ) : (
                                 <>
-                                  <VideoCameraIcon className="w-3 h-3 mr-1" />
+                                  <VideoCameraIcon className="w-3 h-3 mr-1 inline" />
                                   Video
                                 </>
                               )}
-                            </Badge>
+                            </div>
                           </div>
 
                           {/* View Count */}
@@ -307,11 +369,11 @@ export default function BlogPage() {
 
                         {/* Post Content */}
                         <div className="p-6">
-                          <h2 className="text-xl font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-3 line-clamp-2 leading-tight">
+                          <h2 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors mb-3 line-clamp-2 leading-tight">
                             {post.title}
                           </h2>
                           
-                          <p className="text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
+                          <p className="text-white/70 mb-4 line-clamp-3 leading-relaxed">
                             {getPostPreview(post)}...
                           </p>
 
@@ -332,10 +394,10 @@ export default function BlogPage() {
                                 </div>
                               )}
                               <div>
-                                <div className="text-sm font-medium text-foreground">
+                                <div className="text-sm font-medium text-white">
                                   {post.profiles?.name || 'Bakul Ahmed'}
                                 </div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                <div className="text-xs text-white/60 flex items-center gap-1">
                                   <CalendarIcon className="w-3 h-3" />
                                   {new Date(post.created_at).toLocaleDateString('en-US', {
                                     month: 'short',
@@ -347,13 +409,13 @@ export default function BlogPage() {
                             </div>
 
                             {/* Read Time */}
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <div className="text-xs text-white/60 flex items-center gap-1">
                               <ClockIcon className="w-3 h-3" />
                               {Math.max(1, Math.ceil(getPostPreview(post).split(' ').length / 200))} min
                             </div>
                           </div>
                         </div>
-                      </Card>
+                      </div>
                     </Link>
                   </motion.div>
                 ))}
