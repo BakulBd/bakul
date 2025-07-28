@@ -54,20 +54,20 @@ export default function BlogPage() {
         } catch (error) {
           console.error('Supabase error:', error);
           // Fall back to mock data
-          useMockData();
+          loadMockData();
         }
       } else {
         // Use mock data for demo
-        useMockData();
+        loadMockData();
       }
       
       setLoading(false);
     }
 
-    function useMockData() {
-      const mockPosts = [
+    function loadMockData() {
+      const mockPosts: Post[] = [
         {
-          id: 1,
+          id: "1",
           title: "Getting Started with Next.js 15",
           content: JSON.stringify({
             blocks: [
@@ -83,16 +83,24 @@ export default function BlogPage() {
           type: "blog",
           published: true,
           created_at: "2024-01-15T10:00:00Z",
+          updated_at: "2024-01-15T10:00:00Z",
           view_count: 150,
+          like_count: 23,
           media_url: null,
+          author_id: "user-1",
           profiles: {
+            id: "user-1",
             name: "Bakul Ahmed",
             avatar_url: null,
-            bio: "Full Stack Developer"
+            role: "admin" as const,
+            email: "bakul@example.com",
+            bio: "Full Stack Developer",
+            created_at: "2024-01-01T00:00:00Z",
+            updated_at: "2024-01-01T00:00:00Z"
           }
         },
         {
-          id: 2,
+          id: "2",
           title: "Modern React Patterns in 2024",
           content: JSON.stringify({
             blocks: [
@@ -108,16 +116,24 @@ export default function BlogPage() {
           type: "blog",
           published: true,
           created_at: "2024-01-10T10:00:00Z",
+          updated_at: "2024-01-10T10:00:00Z",
           view_count: 203,
+          like_count: 45,
           media_url: null,
+          author_id: "user-1",
           profiles: {
+            id: "user-1",
             name: "Bakul Ahmed",
             avatar_url: null,
-            bio: "Full Stack Developer"
+            role: "admin" as const,
+            email: "bakul@example.com",
+            bio: "Full Stack Developer",
+            created_at: "2024-01-01T00:00:00Z",
+            updated_at: "2024-01-01T00:00:00Z"
           }
         },
         {
-          id: 3,
+          id: "3",
           title: "Building with TypeScript and Tailwind CSS",
           content: JSON.stringify({
             blocks: [
@@ -133,12 +149,20 @@ export default function BlogPage() {
           type: "vlog",
           published: true,
           created_at: "2024-01-05T10:00:00Z",
+          updated_at: "2024-01-05T10:00:00Z",
           view_count: 89,
+          like_count: 12,
           media_url: null,
+          author_id: "user-1",
           profiles: {
+            id: "user-1",
             name: "Bakul Ahmed",
             avatar_url: null,
-            bio: "Full Stack Developer"
+            role: "admin" as const,
+            email: "bakul@example.com",
+            bio: "Full Stack Developer",
+            created_at: "2024-01-01T00:00:00Z",
+            updated_at: "2024-01-01T00:00:00Z"
           }
         }
       ];
