@@ -1,17 +1,8 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Navbar } from "@/components/LayoutPartsNew";
+import Footer from "@/components/LayoutPartsNew";
 
 export const metadata = {
   title: {
@@ -194,7 +185,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-foreground`}
+        className="antialiased min-h-screen flex flex-col bg-background text-foreground font-sans"
       >
         <ThemeProvider
           attribute="class"
@@ -203,9 +194,11 @@ export default function RootLayout({
           disableTransitionOnChange={true}
         >
           <div className="flex flex-col min-h-screen">
+            <Navbar />
             <main className="flex-1 relative">
               {children}
             </main>
+            <Footer />
           </div>
           <Toaster
             position="bottom-right"

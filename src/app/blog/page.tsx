@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,24 +26,126 @@ export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
-    const supabase = createClientComponentClient();
+    // Check if Supabase is configured
+    const hasSupabaseConfig = process.env.NEXT_PUBLIC_SUPABASE_URL && 
+                             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+                             process.env.NEXT_PUBLIC_SUPABASE_URL !== 'your-project-url';
 
     async function fetchPosts() {
       setLoading(true);
-      let query = supabase
-        .from('posts')
-        .select('*, profiles(name, avatar_url, bio)')
-        .eq('published', true)
-        .order('created_at', { ascending: false });
+      
+      if (hasSupabaseConfig) {
+        try {
+          const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
+          const supabase = createClientComponentClient();
+          let query = supabase
+            .from('posts')
+            .select('*, profiles(name, avatar_url, bio)')
+            .eq('published', true)
+            .order('created_at', { ascending: false });
 
-      if (filter !== 'all') {
-        query = query.eq('type', filter);
+          if (filter !== 'all') {
+            query = query.eq('type', filter);
+          }
+
+          const { data, error } = await query;
+
+          if (!error) setPosts(data || []);
+        } catch (error) {
+          console.error('Supabase error:', error);
+          // Fall back to mock data
+          useMockData();
+        }
+      } else {
+        // Use mock data for demo
+        useMockData();
       }
-
-      const { data, error } = await query;
-
-      if (!error) setPosts(data || []);
+      
       setLoading(false);
+    }
+
+    function useMockData() {
+      const mockPosts = [
+        {
+          id: 1,
+          title: "Getting Started with Next.js 15",
+          content: JSON.stringify({
+            blocks: [
+              {
+                type: "paragraph",
+                data: {
+                  text: "Learn how to build modern web applications with Next.js 15 and its new features."
+                }
+              }
+            ]
+          }),
+          slug: "getting-started-nextjs-15",
+          type: "blog",
+          published: true,
+          created_at: "2024-01-15T10:00:00Z",
+          view_count: 150,
+          media_url: null,
+          profiles: {
+            name: "Bakul Ahmed",
+            avatar_url: null,
+            bio: "Full Stack Developer"
+          }
+        },
+        {
+          id: 2,
+          title: "Modern React Patterns in 2024",
+          content: JSON.stringify({
+            blocks: [
+              {
+                type: "paragraph",
+                data: {
+                  text: "Explore the latest React patterns and best practices for building scalable applications."
+                }
+              }
+            ]
+          }),
+          slug: "modern-react-patterns-2024",
+          type: "blog",
+          published: true,
+          created_at: "2024-01-10T10:00:00Z",
+          view_count: 203,
+          media_url: null,
+          profiles: {
+            name: "Bakul Ahmed",
+            avatar_url: null,
+            bio: "Full Stack Developer"
+          }
+        },
+        {
+          id: 3,
+          title: "Building with TypeScript and Tailwind CSS",
+          content: JSON.stringify({
+            blocks: [
+              {
+                type: "paragraph",
+                data: {
+                  text: "A comprehensive guide to setting up and using TypeScript with Tailwind CSS for better development experience."
+                }
+              }
+            ]
+          }),
+          slug: "typescript-tailwind-css-guide",
+          type: "vlog",
+          published: true,
+          created_at: "2024-01-05T10:00:00Z",
+          view_count: 89,
+          media_url: null,
+          profiles: {
+            name: "Bakul Ahmed",
+            avatar_url: null,
+            bio: "Full Stack Developer"
+          }
+        }
+      ];
+      
+      setTimeout(() => {
+        setPosts(mockPosts.filter(post => filter === 'all' || post.type === filter));
+      }, 500); // Simulate loading time
     }
 
     fetchPosts();
