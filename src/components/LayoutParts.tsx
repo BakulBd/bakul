@@ -13,7 +13,6 @@ export function Navbar() {
     { label: 'About', href: '/about' },
     { label: 'Blog', href: '/blog' },
     { label: 'Projects', href: '/projects' },
-    { label: 'Admin', href: '/admin' },
   ];
 
   return (
@@ -132,7 +131,6 @@ export default function Footer() {
                 { label: 'About', href: '/about' },
                 { label: 'Projects', href: '/projects' },
                 { label: 'Blog', href: '/blog' },
-                { label: 'Admin', href: '/admin' },
               ].map(({ label, href }) => (
                 <li key={href}>
                   <Link 

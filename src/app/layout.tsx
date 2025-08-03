@@ -40,7 +40,7 @@ export const metadata = {
     "JavaScript Expert",
     "Node.js Developer",
     "React Native Development",
-    "Supabase Integration",
+    "Database Design",
     "AWS Cloud Services",
     "Vercel Deployment",
     "MongoDB Solutions",

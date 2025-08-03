@@ -31,7 +31,6 @@ export function Navbar() {
     { label: 'About', href: '/about', icon: UserIcon },
     { label: 'Projects', href: '/projects', icon: BriefcaseIcon },
     { label: 'Blog', href: '/blog', icon: DocumentTextIcon },
-    { label: 'Admin', href: '/admin', icon: CogIcon },
   ];
 
   const closeMenu = () => setIsMenuOpen(false);
