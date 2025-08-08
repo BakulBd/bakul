@@ -14,9 +14,7 @@ import {
   FunnelIcon,
   SparklesIcon,
   BookOpenIcon,
-  HeartIcon,
-  ShareIcon,
-  BookmarkIcon
+  HeartIcon
 } from "@heroicons/react/24/outline";
 import { useRef } from 'react';
 
@@ -93,7 +91,7 @@ export default function Blog() {
   const [mounted, setMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showBackToTop, setShowBackToTop] = useState(false);
   const { theme } = useTheme();

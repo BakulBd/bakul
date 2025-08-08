@@ -174,7 +174,7 @@ export default function Homepage() {
   const [mounted, setMounted] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
-  const { resolvedTheme, setTheme, theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   
   // Enhanced theme detection with hydration safety
   const isDark = mounted ? resolvedTheme === 'dark' : true;

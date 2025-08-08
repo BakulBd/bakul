@@ -331,10 +331,10 @@ const ProjectsPage = () => {
           </div>
           
           <div className="flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
+      {categories.map((category) => (
               <motion.button
                 key={category.key}
-                onClick={() => setFilter(category.key as any)}
+        onClick={() => setFilter(category.key as 'all' | 'web' | 'mobile' | 'fullstack' | 'tool')}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`flex items-center px-6 py-3 rounded-full border backdrop-blur-sm transition-all duration-300 ${
@@ -649,13 +649,13 @@ const ProjectsPage = () => {
                 ? 'from-white to-blue-200' 
                 : 'from-gray-900 to-blue-700'
             }`}>
-              Let's Build Something Amazing Together
+              Let&apos;s Build Something Amazing Together
             </h3>
             
             <p className={`text-xl leading-relaxed mb-10 max-w-3xl mx-auto ${
               isDark ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Have an exciting project in mind? I'd love to collaborate and bring your vision to life 
+              Have an exciting project in mind? I&apos;d love to collaborate and bring your vision to life 
               with cutting-edge technology and innovative solutions.
             </p>
             

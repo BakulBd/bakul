@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import MinimalisticLoadingScreen from '@/components/MinimalisticLoadingScreen';
 import ModernNavbar from '@/components/layout/ModernNavbar';
 
 export default function Homepage() {
   const [showLoading, setShowLoading] = useState(true);
-  const [isVisible, setIsVisible] = useState(false);
+  // const [isVisible, setIsVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Simplified data for CSE students perspective
@@ -32,11 +32,11 @@ export default function Homepage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!showLoading && mounted) {
-      setIsVisible(true);
-    }
-  }, [showLoading, mounted]);
+  // useEffect(() => {
+  //   if (!showLoading && mounted) {
+  //     setIsVisible(true);
+  //   }
+  // }, [showLoading, mounted]);
 
   const handleLoadingComplete = useCallback(() => {
     setShowLoading(false);

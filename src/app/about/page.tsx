@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import ModernNavbar from '@/components/layout/ModernNavbar';
-import Image from 'next/image';
+// import Image from 'next/image';
 
 export default function AboutPage() {
   const [activeSection, setActiveSection] = useState('story');

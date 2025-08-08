@@ -17,7 +17,7 @@ export function ThemeProvider({
   enableSystem = true, 
   attribute = 'class', 
   defaultTheme = 'dark', 
-  disableTransitionOnChange = false, 
+  // disableTransitionOnChange = false, 
   ...props 
 }: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
