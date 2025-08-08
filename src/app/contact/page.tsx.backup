@@ -14,7 +14,8 @@ import {
   SparklesIcon,
   UserIcon,
   ChatBubbleLeftRightIcon,
-  ClockIcon
+  ClockIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 
 interface FormData {
@@ -118,7 +119,7 @@ export default function ContactPage() {
     {
       name: 'Portfolio',
       href: 'https://bakulahmed.dev',
-      icon: '🌐',
+      icon: '�',
       color: isDark ? 'hover:text-purple-400' : 'hover:text-purple-600',
       bg: isDark ? 'hover:bg-purple-900/20' : 'hover:bg-purple-100'
     }
@@ -251,7 +252,7 @@ export default function ContactPage() {
           />
         ))}
         
-        {/* Enhanced Floating Orbs */}
+        {/* Floating Orbs */}
         <motion.div
           className={`absolute top-20 right-20 w-96 h-96 rounded-full blur-3xl ${
             isDark ? 'bg-blue-500/10' : 'bg-blue-500/20'
@@ -357,19 +358,17 @@ export default function ContactPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            I&apos;m always excited to work on new projects and collaborate with amazing people. 
-            Let&apos;s create something incredible together!
+            Ready to bring your ideas to life? Let&apos;s discuss your next project and create something amazing together.
           </motion.p>
         </motion.div>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-5 gap-12 lg:gap-16">
-          {/* Contact Information */}
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-7xl mx-auto">
+          {/* Contact Methods */}
           <motion.div
-            className="lg:col-span-2 space-y-12"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
+            className="space-y-8"
           >
             <div>
               <h2 className={`text-3xl md:text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent mb-6 ${
@@ -464,11 +463,11 @@ export default function ContactPage() {
                         ? 'bg-gray-900/50 border-gray-700/50 text-gray-400'
                         : 'bg-white/50 border-gray-300/50 text-gray-600'
                     } ${social.color} ${social.bg}`}
-                    whileHover={{ y: -5 }}
+                    whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    initial={{ opacity: 0, scale: 0 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
+                    transition={{ duration: 0.6, delay: 1.0 + index * 0.1 }}
                   >
                     {social.icon}
                   </motion.a>
@@ -479,7 +478,6 @@ export default function ContactPage() {
 
           {/* Contact Form */}
           <motion.div
-            className="lg:col-span-3"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.7 }}
@@ -685,13 +683,18 @@ export default function ContactPage() {
                       )}
                     </AnimatePresence>
                   </div>
+                        <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
+                        {errors.message}
+                      </div>
+                    )}
+                  </div>
 
                   <motion.button
                     type="submit"
                     disabled={isSubmitting}
                     whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                     whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center space-x-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -709,6 +712,7 @@ export default function ContactPage() {
               )}
             </div>
           </motion.div>
+      </div>
         </div>
       </div>
     </motion.div>

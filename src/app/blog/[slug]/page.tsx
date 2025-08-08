@@ -5,17 +5,23 @@ import PostContent from "../component";
 import { PostResponse } from "../types";
 import { Metadata } from "next";
 import { generateOGImage } from "@/lib/blog/og";
+import ModernNavbar from "@/components/layout/ModernNavbar";
 import "./blog.css";
 
 export async function generateStaticParams() {
-  const host = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
-  const response = await gqlClient(queries.getPosts(host))();
-  const posts = response as {
-    data: { publication: { posts: { edges: { node: { slug: string } }[] } } };
-  };
-  return posts.data.publication.posts.edges.map((post) => ({
-    slug: post.node.slug,
-  }));
+  try {
+    const host = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
+    const response = await gqlClient(queries.getPosts(host))();
+    const posts = response as {
+      data: { publication: { posts: { edges: { node: { slug: string } }[] } } };
+    };
+    return posts.data.publication.posts.edges.map((post) => ({
+      slug: post.node.slug,
+    }));
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
 }
 
 export async function generateMetadata({
@@ -28,9 +34,8 @@ export async function generateMetadata({
   const response = await gqlClient(queries.getPostBySlug(host))({
     slug,
   });
-  const post = response.data.publication.post;
-
-  await generateOGImage({ post, outputPath: `public/og/${post.slug}.png` });
+  const { data } = response as PostResponse;
+  const post = data.publication.post;
 
   if (!post) {
     return {
@@ -39,7 +44,10 @@ export async function generateMetadata({
     };
   }
 
-  const ogImage = `/og/${post.slug}.png`;
+  // Generate OG image if needed (currently placeholder)
+  await generateOGImage({ post, outputPath: `public/og/${post.slug}.png` });
+
+  const ogImage = post.coverImage?.url || `/og/${post.slug}.png`;
 
   return {
     title: post.title,
@@ -74,32 +82,35 @@ export default async function BlogPost({
   const response = await gqlClient(queries.getPostBySlug(host))({
     slug,
   });
-  const post = response.data.publication.post;
+  const { data } = response as PostResponse;
+  const post = data.publication.post;
 
   if (!post || !post.content) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
-          <div className="w-full max-w-2xl mx-auto space-y-8">
-            <h1 className="text-4xl font-bold mb-4 text-black dark:text-white">
-              Post Not Found
-            </h1>
-            <p className="text-lg text-neutral-600 dark:text-neutral-400">
-              The post you're looking for doesn't exist.
-            </p>
+      <>
+        <ModernNavbar />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+          <div className="container mx-auto px-4 py-12 max-w-4xl">
+            <div className="w-full max-w-2xl mx-auto space-y-8">
+              <h1 className="text-4xl font-bold mb-4 text-black dark:text-white">
+                Post Not Found
+              </h1>
+              <p className="text-lg text-neutral-600 dark:text-neutral-400">
+                The post you&apos;re looking for doesn&apos;t exist.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   const mdx = await mdxToHtml(post.content.markdown);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <PostContent post={post} mdx={mdx} />
-      </div>
-    </div>
+    <>
+      <ModernNavbar />
+      <PostContent post={post} mdx={mdx} />
+    </>
   );
 }

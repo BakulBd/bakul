@@ -12,7 +12,14 @@ interface ThemeProviderProps {
   disableTransitionOnChange?: boolean;
 }
 
-export function ThemeProvider({ children, enableSystem = true, attribute = 'class', defaultTheme = 'system', disableTransitionOnChange = false, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ 
+  children, 
+  enableSystem = true, 
+  attribute = 'class', 
+  defaultTheme = 'dark', 
+  disableTransitionOnChange = false, 
+  ...props 
+}: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -20,7 +27,11 @@ export function ThemeProvider({ children, enableSystem = true, attribute = 'clas
   }, []);
 
   if (!mounted) {
-    return <div className="loading-placeholder">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -28,7 +39,8 @@ export function ThemeProvider({ children, enableSystem = true, attribute = 'clas
       enableSystem={enableSystem} 
       attribute={attribute as Attribute} 
       defaultTheme={defaultTheme}
-      disableTransitionOnChange={disableTransitionOnChange}
+      disableTransitionOnChange={false}
+      themes={['light', 'dark', 'system']}
       {...props}
     >
       {children}

@@ -1,5 +1,33 @@
 @import "tailwindcss";
 
+/* Smooth theme transitions for professional experience */
+html {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Override transitions for specific interactive elements */
+button, 
+a, 
+[role="button"],
+.interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Framer Motion elements should not have CSS transitions */
+[data-framer-component],
+.framer-motion {
+  transition: none;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

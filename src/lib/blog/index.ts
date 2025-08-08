@@ -1,6 +1,6 @@
 // GraphQL Client for Hashnode
 export function gqlClient(query: string) {
-  return async (variables?: any): Promise<any> => {
+  return async (variables?: Record<string, unknown>): Promise<unknown> => {
     const response = await fetch('https://gql.hashnode.com/', {
       method: 'POST',
       headers: {
@@ -22,7 +22,7 @@ export function gqlClient(query: string) {
     const data = await response.json();
     
     if (data.errors) {
-      throw new Error(`GraphQL error: ${data.errors.map((e: any) => e.message).join(', ')}`);
+      throw new Error(`GraphQL error: ${data.errors.map((e: { message: string }) => e.message).join(', ')}`);
     }
 
     return data;

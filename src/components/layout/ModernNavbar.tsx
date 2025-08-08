@@ -2,231 +2,257 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Bars3Icon, 
+  XMarkIcon, 
+  HomeIcon, 
+  UserIcon, 
+  BriefcaseIcon, 
+  ChatBubbleLeftRightIcon,
+  DocumentTextIcon,
+  SunIcon,
+  MoonIcon
+} from '@heroicons/react/24/outline';
 
-const ModernNavbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+}
+
+export default function ModernNavbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const pathname = usePathname();
+
+  // Ensure component is mounted before rendering theme-dependent content
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
+
+  const navigation: NavigationItem[] = [
+    { name: 'Home', href: '/', icon: HomeIcon },
+    { name: 'About', href: '/about', icon: UserIcon },
+    { name: 'Projects', href: '/projects', icon: BriefcaseIcon },
+    { name: 'Blog', href: '/blog', icon: DocumentTextIcon },
+    { name: 'Contact', href: '/contact', icon: ChatBubbleLeftRightIcon },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setScrolled(window.scrollY > 50);
     };
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/blog', label: 'Blog' },
-    { href: '/contact', label: 'Contact' },
-  ];
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
+
+  const isActive = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+    return pathname.startsWith(href);
+  };
 
   return (
     <motion.nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled 
-          ? 'bg-black/90 backdrop-blur-xl border-b border-white/10 shadow-2xl' 
-          : 'bg-transparent'
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
+        scrolled 
+          ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg border-b border-gray-200/20 dark:border-gray-700/20' 
+          : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm'
       }`}
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Ultra-Premium Logo */}
-          <motion.div
-            className="relative"
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Link href="/" className="group">
-              <motion.div
-                className="relative"
-                whileHover={{ 
-                  textShadow: '0 0 30px rgba(255, 255, 255, 0.8)',
-                }}
-                transition={{ duration: 0.3 }}
-              >
-                <span className="text-2xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent tracking-tight">
-                  Bakul Ahmed
-                </span>
-                <motion.div
-                  className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full"
-                  initial={{ width: 0 }}
-                  whileHover={{ width: '100%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.div>
-            </Link>
-          </motion.div>
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-3 z-10">
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-blue-200 dark:border-blue-800 shadow-lg"
+            >
+              <Image
+                src="/Bakul.jpg"
+                alt="Bakul Ahmed"
+                fill
+                className="object-cover object-center"
+                sizes="40px"
+              />
+            </motion.div>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">
+              Bakul Ahmed
+            </span>
+          </Link>
 
-          {/* Desktop Navigation - Ultra Premium */}
-          <div className="hidden md:flex items-center space-x-12">
-            {navItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Link
-                  href={item.href}
-                  className="relative group text-white/80 hover:text-white transition-all duration-300 font-medium tracking-wide"
-                >
-                  <motion.span
-                    whileHover={{ 
-                      textShadow: '0 0 20px rgba(255, 255, 255, 0.6)',
-                      scale: 1.05
-                    }}
-                    transition={{ duration: 0.2 }}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.name} href={item.href}>
+                  <motion.div
+                    whileHover={{ y: -2 }}
+                    whileTap={{ y: 0 }}
+                    className={`relative px-4 py-2 rounded-full transition-all duration-200 flex items-center space-x-2 ${
+                      isActive(item.href)
+                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                   >
-                    {item.label}
-                  </motion.span>
-                  
-                  {/* Animated underline */}
-                  <motion.div
-                    className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
-                    initial={{ width: 0, opacity: 0 }}
-                    whileHover={{ width: '100%', opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  
-                  {/* Glow effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-white/5 rounded-lg blur-xl"
-                    initial={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1.5, opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{item.name}</span>
+                    {isActive(item.href) && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-blue-500/10 rounded-full"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                  </motion.div>
                 </Link>
-              </motion.div>
-            ))}
+              );
+            })}
             
-            {/* Premium CTA Button */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
+            {/* Professional Theme Toggle */}
+            <motion.button
+              whileHover={{ scale: mounted ? 1.05 : 1 }}
+              whileTap={{ scale: mounted ? 0.95 : 1 }}
+              onClick={toggleTheme}
+              disabled={!mounted}
+              className={`relative p-2.5 rounded-xl transition-all duration-300 ${
+                mounted
+                  ? `${
+                      isDark
+                        ? 'bg-gray-800/90 text-yellow-400 hover:bg-gray-700/90 border border-gray-700/50 shadow-lg shadow-gray-900/30'
+                        : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200/90 border border-gray-200/50 shadow-lg shadow-gray-200/30'
+                    }`
+                  : 'bg-gray-200/50 text-gray-400 border border-gray-300/30'
+              } backdrop-blur-sm`}
+              aria-label={mounted ? `Switch to ${isDark ? 'light' : 'dark'} mode` : 'Loading theme toggle'}
             >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative group"
-              >
-                <Link
-                  href="/cv/Bakul_Ahmed_CV.pdf"
-                  download="Bakul_Ahmed_CV.pdf"
-                  className="relative inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-semibold rounded-full overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/25"
+              {!mounted ? (
+                <div className="w-5 h-5 animate-pulse bg-gray-400/50 rounded"></div>
+              ) : (
+                <motion.div
+                  key={isDark ? 'dark' : 'light'}
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {/* Animated background */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100"
-                    transition={{ duration: 0.3 }}
-                  />
-                  
-                  {/* Shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full"
-                    transition={{ duration: 0.6 }}
-                  />
-                  
-                  <span className="relative z-10 flex items-center">
-                    📄 Download CV
-                  </span>
-                </Link>
-              </motion.div>
-            </motion.div>
+                  {isDark ? (
+                    <SunIcon className="w-5 h-5" />
+                  ) : (
+                    <MoonIcon className="w-5 h-5" />
+                  )}
+                </motion.div>
+              )}
+            </motion.button>
           </div>
 
-          {/* Mobile Menu Button - Premium */}
-          <motion.button
-            className="md:hidden relative p-2 text-white"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <motion.div
-              animate={isMenuOpen ? 'open' : 'closed'}
-              className="w-6 h-6 flex flex-col justify-center items-center"
+          {/* Mobile menu button */}
+          <div className="md:hidden flex items-center space-x-2">
+            <motion.button
+              whileHover={{ scale: mounted ? 1.05 : 1 }}
+              whileTap={{ scale: mounted ? 0.95 : 1 }}
+              onClick={toggleTheme}
+              disabled={!mounted}
+              className={`p-2 rounded-xl transition-all duration-300 ${
+                mounted
+                  ? `${
+                      isDark
+                        ? 'bg-gray-800/90 text-yellow-400 hover:bg-gray-700/90'
+                        : 'bg-gray-100/90 text-gray-700 hover:bg-gray-200/90'
+                    }`
+                  : 'bg-gray-200/50 text-gray-400'
+              } shadow-sm`}
+              aria-label={mounted ? `Switch to ${isDark ? 'light' : 'dark'} mode` : 'Loading theme toggle'}
             >
-              <motion.span
-                className="w-6 h-0.5 bg-white block transition-all duration-300"
-                variants={{
-                  closed: { rotate: 0, y: 0 },
-                  open: { rotate: 45, y: 2 }
-                }}
-              />
-              <motion.span
-                className="w-6 h-0.5 bg-white block transition-all duration-300 mt-1"
-                variants={{
-                  closed: { opacity: 1 },
-                  open: { opacity: 0 }
-                }}
-              />
-              <motion.span
-                className="w-6 h-0.5 bg-white block transition-all duration-300 mt-1"
-                variants={{
-                  closed: { rotate: 0, y: 0 },
-                  open: { rotate: -45, y: -2 }
-                }}
-              />
-            </motion.div>
-          </motion.button>
+              {!mounted ? (
+                <div className="w-5 h-5 animate-pulse bg-gray-400/50 rounded"></div>
+              ) : (
+                <motion.div
+                  key={isDark ? 'dark' : 'light'}
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {isDark ? (
+                    <SunIcon className="w-5 h-5" />
+                  ) : (
+                    <MoonIcon className="w-5 h-5" />
+                  )}
+                </motion.div>
+              )}
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isOpen ? (
+                <XMarkIcon className="w-6 h-6" />
+              ) : (
+                <Bars3Icon className="w-6 h-6" />
+              )}
+            </motion.button>
+          </div>
         </div>
-
-        {/* Mobile Navigation - Ultra Premium */}
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ 
-            opacity: isMenuOpen ? 1 : 0, 
-            height: isMenuOpen ? 'auto' : 0 
-          }}
-          transition={{ duration: 0.3 }}
-          className="md:hidden overflow-hidden"
-        >
-          <div className="px-2 pt-2 pb-6 space-y-4 bg-black/95 backdrop-blur-xl rounded-b-2xl border-b border-white/10 shadow-2xl">
-            {navItems.map((item, index) => (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <Link
-                  href={item.href}
-                  className="block px-6 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300 font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              </motion.div>
-            ))}
-            
-            {/* Mobile CV Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-              className="px-6 pt-2"
-            >
-              <Link
-                href="/cv/Bakul_Ahmed_CV.pdf"
-                download="Bakul_Ahmed_CV.pdf"
-                className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg text-center transition-all duration-300 hover:shadow-lg"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                📄 Download CV
-              </Link>
-            </motion.div>
-          </div>
-        </motion.div>
       </div>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border-t border-gray-200/30 dark:border-gray-700/30 shadow-lg"
+          >
+            <div className="px-4 py-4 space-y-2">
+              {navigation.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link href={item.href} onClick={() => setIsOpen(false)}>
+                      <div className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                        isActive(item.href)
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}>
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
-};
-
-export default ModernNavbar;
+}

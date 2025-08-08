@@ -12,8 +12,7 @@ import {
   HomeIcon, 
   UserIcon, 
   DocumentTextIcon, 
-  BriefcaseIcon, 
-  CogIcon 
+  BriefcaseIcon 
 } from '@heroicons/react/24/outline';
 
 export function Navbar() {

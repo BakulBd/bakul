@@ -23,6 +23,11 @@ export default function AboutPage() {
 
   const isDark = theme === 'dark';
 
+export default function AboutPage() {
+  const [activeSection, setActiveSection] = useState('story');
+  const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
+  const [hoveredExperience, setHoveredExperience] = useState<number | null>(null);
+
   const skills = [
     { 
       name: 'React & Next.js', 
@@ -326,23 +331,15 @@ export default function AboutPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                  <h2 className={`text-4xl font-bold bg-gradient-to-r ${
-                    isDark 
-                      ? 'from-blue-400 to-purple-400' 
-                      : 'from-blue-600 to-purple-600'
-                  } bg-clip-text text-transparent`}>
+                  <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                     The Journey
                   </h2>
-                  <p className={`text-lg leading-relaxed ${
-                    isDark ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
+                  <p className="text-lg text-gray-300 leading-relaxed">
                     My coding journey began with curiosity and has evolved into a passion for creating 
                     digital experiences that make a difference. I believe in the power of clean code, 
                     innovative design, and user-centered thinking.
                   </p>
-                  <p className={`text-lg leading-relaxed ${
-                    isDark ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
+                  <p className="text-lg text-gray-300 leading-relaxed">
                     When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to 
                     open-source projects, or mentoring aspiring developers. I&apos;m always excited to 
                     tackle new challenges and push the boundaries of what&apos;s possible.
@@ -356,25 +353,14 @@ export default function AboutPage() {
                   transition={{ duration: 0.8, delay: 0.4 }}
                 >
                   {[
-                    { value: '50+', label: 'Projects', icon: '🚀' },
-                    { value: '3+', label: 'Years', icon: '⏱️' },
-                    { value: '20+', label: 'Skills', icon: '⚡' },
+                    { value: '50+', label: 'Projects' },
+                    { value: '5+', label: 'Years' },
+                    { value: '30+', label: 'Clients' },
                   ].map((stat, index) => (
-                    <motion.div 
-                      key={index} 
-                      whileHover={{ scale: 1.05, y: -5 }}
-                      className={`p-6 backdrop-blur-lg rounded-xl border transition-all duration-300 ${
-                        isDark
-                          ? 'bg-gray-900/50 border-gray-700/50 hover:border-gray-600/70'
-                          : 'bg-white/50 border-gray-300/50 hover:border-gray-400/70'
-                      }`}
-                    >
-                      <div className="text-2xl mb-2">{stat.icon}</div>
-                      <div className={`text-3xl font-bold mb-2 ${
-                        isDark ? 'text-white' : 'text-gray-900'
-                      }`}>{stat.value}</div>
-                      <div className={isDark ? 'text-gray-400' : 'text-gray-600'}>{stat.label}</div>
-                    </motion.div>
+                    <div key={index} className="p-4 bg-white/5 backdrop-blur-lg rounded-xl border border-white/10">
+                      <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
+                      <div className="text-gray-400">{stat.label}</div>
+                    </div>
                   ))}
                 </motion.div>
               </div>
@@ -385,56 +371,10 @@ export default function AboutPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
               >
-                <div className={`relative w-full h-96 rounded-2xl overflow-hidden border transition-all duration-300 ${
-                  isDark
-                    ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-gray-700/50'
-                    : 'bg-gradient-to-br from-blue-200/30 to-purple-200/30 border-gray-300/50'
-                }`}>
-                  <div className={`absolute inset-0 ${
-                    isDark 
-                      ? 'bg-gradient-to-br from-blue-600/10 to-purple-600/10' 
-                      : 'bg-gradient-to-br from-blue-300/10 to-purple-300/10'
-                  }`} />
-                  
-                  {/* Floating particles */}
-                  {[...Array(6)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className={`absolute w-3 h-3 rounded-full ${
-                        isDark ? 'bg-blue-400/30' : 'bg-blue-500/40'
-                      }`}
-                      style={{
-                        left: `${20 + (i * 12)}%`,
-                        top: `${30 + (i % 2) * 40}%`,
-                      }}
-                      animate={{
-                        y: [-10, 10, -10],
-                        opacity: [0.3, 0.8, 0.3],
-                        scale: [0.8, 1.2, 0.8],
-                      }}
-                      transition={{
-                        duration: 3 + i * 0.5,
-                        repeat: Infinity,
-                        delay: i * 0.3,
-                      }}
-                    />
-                  ))}
-                  
+                <div className="relative w-full h-96 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl overflow-hidden border border-white/20">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 5, -5, 0],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="text-8xl"
-                    >
-                      👨‍💻
-                    </motion.div>
+                    <div className="text-6xl">👨‍💻</div>
                   </div>
                 </div>
               </motion.div>
@@ -452,16 +392,10 @@ export default function AboutPage() {
                 className="space-y-12"
               >
               <div className="text-center">
-                <h2 className={`text-4xl font-bold bg-gradient-to-r ${
-                  isDark 
-                    ? 'from-blue-400 to-purple-400' 
-                    : 'from-blue-600 to-purple-600'
-                } bg-clip-text text-transparent mb-4`}>
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
                   Technical Expertise
                 </h2>
-                <p className={`text-lg ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
-                }`}>
+                <p className="text-lg text-gray-300">
                   Technologies I&apos;ve mastered to create exceptional digital experiences
                 </p>
               </div>
@@ -476,39 +410,24 @@ export default function AboutPage() {
                     onHoverStart={() => setHoveredSkill(skill.name)}
                     onHoverEnd={() => setHoveredSkill(null)}
                     whileHover={{ y: -5, scale: 1.02 }}
-                    className={`p-6 backdrop-blur-lg rounded-xl border transition-all duration-300 cursor-pointer group ${
-                      isDark
-                        ? 'bg-gray-900/50 border-gray-700/50 hover:border-gray-600/70'
-                        : 'bg-white/50 border-gray-300/50 hover:border-gray-400/70'
-                    }`}
+                    className="p-6 bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group"
                   >
                     <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{skill.icon}</span>
-                        <h3 className={`text-xl font-semibold transition-colors ${
-                          isDark 
-                            ? 'text-white group-hover:text-blue-300' 
-                            : 'text-gray-900 group-hover:text-blue-600'
-                        }`}>
-                          {skill.name}
-                        </h3>
-                      </div>
+                      <h3 className="text-xl font-semibold text-white group-hover:text-blue-300 transition-colors">
+                        {skill.name}
+                      </h3>
                       <motion.span 
-                        className={`text-lg font-bold transition-colors ${
-                          isDark ? 'text-gray-300' : 'text-gray-600'
-                        }`}
+                        className="text-lg font-bold text-gray-300"
                         animate={{ 
                           scale: hoveredSkill === skill.name ? 1.2 : 1,
-                          color: hoveredSkill === skill.name ? '#60a5fa' : isDark ? '#d1d5db' : '#4b5563'
+                          color: hoveredSkill === skill.name ? '#60a5fa' : '#d1d5db'
                         }}
                         transition={{ duration: 0.2 }}
                       >
                         {skill.level}%
                       </motion.span>
                     </div>
-                    <div className={`w-full rounded-full h-3 overflow-hidden ${
-                      isDark ? 'bg-gray-700' : 'bg-gray-300'
-                    }`}>
+                    <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                       <motion.div
                         className={`h-3 rounded-full bg-gradient-to-r ${skill.color} relative`}
                         initial={{ width: 0 }}
@@ -535,14 +454,10 @@ export default function AboutPage() {
                         height: hoveredSkill === skill.name ? 'auto' : 0
                       }}
                       transition={{ duration: 0.3 }}
-                      className="mt-3 overflow-hidden"
+                      className="mt-3 text-sm text-gray-400 overflow-hidden"
                     >
                       {hoveredSkill === skill.name && (
-                        <span className={`text-sm ${
-                          isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {skill.description}
-                        </span>
+                        <span>Proficient in building scalable applications and modern user interfaces</span>
                       )}
                     </motion.div>
                   </motion.div>
@@ -562,16 +477,10 @@ export default function AboutPage() {
                 className="space-y-12"
               >
               <div className="text-center">
-                <h2 className={`text-4xl font-bold bg-gradient-to-r ${
-                  isDark 
-                    ? 'from-blue-400 to-purple-400' 
-                    : 'from-blue-600 to-purple-600'
-                } bg-clip-text text-transparent mb-4`}>
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4">
                   Professional Journey
                 </h2>
-                <p className={`text-lg ${
-                  isDark ? 'text-gray-300' : 'text-gray-600'
-                }`}>
+                <p className="text-lg text-gray-300">
                   Key milestones in my career development
                 </p>
               </div>
@@ -586,11 +495,7 @@ export default function AboutPage() {
                     onHoverStart={() => setHoveredExperience(index)}
                     onHoverEnd={() => setHoveredExperience(null)}
                     whileHover={{ y: -8, scale: 1.02 }}
-                    className={`flex items-start space-x-6 p-6 backdrop-blur-lg rounded-xl border transition-all duration-300 group cursor-pointer ${
-                      isDark
-                        ? 'bg-gray-900/50 border-gray-700/50 hover:border-gray-600/70'
-                        : 'bg-white/50 border-gray-300/50 hover:border-gray-400/70'
-                    }`}
+                    className="flex items-start space-x-6 p-6 bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer"
                   >
                     <motion.div 
                       className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-2xl"
@@ -605,11 +510,7 @@ export default function AboutPage() {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
                         <motion.h3 
-                          className={`text-xl font-semibold transition-colors ${
-                            isDark 
-                              ? 'text-white group-hover:text-blue-300' 
-                              : 'text-gray-900 group-hover:text-blue-600'
-                          }`}
+                          className="text-xl font-semibold text-white group-hover:text-blue-300 transition-colors"
                           animate={{ 
                             x: hoveredExperience === index ? 5 : 0
                           }}
@@ -618,33 +519,19 @@ export default function AboutPage() {
                           {exp.title}
                         </motion.h3>
                         <motion.span 
-                          className={`text-sm px-3 py-1 rounded-full transition-colors ${
-                            isDark ? 'text-gray-400' : 'text-gray-600'
-                          }`}
+                          className="text-sm text-gray-400 bg-white/10 px-3 py-1 rounded-full"
                           animate={{ 
-                            backgroundColor: hoveredExperience === index 
-                              ? 'rgba(59, 130, 246, 0.2)' 
-                              : isDark 
-                                ? 'rgba(255, 255, 255, 0.1)' 
-                                : 'rgba(0, 0, 0, 0.1)'
+                            backgroundColor: hoveredExperience === index ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)'
                           }}
                           transition={{ duration: 0.2 }}
                         >
                           {exp.period}
                         </motion.span>
                       </div>
-                      <p className={`font-medium mb-2 transition-colors ${
-                        isDark 
-                          ? 'text-blue-400 group-hover:text-blue-300' 
-                          : 'text-blue-600 group-hover:text-blue-500'
-                      }`}>
+                      <p className="text-blue-400 font-medium mb-2 group-hover:text-blue-300 transition-colors">
                         {exp.company}
                       </p>
-                      <p className={`leading-relaxed transition-colors ${
-                        isDark 
-                          ? 'text-gray-300 group-hover:text-gray-200' 
-                          : 'text-gray-600 group-hover:text-gray-700'
-                      }`}>
+                      <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors">
                         {exp.description}
                       </p>
                       <motion.div
@@ -658,17 +545,13 @@ export default function AboutPage() {
                       >
                         {hoveredExperience === index && (
                           <div className="flex flex-wrap gap-2">
-                            {exp.technologies.map((tech, i) => (
+                            {['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'].map((tech, i) => (
                               <motion.span
                                 key={tech}
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.2, delay: i * 0.1 }}
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  isDark 
-                                    ? 'bg-blue-500/20 text-blue-300' 
-                                    : 'bg-blue-500/20 text-blue-700'
-                                }`}
+                                className="px-2 py-1 text-xs bg-blue-500/20 text-blue-300 rounded-full"
                               >
                                 {tech}
                               </motion.span>
@@ -683,7 +566,6 @@ export default function AboutPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
       </div>
     </motion.div>
   );
