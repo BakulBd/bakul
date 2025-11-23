@@ -9,13 +9,14 @@ import {
   CodeBracketIcon,
   EyeIcon,
   StarIcon,
-  CalendarIcon,
-  TagIcon,
   FunnelIcon,
   SparklesIcon,
   RocketLaunchIcon,
   AcademicCapIcon,
-  BriefcaseIcon
+  BriefcaseIcon,
+  WrenchScrewdriverIcon,
+  BoltIcon,
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 
 interface Project {
@@ -141,6 +142,36 @@ const ProjectsPage = () => {
     { key: 'web', label: 'Web Apps', icon: CodeBracketIcon },
     { key: 'mobile', label: 'Mobile', icon: BriefcaseIcon },
     { key: 'tool', label: 'Tools', icon: AcademicCapIcon }
+  ];
+
+  const deliveryMetrics = [
+    { label: 'Avg. sprint cycle', value: '2 weeks', detail: 'Disco to build-ready demo' },
+    { label: 'Launch reliability', value: '99.9%', detail: 'Instrumented releases & monitors' },
+    { label: 'Client NPS', value: '+68', detail: 'Async rituals keep teams confident' },
+  ];
+
+  const processSteps = [
+    {
+      title: 'Scope with clarity',
+      detail: 'Co-create success metrics, swimlanes, and delivery guardrails before any line of code.',
+      icon: ClipboardDocumentCheckIcon,
+    },
+    {
+      title: 'Design systems first',
+      detail: 'Tokens, CMS schemas, and API envelopes land early so squads stay unblocked.',
+      icon: SparklesIcon,
+    },
+    {
+      title: 'Ship in calm loops',
+      detail: 'Tight demos, async loom recaps, and measurable releases every sprint.',
+      icon: RocketLaunchIcon,
+    },
+  ];
+
+  const deliveryToolkit = [
+    { label: 'Frontend', items: ['Next.js 15', 'Framer Motion', 'Tailwind'], icon: BoltIcon },
+    { label: 'Backend', items: ['Node.js', 'Python', 'PostgreSQL', 'Redis'], icon: WrenchScrewdriverIcon },
+    { label: 'Collaboration', items: ['Linear', 'Notion', 'Loom', 'Figma'], icon: ClipboardDocumentCheckIcon },
   ];
 
   const filteredProjects = filter === 'all' 
@@ -312,6 +343,28 @@ const ProjectsPage = () => {
             Explore my latest work and innovative solutions. Each project represents a unique challenge 
             and showcases cutting-edge technologies and design principles.
           </motion.p>
+
+          <motion.div
+            className="mt-12 grid gap-4 md:grid-cols-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            {deliveryMetrics.map((metric) => (
+              <div
+                key={metric.label}
+                className={`rounded-2xl border p-5 text-left backdrop-blur-lg ${
+                  isDark ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'
+                }`}
+              >
+                <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>
+                  {metric.label}
+                </p>
+                <p className="mt-3 text-3xl font-bold">{metric.value}</p>
+                <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{metric.detail}</p>
+              </div>
+            ))}
+          </motion.div>
         </motion.div>
 
         {/* Enhanced Filter Section */}
@@ -351,6 +404,63 @@ const ProjectsPage = () => {
                 {category.label}
               </motion.button>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Delivery Process + Toolkit */}
+        <motion.div
+          className="mb-20 grid gap-8 lg:grid-cols-[1.1fr,0.9fr]"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <div className={`rounded-3xl border p-8 shadow-2xl ${isDark ? 'border-white/5 bg-gray-900/60' : 'border-slate-200 bg-white'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>Build operating system</p>
+            <h2 className="mt-3 text-3xl font-bold">From brief to calm launch</h2>
+            <p className={`mt-2 text-base ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Every engagement follows the same transparent cadence so stakeholders know what ships next.
+            </p>
+            <div className="mt-6 space-y-4">
+              {processSteps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <div key={step.title} className={`rounded-2xl border p-4 ${isDark ? 'border-white/5 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-2xl bg-indigo-500/20 p-2 text-indigo-300">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm font-semibold text-indigo-300">0{index + 1}</p>
+                    </div>
+                    <h3 className="mt-3 text-xl font-semibold">{step.title}</h3>
+                    <p className={`mt-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{step.detail}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className={`rounded-3xl border p-8 shadow-2xl ${isDark ? 'border-white/5 bg-gray-900/60' : 'border-slate-200 bg-white'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>Tooling stack</p>
+            <h2 className="mt-3 text-3xl font-bold">What we build with</h2>
+            <p className={`mt-2 text-base ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Tailored kits for frontend polish, resilient infrastructure, and async collaboration.
+            </p>
+            <div className="mt-6 space-y-4">
+              {deliveryToolkit.map((track) => {
+                const Icon = track.icon;
+                return (
+                  <div key={track.label} className={`rounded-2xl border p-4 ${isDark ? 'border-white/5 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-2xl bg-blue-500/20 p-2 text-blue-300">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="text-lg font-semibold">{track.label}</h3>
+                    </div>
+                    <p className={`mt-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{track.items.join(' · ')}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
 

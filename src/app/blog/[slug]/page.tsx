@@ -8,19 +8,22 @@ import { generateOGImage } from "@/lib/blog/og";
 import ModernNavbar from "@/components/layout/ModernNavbar";
 import "./blog.css";
 
-export async function generateStaticParams() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const HASHNODE_HOST = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
+const HASHNODE_TIMEOUT = 7000;
+
+async function fetchPost(slug: string) {
   try {
-    const host = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
-    const response = await gqlClient(queries.getPosts(host))();
-    const posts = response as {
-      data: { publication: { posts: { edges: { node: { slug: string } }[] } } };
-    };
-    return posts.data.publication.posts.edges.map((post) => ({
-      slug: post.node.slug,
-    }));
+    const response = await gqlClient(queries.getPostBySlug(HASHNODE_HOST), {
+      timeoutMs: HASHNODE_TIMEOUT,
+    })({ slug });
+    const { data } = response as PostResponse;
+    return data.publication.post ?? null;
   } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
+    console.error(`Failed to fetch post '${slug}':`, error);
+    return null;
   }
 }
 
@@ -30,12 +33,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const slug = (await params).slug;
-  const host = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
-  const response = await gqlClient(queries.getPostBySlug(host))({
-    slug,
-  });
-  const { data } = response as PostResponse;
-  const post = data.publication.post;
+  const post = await fetchPost(slug);
 
   if (!post) {
     return {
@@ -78,12 +76,7 @@ export default async function BlogPost({
   params: Promise<{ slug: string }>;
 }) {
   const slug = (await params).slug;
-  const host = process.env.HASHNODE_HOST || "bakul.hashnode.dev";
-  const response = await gqlClient(queries.getPostBySlug(host))({
-    slug,
-  });
-  const { data } = response as PostResponse;
-  const post = data.publication.post;
+  const post = await fetchPost(slug);
 
   if (!post || !post.content) {
     return (

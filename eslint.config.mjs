@@ -18,7 +18,7 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ["**/*.bin", ".next/**", "node_modules/**"],
+    ignores: ["**/*.bin", ".next/**", "node_modules/**", "public/**"],
   },
 ];
 

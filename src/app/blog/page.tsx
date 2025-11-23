@@ -1,7 +1,9 @@
 'use client';
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import type { MouseEvent } from "react";
 import { useTheme } from 'next-themes';
 import ModernNavbar from "@/components/layout/ModernNavbar";
 import { motion, AnimatePresence, useInView, useScroll, useTransform } from "framer-motion";
@@ -14,7 +16,11 @@ import {
   FunnelIcon,
   SparklesIcon,
   BookOpenIcon,
-  HeartIcon
+  HeartIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
+  FireIcon,
+  BoltIcon
 } from "@heroicons/react/24/outline";
 import { useRef } from 'react';
 
@@ -85,13 +91,13 @@ const HASHNODE_QUERY = `
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  // const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortOption, setSortOption] = useState<'latest' | 'popular'>('latest');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showBackToTop, setShowBackToTop] = useState(false);
   const { theme } = useTheme();
@@ -99,6 +105,12 @@ export default function Blog() {
   const isHeaderInView = useInView(headerRef, { once: true });
   const { scrollYProgress } = useScroll();
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const handleBackToTop = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Handle scroll for back to top button
   useEffect(() => {
@@ -113,36 +125,92 @@ export default function Blog() {
     setMounted(true);
   }, []);
 
-  // Filter posts based on search term and selected tag
-  useEffect(() => {
-    let filtered = posts;
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchesSearch = searchTerm
+        ? post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.brief.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
 
-    if (searchTerm) {
-      filtered = filtered.filter(post => 
-        post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.brief.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
+      const matchesTag = selectedTag
+        ? post.tags.some((tag) => tag.slug === selectedTag)
+        : true;
 
-    if (selectedTag) {
-      filtered = filtered.filter(post => 
-        post.tags.some(tag => tag.slug === selectedTag)
-      );
-    }
-
-    setFilteredPosts(filtered);
+      return matchesSearch && matchesTag;
+    });
   }, [posts, searchTerm, selectedTag]);
 
-  // Get all unique tags
-  const allTags = posts.reduce((tags, post) => {
-    post.tags.forEach(tag => {
-      if (!tags.find(t => t.slug === tag.slug)) {
-        tags.push(tag);
-      }
+  const sortedPosts = useMemo(() => {
+    const postsToSort = [...filteredPosts];
+
+    if (sortOption === 'latest') {
+      return postsToSort.sort(
+        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+    }
+
+    return postsToSort.sort((a, b) => {
+      const bScore = (b.views || 0) + b.readTimeInMinutes;
+      const aScore = (a.views || 0) + a.readTimeInMinutes;
+      return bScore - aScore;
     });
-    return tags;
-  }, [] as Array<{name: string; slug: string}>);
+  }, [filteredPosts, sortOption]);
+
+  const allTags = useMemo(() => {
+    return posts.reduce((tags, post) => {
+      post.tags.forEach((tag) => {
+        if (!tags.find((t) => t.slug === tag.slug)) {
+          tags.push(tag);
+        }
+      });
+    
+      return tags;
+    }, [] as Array<{ name: string; slug: string }>);
+  }, [posts]);
+
+  const trendingTags = useMemo(() => {
+    const tagCounts = new Map<string, { name: string; count: number }>();
+
+    posts.forEach((post) => {
+      post.tags.forEach((tag) => {
+        tagCounts.set(tag.slug, {
+          name: tag.name,
+          count: (tagCounts.get(tag.slug)?.count || 0) + 1,
+        });
+      });
+    });
+
+    return Array.from(tagCounts.entries())
+      .map(([slug, value]) => ({ slug, ...value }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [posts]);
+
+  const blogStats = useMemo(() => {
+    const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
+    const totalReadMinutes = posts.reduce((sum, post) => sum + (post.readTimeInMinutes || 0), 0);
+
+    return {
+      totalArticles: posts.length,
+      totalViews: totalViews.toLocaleString(),
+      totalReadMinutes,
+    };
+  }, [posts]);
+
+  const featuredPost = useMemo(() => {
+    if (!sortedPosts.length) {
+      return null;
+    }
+    return sortedPosts[0];
+  }, [sortedPosts]);
+
+  const remainingPosts = useMemo(() => {
+    if (!featuredPost) {
+      return sortedPosts;
+    }
+    return sortedPosts.slice(1);
+  }, [sortedPosts, featuredPost]);
 
   const fetchHashnodePosts = async () => {
     try {
@@ -171,7 +239,6 @@ export default function Blog() {
       if (data.data?.publication?.posts?.edges) {
         const fetchedPosts = data.data.publication.posts.edges.map(edge => edge.node);
         setPosts(fetchedPosts);
-        setFilteredPosts(fetchedPosts);
       } else {
         throw new Error('No posts found in the response');
       }
@@ -195,26 +262,41 @@ export default function Blog() {
     }
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    localStorage.setItem('blogFavorites', JSON.stringify([...favorites]));
+  }, [favorites, mounted]);
 
   const isDark = theme === 'dark';
 
   // Toggle favorite
-  const toggleFavorite = (postId: string, e: React.MouseEvent) => {
+  const toggleFavorite = useCallback((postId: string, e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(postId)) {
-      newFavorites.delete(postId);
-    } else {
-      newFavorites.add(postId);
-    }
-    setFavorites(newFavorites);
-    // You could save to localStorage here
-    localStorage.setItem('blogFavorites', JSON.stringify([...newFavorites]));
-  };
+    setFavorites((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(postId)) {
+        updated.delete(postId);
+      } else {
+        updated.add(postId);
+      }
+      return updated;
+    });
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setSearchTerm('');
+    setSelectedTag(null);
+    setSortOption('latest');
+    setViewMode('grid');
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -565,6 +647,83 @@ export default function Blog() {
                 {selectedTag && ` tagged with "${allTags.find(t => t.slug === selectedTag)?.name}"`}
               </motion.div>
             )}
+
+            {/* Sort & View Controls */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-sm font-medium ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Sort by
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[{ label: 'Latest', value: 'latest' }, { label: 'Popular', value: 'popular' }].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSortOption(option.value as 'latest' | 'popular')}
+                      className={`px-4 py-2 rounded-xl border font-semibold text-sm transition-colors ${
+                        sortOption === option.value
+                          ? isDark
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent'
+                            : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent'
+                          : isDark
+                            ? 'text-gray-300 border-gray-700/70 hover:border-blue-500/40'
+                            : 'text-gray-600 border-gray-300/60 hover:border-blue-500/40'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-sm font-medium ${
+                  isDark ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  View
+                </span>
+                <div className={`inline-flex items-center gap-2 rounded-2xl border px-2 py-1 ${
+                  isDark ? 'border-gray-700/60 bg-gray-900/40' : 'border-gray-200/70 bg-white/60'
+                }`}>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-xl transition-colors ${
+                      viewMode === 'grid'
+                        ? isDark
+                          ? 'bg-blue-600/80 text-white'
+                          : 'bg-blue-600 text-white'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white'
+                          : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                    aria-label="Grid view"
+                  >
+                    <Squares2X2Icon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-xl transition-colors ${
+                      viewMode === 'list'
+                        ? isDark
+                          ? 'bg-blue-600/80 text-white'
+                          : 'bg-blue-600 text-white'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white'
+                          : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                    aria-label="List view"
+                  >
+                    <ListBulletIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
 
           {/* Blog Stats (moved below search for tighter header spacing) */}
@@ -577,21 +736,21 @@ export default function Blog() {
             {[
               { 
                 label: 'Articles', 
-                value: posts.length, 
+                value: blogStats.totalArticles, 
                 icon: BookOpenIcon,
                 color: 'from-blue-500 to-cyan-500',
                 gradient: isDark ? 'from-blue-400 to-cyan-400' : 'from-blue-600 to-cyan-600'
               },
               { 
                 label: 'Total Views', 
-                value: posts.reduce((sum, post) => sum + (post.views || 0), 0).toLocaleString(), 
+                value: blogStats.totalViews, 
                 icon: EyeIcon,
                 color: 'from-green-500 to-emerald-500',
                 gradient: isDark ? 'from-green-400 to-emerald-400' : 'from-green-600 to-emerald-600'
               },
               { 
                 label: 'Read Time', 
-                value: `${posts.reduce((sum, post) => sum + (post.readTimeInMinutes || 0), 0)} min`, 
+                value: `${blogStats.totalReadMinutes} min`, 
                 icon: ClockIcon,
                 color: 'from-purple-500 to-pink-500',
                 gradient: isDark ? 'from-purple-400 to-pink-400' : 'from-purple-600 to-pink-600'
@@ -623,164 +782,28 @@ export default function Blog() {
             ))}
           </motion.div>
 
+          {posts.length > 0 && (
+            <HashnodeExperiencePanel
+              isDark={isDark}
+              trendingTags={trendingTags}
+              favoriteCount={favorites.size}
+              totalArticles={blogStats.totalArticles}
+            />
+          )}
+
+          {featuredPost && (
+            <FeaturedArticleCard
+              key={featuredPost.id}
+              post={featuredPost}
+              isDark={isDark}
+              isFavorite={favorites.has(featuredPost.id)}
+              onToggleFavorite={toggleFavorite}
+            />
+          )}
+
           {/* Enhanced Blog Posts Grid */}
           <AnimatePresence>
-            {filteredPosts.length > 0 ? (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-              >
-                {filteredPosts.map((post, index) => (
-                  <motion.article
-                    key={post.id}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 + 0.9, duration: 0.6 }}
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className={`group cursor-pointer rounded-2xl overflow-hidden backdrop-blur-xl border transition-all duration-300 relative ${
-                      isDark
-                        ? 'bg-gray-900/50 border-gray-700/50 hover:border-gray-600/70 hover:bg-gray-800/60'
-                        : 'bg-white/50 border-gray-300/50 hover:border-gray-400/70 hover:bg-white/80'
-                    }`}
-                  >
-                    {/* Favorite Button */}
-                    <motion.button
-                      onClick={(e) => toggleFavorite(post.id, e)}
-                      className={`absolute top-4 right-4 z-10 w-10 h-10 rounded-full backdrop-blur-sm border flex items-center justify-center transition-all duration-300 ${
-                        favorites.has(post.id)
-                          ? 'bg-red-500/20 border-red-500/30 text-red-400'
-                          : isDark
-                            ? 'bg-gray-900/50 border-gray-700/50 text-gray-400 hover:text-red-400 hover:border-red-500/30'
-                            : 'bg-white/50 border-gray-300/50 text-gray-500 hover:text-red-500 hover:border-red-300/50'
-                      }`}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 + 1.2 }}
-                    >
-                      <HeartIcon className={`w-5 h-5 ${
-                        favorites.has(post.id) ? 'fill-current' : ''
-                      }`} />
-                    </motion.button>
-
-                    <Link href={`/blog/${post.slug}`}>
-                      {/* Cover Image */}
-                      {post.coverImage?.url && (
-                        <div className="relative h-48 overflow-hidden">
-                          <motion.img
-                            src={post.coverImage.url}
-                            alt={post.title}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                            whileHover={{ scale: 1.1 }}
-                          />
-                          <div className={`absolute inset-0 ${
-                            isDark 
-                              ? 'bg-gradient-to-t from-gray-900/60 to-transparent' 
-                              : 'bg-gradient-to-t from-black/20 to-transparent'
-                          }`} />
-                        </div>
-                      )}
-                      
-                      <div className="p-6">
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {post.tags.slice(0, 2).map((tag) => (
-                            <motion.span
-                              key={tag.slug}
-                              whileHover={{ scale: 1.05 }}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-                                isDark
-                                  ? 'bg-purple-900/30 text-purple-400 border border-purple-800/30'
-                                  : 'bg-purple-100 text-purple-600 border border-purple-200'
-                              }`}
-                            >
-                              {tag.name}
-                            </motion.span>
-                          ))}
-                        </div>
-                        
-                        {/* Title */}
-                        <motion.h2
-                          className={`text-xl font-bold mb-3 line-clamp-2 transition-colors ${
-                            isDark 
-                              ? 'text-white group-hover:text-blue-300' 
-                              : 'text-gray-900 group-hover:text-blue-600'
-                          }`}
-                          whileHover={{ x: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          {post.title}
-                        </motion.h2>
-                        
-                        {/* Brief */}
-                        <p className={`mb-6 leading-relaxed line-clamp-3 ${
-                          isDark ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {post.brief}
-                        </p>
-                        
-                        {/* Meta Information */}
-                        <div className="space-y-3">
-                          <div className={`flex items-center justify-between text-sm ${
-                            isDark ? 'text-gray-500' : 'text-gray-500'
-                          }`}>
-                            <div className="flex items-center space-x-4">
-                              <span className="flex items-center">
-                                <CalendarIcon className="w-4 h-4 mr-1" />
-                                {new Date(post.publishedAt).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                              <span className="flex items-center">
-                                <ClockIcon className="w-4 h-4 mr-1" />
-                                {post.readTimeInMinutes} min
-                              </span>
-                            </div>
-                            {post.views > 0 && (
-                              <span className="flex items-center">
-                                <EyeIcon className="w-4 h-4 mr-1" />
-                                {post.views.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Read More Button */}
-                          <motion.div
-                            className={`flex items-center justify-between pt-3 border-t transition-colors ${
-                              isDark ? 'border-gray-700/50' : 'border-gray-300/50'
-                            }`}
-                            whileHover={{ x: 5 }}
-                          >
-                            <span className={`font-medium transition-colors ${
-                              isDark 
-                                ? 'text-blue-400 group-hover:text-blue-300' 
-                                : 'text-blue-600 group-hover:text-blue-700'
-                            }`}>
-                              Read Article
-                            </span>
-                            <motion.div
-                              whileHover={{ x: 3 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ArrowRightIcon className={`w-5 h-5 transition-colors ${
-                                isDark 
-                                  ? 'text-blue-400 group-hover:text-blue-300' 
-                                  : 'text-blue-600 group-hover:text-blue-700'
-                              }`} />
-                            </motion.div>
-                          </motion.div>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.article>
-                ))}
-              </motion.div>
-            ) : (
+            {filteredPosts.length === 0 ? (
               /* Enhanced Empty State */
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
@@ -812,24 +835,212 @@ export default function Blog() {
                 <p className={`text-lg mb-6 ${
                   isDark ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  Check back soon for new articles from bakul.hashnode.dev!
+                  Everything is synced directly here now. Try adjusting filters to rediscover articles.
                 </p>
-                <motion.a
-                  href="https://bakul.hashnode.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    isDark
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  Visit My Blog
-                  <ArrowRightIcon className="w-5 h-5 ml-2" />
-                </motion.a>
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                  <motion.button
+                    onClick={resetFilters}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`inline-flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+                      isDark
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    Reset Filters
+                    <ArrowRightIcon className="w-5 h-5 ml-2" />
+                  </motion.button>
+                  <motion.button
+                    onClick={handleBackToTop}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`inline-flex items-center px-6 py-3 rounded-lg font-medium border ${
+                      isDark
+                        ? 'border-gray-700 text-gray-200 hover:text-white'
+                        : 'border-gray-300 text-gray-700 hover:text-gray-900'
+                    }`}
+                  >
+                    Back to Top
+                  </motion.button>
+                </div>
               </motion.div>
+            ) : (
+              remainingPosts.length > 0 && (
+              <motion.div 
+                className={`grid ${
+                  viewMode === 'list'
+                    ? 'grid-cols-1 gap-6'
+                    : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'
+                }`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+              >
+                {remainingPosts.map((post, index) => {
+                  const isListView = viewMode === 'list';
+                  return (
+                    <motion.article
+                      key={post.id}
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 + 0.9, duration: 0.6 }}
+                      whileHover={{ y: -8, scale: 1.02 }}
+                      className={`group cursor-pointer rounded-2xl overflow-hidden backdrop-blur-xl border transition-all duration-300 relative ${
+                        isDark
+                          ? 'bg-gray-900/50 border-gray-700/50 hover:border-gray-600/70 hover:bg-gray-800/60'
+                          : 'bg-white/50 border-gray-300/50 hover:border-gray-400/70 hover:bg-white/80'
+                      } ${isListView ? 'md:flex' : ''}`}
+                    >
+                      {/* Favorite Button */}
+                      <motion.button
+                        onClick={(e) => toggleFavorite(post.id, e)}
+                        className={`absolute top-4 right-4 z-10 w-10 h-10 rounded-full backdrop-blur-sm border flex items-center justify-center transition-all duration-300 ${
+                          favorites.has(post.id)
+                            ? 'bg-red-500/20 border-red-500/30 text-red-400'
+                            : isDark
+                              ? 'bg-gray-900/50 border-gray-700/50 text-gray-400 hover:text-red-400 hover:border-red-500/30'
+                              : 'bg-white/50 border-gray-300/50 text-gray-500 hover:text-red-500 hover:border-red-300/50'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 + 1.2 }}
+                      >
+                        <HeartIcon className={`w-5 h-5 ${
+                          favorites.has(post.id) ? 'fill-current' : ''
+                        }`} />
+                      </motion.button>
+
+                      <Link
+                        href={`/blog/${post.slug}`}
+                        className={`${isListView ? 'flex flex-col md:flex-row h-full' : 'block h-full'}`}
+                      >
+                        {/* Cover Image */}
+                        {post.coverImage?.url && (
+                          <div
+                            className={`${
+                              isListView
+                                ? 'relative h-52 md:h-auto md:min-h-[220px] md:w-5/12 overflow-hidden'
+                                : 'relative h-48 overflow-hidden'
+                            }`}
+                          >
+                            <Image
+                              src={post.coverImage.url}
+                              alt={post.title}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-110"
+                              sizes="(max-width:1024px) 100vw, 33vw"
+                            />
+                            <div className={`absolute inset-0 ${
+                              isDark 
+                                ? 'bg-gradient-to-t from-gray-900/60 to-transparent' 
+                                : 'bg-gradient-to-t from-black/20 to-transparent'
+                            }`} />
+                          </div>
+                        )}
+                        
+                        <div className={`${isListView ? 'flex-1 p-6 md:p-8' : 'p-6'}`}>
+                          {/* Tags */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {post.tags.slice(0, 2).map((tag) => (
+                              <motion.span
+                                key={tag.slug}
+                                whileHover={{ scale: 1.05 }}
+                                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                                  isDark
+                                    ? 'bg-purple-900/30 text-purple-300 border border-purple-800/30'
+                                    : 'bg-purple-100 text-purple-600 border border-purple-200'
+                                }`}
+                              >
+                                {tag.name}
+                              </motion.span>
+                            ))}
+                          </div>
+                          
+                          {/* Title */}
+                          <motion.h2
+                            className={`text-xl font-bold mb-3 line-clamp-2 transition-colors ${
+                              isDark 
+                                ? 'text-white group-hover:text-blue-300' 
+                                : 'text-gray-900 group-hover:text-blue-600'
+                            }`}
+                            whileHover={{ x: 5 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            {post.title}
+                          </motion.h2>
+                          
+                          {/* Brief */}
+                          <p className={`mb-6 leading-relaxed ${
+                            isListView ? 'line-clamp-4' : 'line-clamp-3'
+                          } ${
+                            isDark ? 'text-gray-300' : 'text-gray-600'
+                          }`}>
+                            {post.brief}
+                          </p>
+                          
+                          {/* Meta Information */}
+                          <div className="space-y-3">
+                            <div className={`flex flex-wrap items-center justify-between text-sm ${
+                              isDark ? 'text-gray-400' : 'text-gray-500'
+                            }`}>
+                              <div className="flex flex-wrap items-center gap-4">
+                                <span className="flex items-center">
+                                  <CalendarIcon className="w-4 h-4 mr-1" />
+                                  {new Date(post.publishedAt).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                                <span className="flex items-center">
+                                  <ClockIcon className="w-4 h-4 mr-1" />
+                                  {post.readTimeInMinutes} min
+                                </span>
+                              </div>
+                              {post.views > 0 && (
+                                <span className="flex items-center">
+                                  <EyeIcon className="w-4 h-4 mr-1" />
+                                  {post.views.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Read More Button */}
+                            <motion.div
+                              className={`flex items-center justify-between pt-3 border-t transition-colors ${
+                                isDark ? 'border-gray-700/50' : 'border-gray-300/50'
+                              }`}
+                              whileHover={{ x: 5 }}
+                            >
+                              <span className={`font-medium transition-colors ${
+                                isDark 
+                                  ? 'text-blue-400 group-hover:text-blue-300' 
+                                  : 'text-blue-600 group-hover:text-blue-700'
+                              }`}>
+                                Read Article
+                              </span>
+                              <motion.div
+                                whileHover={{ x: 3 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ArrowRightIcon className={`w-5 h-5 transition-colors ${
+                                  isDark 
+                                    ? 'text-blue-400 group-hover:text-blue-300' 
+                                    : 'text-blue-600 group-hover:text-blue-700'
+                                }`} />
+                              </motion.div>
+                            </motion.div>
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.article>
+                  );
+                })}
+              </motion.div>
+              )
             )}
           </AnimatePresence>
         </div>
@@ -839,7 +1050,7 @@ export default function Blog() {
       <AnimatePresence>
         {showBackToTop && (
           <motion.button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={handleBackToTop}
             className={`fixed bottom-8 right-8 w-12 h-12 rounded-full backdrop-blur-sm border flex items-center justify-center transition-all duration-300 z-40 ${
               isDark
                 ? 'bg-gray-900/80 border-gray-700/50 text-gray-300 hover:bg-gray-800/90 hover:border-gray-600/70'
@@ -861,3 +1072,271 @@ export default function Blog() {
     </motion.div>
   );
 }
+
+interface FeaturedArticleCardProps {
+  post: BlogPost;
+  isDark: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: (postId: string, e: MouseEvent<HTMLButtonElement>) => void;
+}
+
+const FeaturedArticleCard = ({ post, isDark, isFavorite, onToggleFavorite }: FeaturedArticleCardProps) => {
+  return (
+    <motion.section
+      className="mb-10"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.6 }}
+    >
+      <div
+        className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-shadow duration-500 group ${
+          isDark
+            ? 'bg-gray-900/60 border-gray-700/60 shadow-[0_20px_60px_rgba(15,23,42,0.7)]'
+            : 'bg-white/80 border-gray-200/70 shadow-[0_20px_45px_rgba(15,23,42,0.1)]'
+        }`}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch">
+          <div className="relative h-64 lg:h-full min-h-[320px] overflow-hidden">
+            {post.coverImage?.url ? (
+              <Image
+                src={post.coverImage.url}
+                alt={post.title}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                sizes="(max-width:1024px) 100vw, 50vw"
+                priority
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500 text-white text-4xl font-bold">
+                {post.title.charAt(0)}
+              </div>
+            )}
+            <div
+              className={`absolute inset-0 ${
+                isDark
+                  ? 'bg-gradient-to-r from-gray-950/80 via-gray-900/20 to-transparent'
+                  : 'bg-gradient-to-r from-white/70 via-white/10 to-transparent'
+              }`}
+            />
+          </div>
+
+          <div className="p-6 sm:p-8 flex flex-col gap-6 relative">
+            <motion.button
+              onClick={(e) => onToggleFavorite(post.id, e)}
+              className={`absolute top-6 right-6 w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all duration-300 ${
+                isFavorite
+                  ? 'bg-red-500/15 border-red-500/40 text-red-400'
+                  : isDark
+                    ? 'bg-gray-900/60 border-gray-700/60 text-gray-300'
+                    : 'bg-white/70 border-gray-200/70 text-gray-600'
+              }`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <HeartIcon className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
+            </motion.button>
+
+            <div className="flex flex-wrap gap-3 mt-4">
+              {post.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag.slug}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-full border ${
+                    isDark
+                      ? 'bg-blue-500/10 border-blue-500/20 text-blue-200'
+                      : 'bg-blue-500/10 border-blue-500/30 text-blue-700'
+                  }`}
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+
+            <div>
+              <p className={`uppercase tracking-[0.3em] text-xs font-semibold mb-3 ${
+                isDark ? 'text-blue-300/70' : 'text-blue-600/70'
+              }`}>
+                Featured Insight
+              </p>
+              <h2
+                className={`text-3xl sm:text-4xl font-black leading-tight mb-4 ${
+                  isDark ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                {post.title}
+              </h2>
+              <p className={`text-base sm:text-lg leading-relaxed ${
+                isDark ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                {post.brief}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-sm font-medium">
+              <span className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {new Date(post.publishedAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+              <span className="flex items-center gap-2">
+                <ClockIcon className="w-4 h-4" />
+                {post.readTimeInMinutes} min read
+              </span>
+              {post.views > 0 && (
+                <span className="flex items-center gap-2">
+                  <EyeIcon className="w-4 h-4" />
+                  {post.views.toLocaleString()} views
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-4 items-center">
+              <Link
+                href={`/blog/${post.slug}`}
+                className={`inline-flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg ${
+                  isDark
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-purple-600/40'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-purple-400/40'
+                }`}
+              >
+                Read Featured Article
+                <ArrowRightIcon className="w-5 h-5" />
+              </Link>
+              <div
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium border transition-colors ${
+                  isDark
+                    ? 'border-gray-700 text-gray-300'
+                    : 'border-gray-300 text-gray-700'
+                }`}
+              >
+                <BoltIcon className="w-4 h-4" />
+                Live Hashnode feed
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+};
+
+interface HashnodeExperiencePanelProps {
+  isDark: boolean;
+  trendingTags: Array<{ slug: string; name: string; count: number }>;
+  favoriteCount: number;
+  totalArticles: number;
+}
+
+const HashnodeExperiencePanel = ({ isDark, trendingTags, favoriteCount, totalArticles }: HashnodeExperiencePanelProps) => {
+  const featureHighlights = [
+    'Adaptive reading progress',
+    'Local favorites & filtering',
+    'Hashnode-grade MDX rendering'
+  ];
+
+  return (
+    <motion.section
+      className="mb-10"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.6 }}
+    >
+      <div className={`rounded-3xl border p-6 sm:p-10 backdrop-blur-xl ${
+        isDark
+          ? 'bg-gray-900/50 border-gray-700/50'
+          : 'bg-white/80 border-gray-200/70'
+      }`}>
+        <div className="flex flex-col gap-4 mb-8 text-center">
+          <div className={`inline-flex items-center justify-center gap-2 mx-auto px-4 py-1.5 rounded-full text-sm font-semibold ${
+            isDark ? 'bg-blue-500/10 text-blue-200' : 'bg-blue-100 text-blue-700'
+          }`}>
+            <SparklesIcon className="w-4 h-4" />
+            Hashnode experience, on-site
+          </div>
+          <h2 className={`text-3xl sm:text-4xl font-black ${
+            isDark ? 'text-white' : 'text-gray-900'
+          }`}>
+            Everything you love about Hashnode without leaving this page
+          </h2>
+          <p className={`${
+            isDark ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Browse, filter, favorite, and track articles with the same power features—now embedded directly into the site.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className={`rounded-2xl p-6 border ${
+            isDark ? 'bg-gray-900/40 border-gray-700/40' : 'bg-white border-gray-200'
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <FireIcon className={`w-6 h-6 ${isDark ? 'text-orange-300' : 'text-orange-500'}`} />
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Trending tags</p>
+                <p className="text-lg font-semibold">{trendingTags.length ? 'What readers follow' : 'Tags update soon'}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {trendingTags.length ? (
+                trendingTags.map((tag) => (
+                  <span
+                    key={tag.slug}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      isDark
+                        ? 'bg-blue-500/10 text-blue-100 border border-blue-500/30'
+                        : 'bg-blue-50 text-blue-700 border border-blue-100'
+                    }`}
+                  >
+                    {tag.name} · {tag.count}
+                  </span>
+                ))
+              ) : (
+                <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tags appear once posts load.</p>
+              )}
+            </div>
+          </div>
+
+          <div className={`rounded-2xl p-6 border ${
+            isDark ? 'bg-gray-900/40 border-gray-700/40' : 'bg-white border-gray-200'
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <HeartIcon className={`w-6 h-6 ${favoriteCount ? 'text-red-400' : isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Reading list</p>
+                <p className="text-lg font-semibold">
+                  {favoriteCount ? `${favoriteCount} saved article${favoriteCount === 1 ? '' : 's'}` : 'Save favorites to revisit'}
+                </p>
+              </div>
+            </div>
+            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Tap the heart on any card to keep it in your personal reading queue. Everything stays on-device for instant recall.
+            </p>
+          </div>
+
+          <div className={`rounded-2xl p-6 border ${
+            isDark ? 'bg-gray-900/40 border-gray-700/40' : 'bg-white border-gray-200'
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <BookOpenIcon className={`w-6 h-6 ${isDark ? 'text-purple-300' : 'text-purple-500'}`} />
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Deep reading</p>
+                <p className="text-lg font-semibold">{totalArticles} curated article{totalArticles === 1 ? '' : 's'}</p>
+              </div>
+            </div>
+            <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              {featureHighlights.map((highlight) => (
+                <li key={highlight} className="flex items-start gap-2">
+                  <BoltIcon className={`w-4 h-4 mt-0.5 ${isDark ? 'text-blue-300' : 'text-blue-500'}`} />
+                  {highlight}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+};

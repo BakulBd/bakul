@@ -14,7 +14,12 @@ import {
   SparklesIcon,
   UserIcon,
   ChatBubbleLeftRightIcon,
-  ClockIcon
+  ClockIcon,
+  CalendarDaysIcon,
+  GlobeAltIcon,
+  ShieldCheckIcon,
+  BoltIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 interface FormData {
@@ -90,6 +95,93 @@ export default function ContactPage() {
       description: 'I reply within a day',
       color: 'from-orange-500 to-red-500',
       gradient: isDark ? 'from-orange-400 to-red-400' : 'from-orange-600 to-red-600'
+    }
+  ];
+
+  const engagementHighlights = [
+    {
+      icon: CalendarDaysIcon,
+      title: 'Calendar Friendly',
+      description: 'Book async reviews or live working sessions across GMT+6 to GMT+1 overlap.',
+    },
+    {
+      icon: GlobeAltIcon,
+      title: 'Remote Native',
+      description: '10+ years collaborating with fully distributed teams across 6 timezones.',
+    },
+    {
+      icon: ShieldCheckIcon,
+      title: 'Reliable Delivery',
+      description: 'Transparent status updates, shared dashboards, and weekly demos baked in.',
+    }
+  ];
+
+  const availabilityBlocks = [
+    {
+      label: 'Focus & Strategy',
+      time: '09:00 – 12:30 GMT+6',
+      detail: 'Deep work sprints, async reviews, product planning notes.',
+    },
+    {
+      label: 'Collaborative Sessions',
+      time: '13:30 – 18:00 GMT+6',
+      detail: 'Workshops, pairing, stakeholder syncs with flexible handoffs.',
+    },
+    {
+      label: 'Global Support Window',
+      time: '19:00 – 22:00 GMT+6',
+      detail: 'Covers EU/US overlap for rapid delivery or launch checks.',
+    }
+  ];
+
+  const collaborationSignals = [
+    'Founder-led product teams',
+    'Design-to-code pipelines',
+    'Data-informed storytelling',
+    'Growth experiments with rigor',
+    'Calm, async-friendly communication'
+  ];
+
+  const meetingOptions = [
+    {
+      title: 'Discovery Call',
+      duration: '25 minutes',
+      focus: 'Scope your challenge and success criteria.',
+      href: 'mailto:bokula88@gmail.com?subject=Discovery%20Call%20Request',
+      accent: 'from-blue-500 to-indigo-500'
+    },
+    {
+      title: 'Build Audit',
+      duration: '40 minutes',
+      focus: 'Review current product, identify quick wins.',
+      href: 'mailto:bokula88@gmail.com?subject=Build%20Audit%20Request',
+      accent: 'from-purple-500 to-pink-500'
+    },
+    {
+      title: 'Advisory Retainer',
+      duration: '20 minutes',
+      focus: 'Align on cadence, rituals, and operating model.',
+      href: 'mailto:bokula88@gmail.com?subject=Advisory%20Retainer%20Chat',
+      accent: 'from-emerald-500 to-cyan-500'
+    }
+  ];
+
+  const faqs = [
+    {
+      question: 'What types of projects do you take on?',
+      answer: 'Product strategy, design systems, marketing sites, and end-to-end React/Next.js builds with measurable outcomes.',
+    },
+    {
+      question: 'How soon can you start?',
+      answer: 'Discovery calls can happen within 48 hours. Build engagements typically start within 1-2 weeks after aligning on scope.',
+    },
+    {
+      question: 'Do you work with existing teams?',
+      answer: 'Yes—plugging into design, data, or engineering teams is standard. I set up shared rituals and async dashboards for clarity.',
+    },
+    {
+      question: 'What is your collaboration style?',
+      answer: 'A mix of async documentation, Loom walkthroughs, and scheduled deep dives. Expect a calm but decisive pace.',
     }
   ];
 
@@ -186,6 +278,12 @@ export default function ContactPage() {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
+
+  const completedFields = Object.values(formData).filter(value => value.trim()).length;
+  const formProgress = Math.round((completedFields / 4) * 100);
+  const messageCharacters = formData.message.trim().length;
+  const messageGoal = 200;
+  const messageProgress = Math.min(100, Math.round((messageCharacters / messageGoal) * 100));
 
   return (
     <motion.div 
@@ -362,6 +460,37 @@ export default function ContactPage() {
           </motion.p>
         </motion.div>
 
+        {/* Engagement Highlights */}
+        <motion.div
+          className="grid md:grid-cols-3 gap-6 mb-16"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } } }}
+        >
+          {engagementHighlights.map((item) => (
+            <motion.div
+              key={item.title}
+              variants={{ hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } }}
+              className={`p-6 rounded-2xl border backdrop-blur-md transition-all duration-300 ${
+                isDark
+                  ? 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
+                  : 'bg-white/70 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  isDark ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'
+                }`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
+              </div>
+              <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{item.description}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-5 gap-12 lg:gap-16">
           {/* Contact Information */}
@@ -475,6 +604,66 @@ export default function ContactPage() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Collaboration Signals */}
+            <motion.div
+              className={`p-6 rounded-2xl border backdrop-blur-md ${
+                isDark
+                  ? 'bg-gray-900/60 border-gray-800'
+                  : 'bg-white/70 border-gray-200'
+              }`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className={`text-sm uppercase tracking-wide ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>Ideal collaboration fit</p>
+                  <h4 className={`text-2xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>Best when...</h4>
+                </div>
+                <BoltIcon className={`w-8 h-8 ${isDark ? 'text-yellow-300' : 'text-yellow-500'}`} />
+              </div>
+              <div className="space-y-3">
+                {collaborationSignals.map((signal) => (
+                  <div key={signal} className="flex items-start gap-3">
+                    <span className={`mt-1 w-2 h-2 rounded-full ${isDark ? 'bg-blue-400' : 'bg-blue-600'}`} />
+                    <p className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{signal}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Meeting Options */}
+            <motion.div
+              className="pt-8"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1 }}
+            >
+              <h3 className={`text-xl font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Pick a format</h3>
+              <div className="space-y-4">
+                {meetingOptions.map((option) => (
+                  <a
+                    key={option.title}
+                    href={option.href}
+                    className={`block rounded-2xl border p-5 transition-all duration-300 hover:translate-x-1 ${
+                      isDark
+                        ? 'bg-gray-900/50 border-gray-800 hover:border-gray-700'
+                        : 'bg-white/70 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className={`text-sm uppercase tracking-wide ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{option.duration}</p>
+                        <h4 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{option.title}</h4>
+                      </div>
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${option.accent} text-white flex items-center justify-center font-semibold`}>→</div>
+                    </div>
+                    <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{option.focus}</p>
+                  </a>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
 
           {/* Contact Form */}
@@ -530,6 +719,34 @@ export default function ContactPage() {
                     }`}>
                       Send Me a Message
                     </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>Form readiness</span>
+                          <span className={isDark ? 'text-blue-300' : 'text-blue-600'}>{formProgress}%</span>
+                        </div>
+                        <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${formProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>Message detail</span>
+                          <span className={isDark ? 'text-purple-300' : 'text-purple-600'}>{messageCharacters}/{messageGoal}</span>
+                        </div>
+                        <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${messageProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
@@ -707,6 +924,82 @@ export default function ContactPage() {
                   </motion.button>
                 </form>
               )}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Availability & FAQs */}
+        <div className="mt-20 grid lg:grid-cols-2 gap-10">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+            className={`p-8 rounded-3xl border backdrop-blur-lg ${
+              isDark ? 'bg-gray-900/60 border-gray-800' : 'bg-white/80 border-gray-200'
+            }`}
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <ClockIcon className={`w-10 h-10 ${isDark ? 'text-blue-300' : 'text-blue-600'}`} />
+              <div>
+                <p className={`text-sm uppercase tracking-wide ${isDark ? 'text-blue-300' : 'text-blue-600'}`}>Working rhythm</p>
+                <h3 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Weekly availability</h3>
+              </div>
+            </div>
+            <div className="space-y-6">
+              {availabilityBlocks.map((block) => (
+                <div key={block.label} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{block.label}</p>
+                    <span className={`text-sm px-3 py-1 rounded-full ${
+                      isDark ? 'bg-gray-800 text-blue-200' : 'bg-blue-50 text-blue-700'
+                    }`}>{block.time}</span>
+                  </div>
+                  <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{block.detail}</p>
+                  <div className={`h-1 rounded-full bg-gradient-to-r ${
+                    isDark ? 'from-blue-500/40 to-purple-500/40' : 'from-blue-400/70 to-purple-400/70'
+                  }`} />
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className={`p-8 rounded-3xl border backdrop-blur-lg ${
+              isDark ? 'bg-gray-900/60 border-gray-800' : 'bg-white/80 border-gray-200'
+            }`}
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <UserGroupIcon className={`w-10 h-10 ${isDark ? 'text-purple-300' : 'text-purple-600'}`} />
+              <div>
+                <p className={`text-sm uppercase tracking-wide ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>Helpful answers</p>
+                <h3 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>FAQs</h3>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <motion.details
+                  key={faq.question}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`group rounded-2xl border px-5 py-4 ${
+                    isDark ? 'border-gray-800 bg-gray-900/40' : 'border-gray-200 bg-white/70'
+                  }`}
+                >
+                  <summary className={`flex items-center justify-between cursor-pointer text-lg font-semibold ${
+                    isDark ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {faq.question}
+                    <span className={`ml-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>+</span>
+                  </summary>
+                  <p className={`mt-3 text-base leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{faq.answer}</p>
+                </motion.details>
+              ))}
             </div>
           </motion.div>
         </div>

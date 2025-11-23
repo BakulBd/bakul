@@ -3,8 +3,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import {
+  SparklesIcon,
+  CircleStackIcon,
+  DevicePhoneMobileIcon,
+  HandRaisedIcon,
+  BoltIcon,
+  ChatBubbleBottomCenterIcon,
+  GlobeAsiaAustraliaIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
 import ModernNavbar from '@/components/layout/ModernNavbar';
-// import Image from 'next/image';
 
 export default function AboutPage() {
   const [activeSection, setActiveSection] = useState('story');
@@ -101,6 +110,39 @@ export default function AboutPage() {
       icon: '🏆',
       technologies: ['Algorithms', 'Data Structures', 'Problem Solving', 'Optimization', 'Mathematical Thinking']
     }
+  ];
+
+  const principles = [
+    {
+      title: 'Clarity over noise',
+      detail: 'Every engagement starts with shared success metrics, decision logs, and crisp documentation.',
+      icon: SparklesIcon,
+      accent: 'from-blue-500/20 to-purple-500/10',
+    },
+    {
+      title: 'Systems with soul',
+      detail: 'Design tokens, content models, and API contracts stay in sync so interfaces feel effortless.',
+      icon: CircleStackIcon,
+      accent: 'from-emerald-500/20 to-teal-500/10',
+    },
+    {
+      title: 'Async empathy',
+      detail: 'Loom recaps, annotated Figma files, and structured handoffs keep remote teams confident.',
+      icon: DevicePhoneMobileIcon,
+      accent: 'from-amber-500/20 to-orange-500/10',
+    },
+  ];
+
+  const collabStack = [
+    { label: 'Product strategy', detail: 'Figjam workshops, product briefs, and KPI tracking.', icon: HandRaisedIcon },
+    { label: 'Design & delivery', detail: 'Figma, Framer Motion, and custom design systems.', icon: BoltIcon },
+    { label: 'Engineering', detail: 'Next.js, TypeScript, Python, Postgres, and edge-ready infra.', icon: CircleStackIcon },
+    { label: 'Communication', detail: 'Linear, Notion, Slack, and async-first rituals.', icon: ChatBubbleBottomCenterIcon },
+  ];
+
+  const availability = [
+    { label: 'Location', value: 'Sylhet, Bangladesh · Remote-first', icon: GlobeAsiaAustraliaIcon },
+    { label: 'Rhythm', value: '2-week build sprints with mid-week demos', icon: ClockIcon },
   ];
 
   return (
@@ -247,7 +289,7 @@ export default function AboutPage() {
               { label: 'Full-Stack Engineer', icon: '💻' },
               { label: 'Problem Solver', icon: '🧩' },
               { label: 'Open Source Contributor', icon: '🌟' }
-            ].map((badge, index) => (
+            ].map((badge) => (
               <motion.div
                 key={badge.label}
                 whileHover={{ scale: 1.05, y: -2 }}
@@ -683,6 +725,101 @@ export default function AboutPage() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Principles */}
+      <div className="relative z-10 mx-auto mt-20 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Values</p>
+          <h2 className={`text-3xl md:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>How I show up for teams</h2>
+          <p className={`mt-3 text-base md:text-lg ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Process, rituals, and principles that keep collaborations calm, transparent, and fast-moving.
+          </p>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {principles.map((principle) => {
+            const Icon = principle.icon;
+            return (
+              <motion.article
+                key={principle.title}
+                whileHover={{ y: -6 }}
+                className={`rounded-3xl border p-6 shadow-lg backdrop-blur-xl bg-gradient-to-br ${principle.accent} ${
+                  isDark ? 'border-white/10' : 'border-slate-200'
+                }`}
+              >
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-xl font-semibold">{principle.title}</h3>
+                <p className={`mt-2 text-sm leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{principle.detail}</p>
+              </motion.article>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Collaboration Stack */}
+      <div className="relative z-10 mx-auto mt-20 max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className={`rounded-3xl border p-8 shadow-2xl ${isDark ? 'border-white/5 bg-gray-900/70' : 'border-slate-200 bg-white'}`}>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Collaboration Stack</p>
+              <h2 className="mt-2 text-3xl font-bold">From kickoff to ship-ready</h2>
+              <p className={`mt-2 max-w-2xl text-base ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                Cross-functional partners get clarity on tooling, review cadence, and delivery checkpoints from day one.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {availability.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className={`rounded-2xl border p-4 text-sm ${isDark ? 'border-white/5 bg-white/5 text-gray-200' : 'border-slate-200 bg-slate-50 text-gray-700'}`}>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide">
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </div>
+                    <p className="mt-2 text-base font-medium">{item.value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            {collabStack.map((track) => {
+              const Icon = track.icon;
+              return (
+                <div key={track.label} className={`rounded-2xl border p-5 ${isDark ? 'border-white/5 bg-white/5' : 'border-slate-200 bg-white'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl bg-indigo-500/20 p-2 text-indigo-300">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{track.label}</h3>
+                  </div>
+                  <p className={`mt-3 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{track.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="relative z-10 mx-auto mt-20 max-w-4xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className={`rounded-3xl border p-8 text-center shadow-2xl ${isDark ? 'border-white/10 bg-gradient-to-br from-indigo-900/70 to-slate-900/80' : 'border-slate-200 bg-gradient-to-br from-indigo-100 to-white'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>Let us build</p>
+          <h2 className="mt-4 text-4xl font-bold">Ready for intentional collaboration?</h2>
+          <p className={`mt-3 text-base ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            I partner with founders, product teams, and studios to craft resilient systems and delightful interfaces.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <a href="/contact" className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-lg shadow-indigo-500/40">
+              Book a session
+            </a>
+            <a href="/projects" className={`inline-flex items-center justify-center rounded-2xl border px-6 py-3 font-semibold ${isDark ? 'border-white/20 text-white' : 'border-slate-300 text-slate-800'}`}>
+              See recent work
+            </a>
+          </div>
+        </div>
       </div>
       </div>
     </motion.div>

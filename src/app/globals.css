@@ -1,17 +1,9 @@
 @import "tailwindcss";
 
 /* Smooth theme transitions for professional experience */
-html {
+html,
+body {
   transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-*,
-*::before,
-*::after {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Override transitions for specific interactive elements */
@@ -29,6 +21,7 @@ a,
 }
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
   --card: #ffffff;
@@ -49,7 +42,7 @@ a,
   --input: #e2e8f0;
   --ring: #0ea5e9;
   --radius: 0.5rem;
-  
+
   /* Custom gradients for premium design */
   --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -57,6 +50,7 @@ a,
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #ededed;
   --card: #0f0f0f;
@@ -76,7 +70,7 @@ a,
   --border: #334155;
   --input: #334155;
   --ring: #38bdf8;
-  
+
   /* Dark mode gradients */
   --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
   --secondary-gradient: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
@@ -84,8 +78,8 @@ a,
 }
 
 /* Enhanced global styles for modern UI/UX */
-* {
-  border-color: hsl(var(--border));
+:where(*, *::before, *::after) {
+  border-color: var(--border);
 }
 
 html {
@@ -294,10 +288,7 @@ button, input, textarea, select {
   margin: 1.5rem 0;
 }
 
-/* Smooth transitions for theme switching */
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
+/* Smooth transitions for theme switching are handled per-component */
 
 /* Hide scrollbar for specific elements */
 .no-scrollbar {
@@ -1227,20 +1218,7 @@ button, input, textarea, select {
 .stagger-5 { animation-delay: 0.5s; }
 .stagger-6 { animation-delay: 0.6s; }
 
-/* Smooth scroll enhancement */
-html {
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Smooth scroll enhancement handled near top of file */
 
 /* Custom blur utilities */
 .blur-xs { backdrop-filter: blur(2px); }

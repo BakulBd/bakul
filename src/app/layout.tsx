@@ -136,55 +136,56 @@ export const metadata = {
   },
 };
 
+const PERSON_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Bakul Ahmed",
+  jobTitle: "Full Stack Developer",
+  description:
+    "Premium Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences.",
+  url: "https://bakul.dev",
+  sameAs: [
+    "https://github.com/bakulahmed",
+    "https://linkedin.com/in/bakulahmed",
+    "https://twitter.com/bakulahmed",
+  ],
+  knowsAbout: [
+    "React",
+    "Next.js",
+    "TypeScript",
+    "Node.js",
+    "JavaScript",
+    "Python",
+    "PostgreSQL",
+    "MongoDB",
+    "AWS",
+    "Docker",
+    "Tailwind CSS",
+    "UI/UX Design",
+  ],
+  hasOccupation: {
+    "@type": "Occupation",
+    name: "Full Stack Developer",
+    occupationLocation: {
+      "@type": "Country",
+      name: "Global",
+    },
+  },
+  offers: {
+    "@type": "Offer",
+    itemOffered: {
+      "@type": "Service",
+      name: "Web Development Services",
+      description: "Custom web applications, e-commerce solutions, and modern responsive websites",
+    },
+  },
+} as const;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Bakul Ahmed",
-    "jobTitle": "Full Stack Developer",
-    "description": "Premium Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences.",
-    "url": "https://bakul.dev",
-    "sameAs": [
-      "https://github.com/bakulahmed",
-      "https://linkedin.com/in/bakulahmed",
-      "https://twitter.com/bakulahmed"
-    ],
-    "knowsAbout": [
-      "React",
-      "Next.js", 
-      "TypeScript",
-      "Node.js",
-      "JavaScript",
-      "Python",
-      "PostgreSQL",
-      "MongoDB",
-      "AWS",
-      "Docker",
-      "Tailwind CSS",
-      "UI/UX Design"
-    ],
-    "hasOccupation": {
-      "@type": "Occupation",
-      "name": "Full Stack Developer",
-      "occupationLocation": {
-        "@type": "Country",
-        "name": "Global"
-      }
-    },
-    "offers": {
-      "@type": "Offer",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Web Development Services",
-        "description": "Custom web applications, e-commerce solutions, and modern responsive websites"
-      }
-    }
-  };
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -196,32 +197,12 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(PERSON_SCHEMA) }}
         />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-foreground`}
       >
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Enhanced theme initialization to prevent flash
-              (function() {
-                try {
-                  const theme = localStorage.getItem('theme') || 'dark';
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
-                } catch (e) {
-                  // Fallback to dark theme
-                  document.documentElement.classList.add('dark');
-                }
-              })();
-            `
-          }}
-        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -238,9 +219,9 @@ export default function RootLayout({
             toastOptions={{
               duration: 4000,
               style: {
-                background: 'hsl(var(--card))',
-                color: 'hsl(var(--card-foreground))',
-                border: '1px solid hsl(var(--border))',
+                background: 'var(--card)',
+                color: 'var(--card-foreground)',
+                border: '1px solid var(--border)',
               },
             }}
           />
