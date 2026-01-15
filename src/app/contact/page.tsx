@@ -101,45 +101,45 @@ export default function ContactPage() {
   const engagementHighlights = [
     {
       icon: CalendarDaysIcon,
-      title: 'Calendar Friendly',
-      description: 'Book async reviews or live working sessions across GMT+6 to GMT+1 overlap.',
+      title: 'Quick Response',
+      description: 'I respond to all inquiries within 24 hours and am available for collaboration.',
     },
     {
       icon: GlobeAltIcon,
-      title: 'Remote Native',
-      description: '10+ years collaborating with fully distributed teams across 6 timezones.',
+      title: 'Remote Ready',
+      description: 'Based in Bangladesh (GMT+6), available for remote work and collaboration worldwide.',
     },
     {
       icon: ShieldCheckIcon,
       title: 'Reliable Delivery',
-      description: 'Transparent status updates, shared dashboards, and weekly demos baked in.',
+      description: 'Committed to delivering high-quality work on time with clear communication.',
     }
   ];
 
   const availabilityBlocks = [
     {
-      label: 'Focus & Strategy',
-      time: '09:00 – 12:30 GMT+6',
-      detail: 'Deep work sprints, async reviews, product planning notes.',
+      label: 'Study & Development',
+      time: '09:00 – 14:00 GMT+6',
+      detail: 'University classes and personal project development time.',
     },
     {
-      label: 'Collaborative Sessions',
-      time: '13:30 – 18:00 GMT+6',
-      detail: 'Workshops, pairing, stakeholder syncs with flexible handoffs.',
+      label: 'Collaboration Hours',
+      time: '15:00 – 20:00 GMT+6',
+      detail: 'Available for meetings, pair programming, and client work.',
     },
     {
-      label: 'Global Support Window',
-      time: '19:00 – 22:00 GMT+6',
-      detail: 'Covers EU/US overlap for rapid delivery or launch checks.',
+      label: 'Flexible Support',
+      time: '20:00 – 23:00 GMT+6',
+      detail: 'Available for urgent matters and international timezone overlap.',
     }
   ];
 
   const collaborationSignals = [
-    'Founder-led product teams',
-    'Design-to-code pipelines',
-    'Data-informed storytelling',
-    'Growth experiments with rigor',
-    'Calm, async-friendly communication'
+    'AI & Machine Learning projects',
+    'Full-stack web development',
+    'Open source contributions',
+    'Student & startup collaborations',
+    'Clear, async-friendly communication'
   ];
 
   const meetingOptions = [
@@ -168,48 +168,48 @@ export default function ContactPage() {
 
   const faqs = [
     {
-      question: 'What types of projects do you take on?',
-      answer: 'Product strategy, design systems, marketing sites, and end-to-end React/Next.js builds with measurable outcomes.',
+      question: 'What types of projects do you work on?',
+      answer: 'I work on AI/ML projects, full-stack web development, mobile apps, and open-source contributions. I\'m always excited to learn and work on new technologies.',
     },
     {
-      question: 'How soon can you start?',
-      answer: 'Discovery calls can happen within 48 hours. Build engagements typically start within 1-2 weeks after aligning on scope.',
+      question: 'Are you available for freelance work?',
+      answer: 'Yes! I\'m open to freelance projects, especially those involving React, Next.js, Python, or AI/ML. Let\'s discuss your requirements.',
     },
     {
-      question: 'Do you work with existing teams?',
-      answer: 'Yes—plugging into design, data, or engineering teams is standard. I set up shared rituals and async dashboards for clarity.',
+      question: 'How can we collaborate?',
+      answer: 'You can reach out via email or any of my social profiles. I\'m open to internships, part-time work, open-source collaboration, or interesting project partnerships.',
     },
     {
-      question: 'What is your collaboration style?',
-      answer: 'A mix of async documentation, Loom walkthroughs, and scheduled deep dives. Expect a calm but decisive pace.',
+      question: 'What is your response time?',
+      answer: 'I typically respond within 24 hours. For urgent matters, feel free to reach out via phone or multiple channels.',
     }
   ];
 
   const socialLinks = [
     {
       name: 'GitHub',
-      href: 'https://github.com/BakulBd',
+      href: 'https://github.com/bakulbd',
       icon: '🐙',
       color: isDark ? 'hover:text-gray-300' : 'hover:text-gray-700',
       bg: isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-200'
     },
     {
       name: 'LinkedIn',
-      href: 'https://linkedin.com/in/bakulahmed',
+      href: 'https://linkedin.com/in/cyberbokul',
       icon: '💼',
       color: isDark ? 'hover:text-blue-400' : 'hover:text-blue-600',
       bg: isDark ? 'hover:bg-blue-900/20' : 'hover:bg-blue-100'
     },
     {
       name: 'Twitter',
-      href: 'https://twitter.com/bakulahmed',
+      href: 'https://twitter.com/cyberbokul',
       icon: '🐦',
       color: isDark ? 'hover:text-sky-400' : 'hover:text-sky-600',
       bg: isDark ? 'hover:bg-sky-900/20' : 'hover:bg-sky-100'
     },
     {
       name: 'Portfolio',
-      href: 'https://bakulahmed.dev',
+      href: 'https://bakulbd.github.io',
       icon: '🌐',
       color: isDark ? 'hover:text-purple-400' : 'hover:text-purple-600',
       bg: isDark ? 'hover:bg-purple-900/20' : 'hover:bg-purple-100'

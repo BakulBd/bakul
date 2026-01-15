@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
+import Footer from "@/components/layout/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,17 +16,17 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Bakul Ahmed - Premium Website Developer | Digital Experience Creator",
-    template: "%s | Bakul Ahmed - Premium Developer"
+    default: "Bakul Ahmed - AI Enthusiast & Software Developer",
+    template: "%s | Bakul Ahmed"
   },
-  description: "🌟 Premium Website Developer & Digital Experience Creator. Specializing in cutting-edge web technologies, exceptional UI/UX design, and scalable digital solutions. Transforming ideas into premium web experiences that drive results.",
+  description: "🚀 AI Enthusiast & Software Developer | CSE Student at Green University, Bangladesh. Specializing in React, Next.js, Python, and modern web technologies. Transforming ideas into innovative digital solutions.",
   keywords: [
-    "Premium Website Developer",
-    "Digital Experience Creator", 
-    "Expert Web Developer",
+    "AI Enthusiast",
+    "Software Developer", 
+    "Full Stack Developer",
     "Modern Web Solutions",
-    "Premium UI/UX Design",
-    "Professional Web Development",
+    "React Developer",
+    "Next.js Developer",
     "Bakul Ahmed Portfolio",
     "Custom Web Applications",
     "E-commerce Solutions",
@@ -80,15 +81,15 @@ export const metadata = {
     type: "website",
     locale: "en_US",
     url: "https://bakul.dev",
-    title: "Bakul Ahmed - Full Stack Developer | Modern Web Solutions",
-    description: "🚀 Full Stack Developer with 5+ years experience. Expert in React, Next.js, TypeScript. 50+ projects completed, 30+ satisfied clients worldwide. Building exceptional digital experiences with modern technologies and best practices.",
+    title: "Bakul Ahmed - AI Enthusiast & Software Developer",
+    description: "🚀 AI Enthusiast & Software Developer | CSE Student at Green University, Bangladesh. Expert in React, Next.js, Python, and modern web technologies. Building innovative digital solutions.",
     siteName: "Bakul Ahmed Portfolio",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Bakul Ahmed - Full Stack Developer Portfolio",
+        alt: "Bakul Ahmed - Software Developer Portfolio",
       },
       {
         url: "/og-image-square.jpg",
@@ -100,10 +101,10 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bakul Ahmed - Full Stack Developer",
-    description: "🚀 Expert Full Stack Developer | React, Next.js, TypeScript | 5+ years experience | 50+ projects | 30+ satisfied clients worldwide",
-    creator: "@bakulahmed",
-    site: "@bakulahmed",
+    title: "Bakul Ahmed - Software Developer",
+    description: "🚀 AI Enthusiast & Software Developer | React, Next.js, Python | CSE Student at Green University, Bangladesh",
+    creator: "@cyberbokul",
+    site: "@cyberbokul",
     images: ["/og-image.jpg"],
   },
   robots: {
@@ -140,14 +141,14 @@ const PERSON_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "Person",
   name: "Bakul Ahmed",
-  jobTitle: "Full Stack Developer",
+  jobTitle: "Software Developer",
   description:
-    "Premium Full Stack Developer specializing in React, Next.js, TypeScript & modern web technologies. 5+ years building exceptional digital experiences.",
+    "AI Enthusiast & Software Developer specializing in React, Next.js, Python & modern web technologies. CSE Student at Green University, Bangladesh.",
   url: "https://bakul.dev",
   sameAs: [
-    "https://github.com/bakulahmed",
-    "https://linkedin.com/in/bakulahmed",
-    "https://twitter.com/bakulahmed",
+    "https://github.com/bakulbd",
+    "https://linkedin.com/in/cyberbokul",
+    "https://twitter.com/cyberbokul",
   ],
   knowsAbout: [
     "React",
@@ -213,6 +214,7 @@ export default function RootLayout({
             <main className="flex-1 relative">
               {children}
             </main>
+            <Footer />
           </div>
           <Toaster
             position="bottom-right"

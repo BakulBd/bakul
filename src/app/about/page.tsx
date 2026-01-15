@@ -34,81 +34,81 @@ export default function AboutPage() {
 
   const skills = [
     { 
-      name: 'React & Next.js', 
+      name: 'C/C++ & Python', 
       level: 95, 
       color: 'from-blue-500 to-cyan-500',
-      icon: '⚛️',
-      description: 'Expert in building modern, scalable React applications with Next.js framework'
+      icon: '🐍',
+      description: 'Expert in systems programming, algorithms, and AI/ML development'
     },
     { 
-      name: 'TypeScript', 
+      name: 'Java', 
+      level: 90, 
+      color: 'from-orange-500 to-red-500',
+      icon: '☕',
+      description: 'Proficient in object-oriented programming and enterprise applications'
+    },
+    { 
+      name: 'React & Next.js', 
       level: 92, 
       color: 'from-blue-600 to-indigo-600',
-      icon: '📘',
-      description: 'Proficient in type-safe development and advanced TypeScript patterns'
+      icon: '⚛️',
+      description: 'Building modern, scalable React applications with Next.js framework'
     },
     { 
-      name: 'Python & Django', 
+      name: 'Node.js & Backend', 
       level: 88, 
       color: 'from-green-500 to-emerald-500',
-      icon: '🐍',
-      description: 'Experienced in backend development, API design, and data processing'
+      icon: '🟢',
+      description: 'Server-side development with Express, REST APIs, and database integration'
     },
     { 
-      name: 'Database Design', 
+      name: 'Database Systems', 
       level: 85, 
       color: 'from-yellow-500 to-orange-500',
       icon: '🗄️',
-      description: 'Skilled in PostgreSQL, MongoDB, and database optimization techniques'
+      description: 'Skilled in MySQL, MongoDB, PostgreSQL, and database optimization'
     },
     { 
-      name: 'UI/UX Design', 
-      level: 90, 
-      color: 'from-purple-500 to-pink-500',
-      icon: '🎨',
-      description: 'Creating intuitive user interfaces with modern design principles'
-    },
-    { 
-      name: 'Cloud Services', 
+      name: 'DevOps & Tools', 
       level: 82, 
-      color: 'from-orange-500 to-red-500',
-      icon: '☁️',
-      description: 'AWS, Docker, and modern DevOps practices for scalable deployments'
+      color: 'from-purple-500 to-pink-500',
+      icon: '🔧',
+      description: 'Git, Docker, VS Code, Postman, and modern development workflows'
     },
   ];
 
   const experiences = [
     {
       title: 'Computer Science Student',
-      company: 'Leading University in Bangladesh',
+      company: 'Green University, Bangladesh',
       period: '2021 - Present',
-      description: 'Pursuing Bachelor\'s in Computer Science & Engineering with focus on software development, algorithms, and modern web technologies. Maintaining excellent academic performance while building real-world projects.',
+      description: 'Pursuing Bachelor\'s in Computer Science & Engineering with focus on AI, software development, and algorithms. Building real-world projects while maintaining excellent academic performance.',
       icon: '🎓',
-      technologies: ['Data Structures', 'Algorithms', 'Software Engineering', 'Database Systems', 'Web Development']
+      technologies: ['Data Structures', 'Algorithms', 'Software Engineering', 'Machine Learning', 'Web Development']
     },
     {
       title: 'Full-Stack Developer',
-      company: 'Freelance & Contract Work',
+      company: 'Freelance & Projects',
       period: '2023 - Present',
-      description: 'Developing end-to-end web applications for startups and local businesses. Specializing in React/Next.js frontends with Python/Django backends, delivering scalable solutions that drive business growth.',
+      description: 'Developing end-to-end web applications using React, Next.js, Node.js, and Python. Delivering scalable solutions for various clients and personal projects.',
       icon: '💻',
-      technologies: ['React', 'Next.js', 'TypeScript', 'Python', 'Django', 'PostgreSQL']
+      technologies: ['React', 'Next.js', 'Node.js', 'Python', 'MongoDB', 'PostgreSQL']
+    },
+    {
+      title: 'AI & ML Explorer',
+      company: 'Self-Learning & Research',
+      period: '2024 - Present',
+      description: 'Exploring artificial intelligence, machine learning algorithms, and deep learning frameworks. Building AI-powered applications and tools.',
+      icon: '🤖',
+      technologies: ['Python', 'TensorFlow', 'Machine Learning', 'Data Science', 'Neural Networks']
     },
     {
       title: 'Open Source Contributor',
       company: 'GitHub Community',
       period: '2022 - Present',
-      description: 'Contributing to open-source projects and building developer tools. Passionate about sharing knowledge through code contributions and helping the developer community grow.',
+      description: 'Contributing to open-source projects, building developer tools, and sharing knowledge through code contributions to help the community grow.',
       icon: '🌟',
-      technologies: ['Git', 'Open Source', 'Documentation', 'Code Review', 'Community Building']
-    },
-    {
-      title: 'Problem Solver',
-      company: 'Competitive Programming',
-      period: '2021 - Present',
-      description: 'Active participant in programming contests and online judges. Developed strong analytical thinking and algorithmic problem-solving skills through consistent practice and competition.',
-      icon: '🏆',
-      technologies: ['Algorithms', 'Data Structures', 'Problem Solving', 'Optimization', 'Mathematical Thinking']
+      technologies: ['Git', 'GitHub', 'Documentation', 'Code Review', 'Community Building']
     }
   ];
 
@@ -141,8 +141,8 @@ export default function AboutPage() {
   ];
 
   const availability = [
-    { label: 'Location', value: 'Sylhet, Bangladesh · Remote-first', icon: GlobeAsiaAustraliaIcon },
-    { label: 'Rhythm', value: '2-week build sprints with mid-week demos', icon: ClockIcon },
+    { label: 'Location', value: 'Dhaka, Bangladesh · Remote-first', icon: GlobeAsiaAustraliaIcon },
+    { label: 'Rhythm', value: 'Quick learner with < 24h response time', icon: ClockIcon },
   ];
 
   return (
@@ -273,8 +273,8 @@ export default function AboutPage() {
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             I&apos;m <span className={`font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Bakul Ahmed</span>, 
-            a passionate Computer Science student and full-stack developer from Bangladesh. 
-            I transform complex problems into elegant, user-friendly digital solutions that make a real impact.
+            a passionate Computer Science & Engineering student at Green University, Bangladesh. 
+            I thrive on solving complex problems with technology and continuously expanding my skillset in AI, ML, and Full-Stack Development.
           </motion.p>
 
           {/* Professional badges */}
@@ -285,9 +285,9 @@ export default function AboutPage() {
             transition={{ duration: 0.8, delay: 0.5 }}
           >
             {[
-              { label: 'Student Developer', icon: '🎓' },
-              { label: 'Full-Stack Engineer', icon: '💻' },
-              { label: 'Problem Solver', icon: '🧩' },
+              { label: 'AI Enthusiast', icon: '🤖' },
+              { label: 'Software Developer', icon: '💻' },
+              { label: 'Tech Explorer', icon: '🚀' },
               { label: 'Open Source Contributor', icon: '🌟' }
             ].map((badge) => (
               <motion.div

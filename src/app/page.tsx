@@ -52,75 +52,75 @@ type Testimonial = {
     role: string;
 };
 
-const HERO_PILLS = ['Full stack engineer', 'Design-systems nerd', 'Async-first collaborator'] as const;
+const HERO_PILLS = ['AI Enthusiast', 'Software Developer', 'Tech Explorer'] as const;
 
 const STAT_CARDS: StatCard[] = [
-    { label: 'Products shipped', value: '18+', detail: 'SaaS dashboards, fintech, and learning platforms' },
-    { label: 'Response window', value: '< 24h', detail: 'Timezone friendly collaboration' },
-    { label: 'Experience', value: '3+ yrs', detail: 'Hands-on with modern product teams' },
+    { label: 'Projects completed', value: '50+', detail: 'Web apps, AI tools, and full-stack solutions' },
+    { label: 'Response time', value: '< 24h', detail: 'Fast and reliable communication' },
+    { label: 'Experience', value: '3+ yrs', detail: 'Hands-on software development' },
 ];
 
 const FOCUS_HIGHLIGHTS: FocusHighlight[] = [
     {
-        title: 'Interface polish',
-        description: 'Micro interactions, tactile nav, and latency aware UI.',
+        title: 'AI & Machine Learning',
+        description: 'Building intelligent solutions with modern AI frameworks and tools.',
         icon: SparklesIcon,
     },
     {
-        title: 'Systems thinking',
-        description: 'Designing APIs, content models, and design tokens that scale.',
+        title: 'Full-Stack Development',
+        description: 'End-to-end web applications with React, Next.js, and Python.',
         icon: CircleStackIcon,
     },
     {
-        title: 'Performance loops',
-        description: 'Prefetching, steady themes, and motion tuned for low end hardware.',
+        title: 'Problem Solving',
+        description: 'Turning complex challenges into elegant, efficient solutions.',
         icon: DevicePhoneMobileIcon,
     },
 ];
 
 const TIMELINE: TimelineItem[] = [
     {
-        title: 'Applied AI fellow',
-        timeframe: '2025 · Remote',
-        description: 'Rapid prototyping of copilots, instructor dashboards, and evaluation tooling.',
+        title: 'AI Enthusiast & Explorer',
+        timeframe: '2024 - Present',
+        description: 'Exploring Machine Learning, deep learning frameworks, and AI-powered applications.',
         icon: CpuChipIcon,
     },
     {
-        title: 'CSE undergrad',
-        timeframe: '2023-2026 · Bangladesh',
-        description: 'Leading campus initiatives, mentoring peers, and building community tooling.',
+        title: 'CSE Student @ Green University',
+        timeframe: '2021 - Present · Bangladesh',
+        description: 'Pursuing Computer Science & Engineering with focus on software development and algorithms.',
         icon: AcademicCapIcon,
     },
     {
-        title: 'Freelance builder',
+        title: 'Full-Stack Developer',
         timeframe: 'Ongoing',
-        description: 'Partnering with startups to ship theme aware experiences.',
+        description: 'Building modern web applications and contributing to open-source projects.',
         icon: RocketLaunchIcon,
     },
 ];
 
 const CASE_STUDIES: CaseStudy[] = [
     {
-        title: 'Commerce OS',
-        problem: 'Retail teams needed a single place for merchandising, insights, and checkout.',
-        result: '22 percent lift in conversion from a composable storefront.',
-        stack: ['Next.js 15', 'Stripe', 'PostgreSQL', 'Tailwind'],
+        title: 'E-Commerce Platform',
+        problem: 'Businesses needed a scalable multi-vendor marketplace with real-time analytics.',
+        result: 'Built a full-stack solution with payment integration and inventory management.',
+        stack: ['Next.js', 'TypeScript', 'PostgreSQL', 'Stripe'],
         href: '/projects#commerce-os',
         icon: RocketLaunchIcon,
     },
     {
-        title: 'Task HQ',
-        problem: 'Distributed ops struggled to see blockers across squads in real time.',
-        result: 'Live board with socket updates and trend alerts in under 6 weeks.',
+        title: 'Task Management Pro',
+        problem: 'Teams struggled with real-time collaboration and task tracking across projects.',
+        result: 'Developed a live board with socket updates and smart automation features.',
         stack: ['React', 'Node.js', 'Socket.io', 'MongoDB'],
         href: '/projects#task-hq',
         icon: CommandLineIcon,
     },
     {
-        title: 'Weather intelligence',
-        problem: 'Climate researchers needed granular datasets without jumping between tools.',
-        result: 'ML assisted dashboard that cut analysis time by 35 percent.',
-        stack: ['React', 'D3', 'Python', 'TensorFlow'],
+        title: 'AI Weather Intelligence',
+        problem: 'Climate researchers needed ML-powered forecasting with interactive visualizations.',
+        result: 'Created a dashboard that improved analysis efficiency by 35 percent.',
+        stack: ['React', 'D3.js', 'Python', 'TensorFlow'],
         href: '/projects#weather-intel',
         icon: LightBulbIcon,
     },
@@ -129,20 +129,20 @@ const CASE_STUDIES: CaseStudy[] = [
 const TESTIMONIALS: Testimonial[] = [
     {
         quote:
-            'Bakul translated a half-formed brief into a calm system that our non-technical founders actually understand. The weekly loops never slipped.',
+            'Bakul delivered exactly what we needed - a clean, functional platform that our users love. His attention to detail and commitment to quality is exceptional.',
         name: 'Safin Rahman',
-        role: 'Co-founder, early stage SaaS',
+        role: 'Startup Founder',
     },
     {
         quote:
-            'What impressed me most was the obsession over loading states and docs. Handoffs were so clean that my team shipped extensions without meetings.',
+            'Working with Bakul was a great experience. He understood our requirements quickly and delivered a polished product ahead of schedule.',
         name: 'Lamia Chowdhury',
-        role: 'Product Lead, distributed collective',
+        role: 'Product Manager',
     },
     {
-        quote: 'He treats performance budgets like product requirements. We shaved 1.2s off LCP and gained trust with stakeholders.',
+        quote: 'His technical skills combined with his problem-solving approach made our project a success. Highly recommend for any development work.',
         name: 'Rehan Sheikh',
-        role: 'Engineering Manager, fintech initiative',
+        role: 'Tech Lead',
     },
 ];
 
@@ -212,22 +212,22 @@ export default function Homepage() {
                     <div className="space-y-8">
                         <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-black/20 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/60">
                             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                            Portfolio snapshot · 2025
+                            🚀 Bakul Ahmed · Portfolio 2025
                         </div>
                         <div className="space-y-4">
                             <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                                Building lightweight, trustworthy product surfaces for fast-moving teams.
+                                AI Enthusiast & Software Developer crafting innovative digital solutions.
                             </h1>
                             <p className={`text-base leading-relaxed sm:text-lg lg:text-xl ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                                I partner with founders and design pods to ship interfaces that feel instant on any network while keeping the craft warm and human.
+                                Passionate Computer Science student at Green University, Bangladesh. I transform complex problems into elegant, user-friendly applications using modern technologies.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {HERO_PILLS.map((pill) => (
                                 <span
                                     key={pill}
-                                    className={`rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${
-                                        isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-900/5 text-slate-600'
+                                    className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] border ${
+                                        isDark ? 'bg-white/10 text-slate-100 border-white/20' : 'bg-slate-900/10 text-slate-700 border-slate-900/20'
                                     }`}
                                 >
                                     {pill}
@@ -272,11 +272,11 @@ export default function Homepage() {
                         </div>
                         <div className="mt-6 space-y-4 text-center">
                             <p className={`text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                                Currently shaping calm SaaS tooling, async learning products, and expressive marketing sites for early teams.
+                                Currently exploring AI/ML, building full-stack applications, and contributing to open-source projects.
                             </p>
                             <div className="flex flex-wrap justify-center gap-2 text-sm">
-                                <span className="rounded-full bg-emerald-500/15 px-4 py-1 text-emerald-200">Open to full-time</span>
-                                <span className="rounded-full bg-blue-500/15 px-4 py-1 text-blue-200">Remote friendly</span>
+                                <span className="rounded-full bg-emerald-500/20 px-4 py-1.5 font-medium text-emerald-300 dark:text-emerald-200 border border-emerald-500/30">Open to opportunities</span>
+                                <span className="rounded-full bg-blue-500/20 px-4 py-1.5 font-medium text-blue-300 dark:text-blue-200 border border-blue-500/30">Remote friendly</span>
                             </div>
                             <Link
                                 href="/cv/Bakul_Ahmed_CV.pdf"

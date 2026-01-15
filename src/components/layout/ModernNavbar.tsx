@@ -32,7 +32,7 @@ const NAV_ITEMS: NavigationItem[] = [
     { name: 'Contact', href: '/contact', icon: ChatBubbleLeftRightIcon },
 ];
 
-const PRIMARY_CTA = { label: "Let's build", href: '/contact' } as const;
+const PRIMARY_CTA = { label: "Contact Me", href: '/contact' } as const;
 
 const mobileMenuVariants = {
     hidden: { opacity: 0, height: 0 },
@@ -102,7 +102,7 @@ export default function ModernNavbar() {
                     </motion.div>
                     <div className="flex flex-col text-sm">
                         <span className="text-base font-semibold text-slate-900 dark:text-white">Bakul Ahmed</span>
-                        <span className="text-[11px] uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">Product engineer</span>
+                        <span className="text-[11px] uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">Software Developer</span>
                     </div>
                 </Link>
 
