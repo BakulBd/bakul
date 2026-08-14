@@ -1,0 +1,280 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { useMachine } from '@/store/machine';
+import { audio } from '@/lib/audio/engine';
+import { useRafScroll } from '@/hooks/useRafScroll';
+import { projects, type Project } from '@/lib/data/projects';
+import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
+
+/**
+ * PROJECT BAY (§7)
+ *
+ * Projects are rack modules, not cards. Scrolling advances the rack and the
+ * active module locks into position; the full case study is a readable HTML
+ * panel beside it.
+ *
+ * Every bay here is real, verified work — sourced from the CV or straight from
+ * github.com/BakulBd, never invented to fill a slot. A future bay with no real
+ * project behind it yet is still supported (`status: 'empty'` in the data)
+ * and renders as a genuinely empty, labelled slot rather than padding.
+ */
+
+/*
+ * Bounded to the same height as the rack list, so the pair never grows the
+ * page taller than one sticky viewport (see the `.panel-scroll` comment in
+ * globals.css for why that matters). The header and the Source/Live Demo
+ * buttons are fixed — `shrink-0` — so they're always reachable without
+ * scrolling; only the case-study text in the middle, whose length genuinely
+ * varies project to project, scrolls internally when it has to.
+ */
+function ModuleDetail({ project }: { project: Project }) {
+  if (project.status === 'empty') {
+    return (
+      <div className="panel flex max-h-[calc(100vh-31rem)] flex-col p-7">
+        <Status state="idle">Bay {project.slot} — Empty</Status>
+        <h3 className="t-mono mt-4 text-xl text-[color:var(--color-ash-dim)]">SLOT AVAILABLE</h3>
+        <p className="t-body mt-4 max-w-[52ch] text-sm">
+          This bay is unpopulated. New work is installed here as it ships — the rack is built to
+          take it, and it stays empty until there is something real to put in it.
+        </p>
+        <dl className="mt-6 m-0">
+          <Readout k="Title" v={<span className="text-[color:var(--color-ash-dim)]">[PROJECT_TITLE]</span>} />
+          <Readout k="Stack" v={<span className="text-[color:var(--color-ash-dim)]">[TECHNOLOGIES]</span>} />
+          <Readout k="Repository" v={<span className="text-[color:var(--color-ash-dim)]">[GITHUB_URL]</span>} />
+          <Readout k="Demo" v={<span className="text-[color:var(--color-ash-dim)]">[LIVE_DEMO]</span>} />
+        </dl>
+      </div>
+    );
+  }
+
+  return (
+    <article className="panel flex max-h-[calc(100vh-31rem)] flex-col p-7">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-4">
+        <Status state="online">Bay {project.slot} — Online</Status>
+        <span className="t-label">{project.period}</span>
+      </div>
+
+      <h3 className="shrink-0 t-display mt-4 text-[clamp(1.5rem,3.4vw,2.3rem)]">{project.title}</h3>
+      <p className="shrink-0 t-label mt-2 normal-case tracking-normal">{project.kind}</p>
+
+      <ul className="shrink-0 mt-5 flex list-none flex-wrap gap-2 p-0">
+        {project.stack.map((tech) => (
+          <li
+            key={tech}
+            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-fira)] text-xs"
+          >
+            {tech}
+          </li>
+        ))}
+      </ul>
+
+      <dl className="panel-scroll mt-7 min-h-0 flex-1 m-0 pr-2">
+        <Readout k="Problem" v={project.problem} />
+        <Readout k="Solution" v={project.solution} />
+        <Readout k="Architecture" v={project.architecture} />
+        <Readout k="Technical challenge" v={project.challenge} />
+        <Readout k="Result" v={project.result} />
+      </dl>
+
+      <div className="shrink-0 mt-7 flex flex-wrap gap-3">
+        {project.github && (
+          <a href={project.github} className="btn" target="_blank" rel="noopener noreferrer">
+            Source ↗
+          </a>
+        )}
+        {project.live ? (
+          <a href={project.live} className="btn" target="_blank" rel="noopener noreferrer">
+            Live Demo ↗
+          </a>
+        ) : (
+          // Stating the absence is more honest than hiding it or linking nowhere.
+          <span className="t-label self-center">No deployed demo</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/**
+ * How long a manual bay selection outranks the scroll-position auto-sync
+ * below. Exists because a click can itself cause a small residual scroll —
+ * bringing an off-screen rack row into view, a rounding nudge from the
+ * browser's own scroll-into-view — and without this guard, that incidental
+ * scroll immediately re-fires the position-based sync and silently snaps the
+ * selection back to whatever bay the raw scroll fraction maps to, undoing
+ * the click that caused it. A deliberate scroll from the visitor reliably
+ * outlasts this window; an incidental few-pixel settle from a click does not.
+ */
+const MANUAL_SELECT_PRIORITY_MS = 600;
+
+export function SectionProjects() {
+  const activeProject = useMachine((s) => s.activeProject);
+  const setActiveProject = useMachine((s) => s.setActiveProject);
+  const audioEnabled = useMachine((s) => s.audioEnabled);
+  const railRef = useRef<HTMLDivElement>(null);
+  const lastManualSelectAt = useRef(0);
+
+  const select = (index: number) => {
+    lastManualSelectAt.current = performance.now();
+    setActiveProject(index);
+    if (audioEnabled) audio.play('relay');
+  };
+
+  /*
+   * Keep the active row visible inside the rack's own scroll — never the
+   * page's. The list is internally scrollable (see `.panel-scroll` below) on
+   * general principle — this rack has held as many as six bays before and
+   * will again — so this still matters at the current bay count and isn't
+   * something to remove just because three bays currently fit without it.
+   * Without this, advancing past the visible rows via scroll-driven
+   * auto-select would highlight a bay the visitor cannot currently see
+   * without a second, separate scroll of their own.
+   *
+   * `block: 'nearest'` is what keeps this contained to the rack's own
+   * scrollable ancestor instead of touching window scroll — the bug this
+   * fixes was `.click()`/`.focus()` falling back to page-level scrolling
+   * when a target was outside a non-scrollable container.
+   */
+  // Skips its own first invocation — see below.
+  const isFirstActiveProjectRender = useRef(true);
+
+  useEffect(() => {
+    // Effects run once after the initial render regardless of whether the
+    // dependency "changed" from a prior value, so without this guard this
+    // fires the moment the component mounts — while the visitor may still be
+    // at BOOT, nowhere near the Projects section yet. At that moment the
+    // rack list usually has no internal overflow to scroll (nothing has been
+    // clicked, so the list is short), and when `scrollIntoView` finds no real
+    // scroll room in the nearest container, it escalates to the window —
+    // yanking a first-time visitor straight past the boot sequence into the
+    // middle of the page before they've done anything. Only a genuine,
+    // later change to activeProject (a real click or arrow-key press) should
+    // ever move any scroll container.
+    if (isFirstActiveProjectRender.current) {
+      isFirstActiveProjectRender.current = false;
+      return;
+    }
+    const btn =
+      railRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]')[activeProject];
+    btn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeProject]);
+
+  /* Arrow-key traversal along the rack — the rack is a real listbox. */
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const dir = e.key === 'ArrowDown' ? 1 : -1;
+    const next = (activeProject + dir + projects.length) % projects.length;
+    select(next);
+    const btn = railRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]')[next];
+    btn?.focus();
+  };
+
+  /* Advance the rack as the section scrolls — modules lock into position.
+     Coalesced to one read per animation frame; see useRafScroll. */
+  useRafScroll(() => {
+    const el = document.getElementById('section-projects');
+    if (!el) return;
+
+    // A recent manual click owns the selection for a short window — see
+    // MANUAL_SELECT_PRIORITY_MS above.
+    if (performance.now() - lastManualSelectAt.current < MANUAL_SELECT_PRIORITY_MS) return;
+
+    const rect = el.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    if (total <= 0) return;
+    const progress = Math.min(1, Math.max(0, -rect.top / total));
+    // Bias the index slightly so a module locks in before the visitor has
+    // fully scrolled past it, rather than lagging behind.
+    const index = Math.min(projects.length - 1, Math.floor(progress * projects.length * 0.999));
+    if (index !== useMachine.getState().activeProject) {
+      useMachine.getState().setActiveProject(index);
+    }
+  });
+
+  const current = projects[activeProject] ?? projects[0];
+
+  return (
+    <Section id="projects" label="Project Bay" index="02">
+      <Reveal>
+        <Heading id="projects">Project Bay</Heading>
+        <Lead>
+          Shipped and in-progress work, installed as rack modules. Scroll to advance the rack, or
+          select a bay directly. New bays are added as new work ships — this rack is built to take
+          more than it currently holds.
+        </Lead>
+      </Reveal>
+
+      <div className="mt-11 grid gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+        {/* ---------- Rack ---------- */}
+        <Reveal delay={80}>
+          <div
+            ref={railRef}
+            role="listbox"
+            aria-label="Project rack"
+            aria-orientation="vertical"
+            onKeyDown={onKeyDown}
+            className="panel-scroll max-h-[calc(100vh-31rem)] space-y-2 pr-1"
+          >
+            {projects.map((p, i) => {
+              const isActive = i === activeProject;
+              const isEmpty = p.status === 'empty';
+              return (
+                <button
+                  key={p.slot}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => select(i)}
+                  className="panel panel-interactive flex w-full items-center gap-4 px-5 py-4 text-left"
+                  style={{
+                    // The active module physically advances toward the viewer.
+                    transform: isActive ? 'translateX(10px)' : 'translateX(0)',
+                    borderColor: isActive
+                      ? isEmpty
+                        ? 'var(--color-ash-dim)'
+                        : 'var(--color-amber)'
+                      : undefined,
+                    boxShadow: isActive && !isEmpty ? '0 0 34px -16px var(--color-amber)' : undefined,
+                    opacity: isEmpty ? 0.6 : 1,
+                    transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1), border-color 0.3s, box-shadow 0.3s',
+                  }}
+                >
+                  <span className="t-mono text-xs text-[color:var(--color-ash-dim)]">{p.slot}</span>
+                  <span
+                    className={`led ${isEmpty ? 'led-idle' : isActive ? 'led-amber' : 'led-on'}`}
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1">
+                    <span
+                      className="t-mono block text-xs"
+                      style={{ color: isEmpty ? 'var(--color-ash-dim)' : 'var(--color-ceramic)' }}
+                    >
+                      {p.title}
+                    </span>
+                    {!isEmpty && (
+                      <span className="t-label mt-1 block normal-case tracking-normal">
+                        {p.stack.join(' · ')}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="t-label mt-4">↑ ↓ to traverse the rack</p>
+        </Reveal>
+
+        {/* ---------- Active module detail ---------- */}
+        <Reveal delay={140}>
+          <div aria-live="polite">
+            <ModuleDetail project={current} />
+          </div>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}

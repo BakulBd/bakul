@@ -1,233 +1,151 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { Toaster } from "react-hot-toast";
-import Footer from "@/components/layout/Footer";
+import type { Metadata, Viewport } from 'next';
+import { JetBrains_Mono, Inter, Fira_Code } from 'next/font/google';
+import './globals.css';
+import { profile, SITE_URL } from '@/lib/data/profile';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/*
+ * Three faces, three jobs: sans carries the reading and display type (as a
+ * variable font — every weight in one file), mono is chrome/labels, code is
+ * literal code/data. Both static faces load only weight 400: nothing in the
+ * site sets a heavier weight on either, so a 500 or 700 instance would be a
+ * font file downloaded and never painted.
+ */
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+  weight: ['400'],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
 });
 
-export const metadata = {
+const fira = Fira_Code({
+  subsets: ['latin'],
+  variable: '--font-fira',
+  display: 'swap',
+  weight: ['400'],
+});
+
+const DESCRIPTION =
+  'Bakul Ahmed — Computer Science Engineer. An interactive machine presenting real, shipped software: an AI exam-proctoring platform, a real-time multiplayer game server, and AI-scaffolded learning research. B.Sc. CSE at Green University of Bangladesh, CGPA 3.96/4.00.';
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Bakul Ahmed - AI Enthusiast & Software Developer",
-    template: "%s | Bakul Ahmed"
+    default: 'Bakul Ahmed — The Living Machine',
+    template: '%s | Bakul Ahmed',
   },
-  description: "🚀 AI Enthusiast & Software Developer | CSE Student at Green University, Bangladesh. Specializing in React, Next.js, Python, and modern web technologies. Transforming ideas into innovative digital solutions.",
+  description: DESCRIPTION,
+  applicationName: 'Bakul Ahmed',
+  // Honest, specific keywords only. The old list claimed expertise that does not exist.
   keywords: [
-    "AI Enthusiast",
-    "Software Developer", 
-    "Full Stack Developer",
-    "Modern Web Solutions",
-    "React Developer",
-    "Next.js Developer",
-    "Bakul Ahmed Portfolio",
-    "Custom Web Applications",
-    "E-commerce Solutions",
-    "Frontend Development Expert",
-    "Backend API Development",
-    "Database Design",
-    "Cloud Deployment",
-    "Responsive Web Design",
-    "Performance Optimization",
-    "SEO Optimization",
-    "Progressive Web Apps",
-    "JavaScript Expert",
-    "Node.js Developer",
-    "React Native Development",
-    "Database Design",
-    "AWS Cloud Services",
-    "Vercel Deployment",
-    "MongoDB Solutions",
-    "PostgreSQL Expert",
-    "Git Version Control",
-    "Agile Development",
-    "Code Quality Assurance",
-    "Web Security Best Practices",
-    "Tailwind CSS Expert",
-    "Framer Motion Animations",
-    "Docker Containerization",
-    "API Integration",
-    "CMS Development",
-    "Portfolio Website",
-    "Freelance Developer",
-    "Software Engineer",
-    "Web Performance",
-    "Mobile First Design",
-    "Cross Browser Compatibility",
-    "Clean Code",
-    "Modern Architecture",
-    "Scalable Solutions"
+    'Bakul Ahmed',
+    'Computer Science Engineer',
+    'Green University of Bangladesh',
+    'Java',
+    'Python',
+    'TypeScript',
+    'React',
+    'Next.js',
+    'Three.js',
+    'Algorithms',
+    'Artificial Intelligence',
+    'Machine Learning',
+    'Portfolio',
   ],
-  authors: [{ name: "Bakul Ahmed", url: "https://bakul.dev" }],
-  creator: "Bakul Ahmed",
-  publisher: "Bakul Ahmed",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL("https://bakul.dev"),
-  alternates: {
-    canonical: "/",
-  },
+  authors: [{ name: profile.name, url: SITE_URL }],
+  creator: profile.name,
+  publisher: profile.name,
+  // opengraph-image.tsx / twitter-image handling below generates the actual
+  // image tags via Next's file convention; url/type/siteName here are what
+  // Facebook's and Twitter's crawlers read alongside that image.
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://bakul.dev",
-    title: "Bakul Ahmed - AI Enthusiast & Software Developer",
-    description: "🚀 AI Enthusiast & Software Developer | CSE Student at Green University, Bangladesh. Expert in React, Next.js, Python, and modern web technologies. Building innovative digital solutions.",
-    siteName: "Bakul Ahmed Portfolio",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Bakul Ahmed - Software Developer Portfolio",
-      },
-      {
-        url: "/og-image-square.jpg",
-        width: 400,
-        height: 400,
-        alt: "Bakul Ahmed - Full Stack Developer",
-      },
-    ],
+    type: 'website',
+    url: SITE_URL,
+    title: 'Bakul Ahmed — The Living Machine',
+    description: DESCRIPTION,
+    siteName: 'Bakul Ahmed',
+    locale: 'en_US',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Bakul Ahmed - Software Developer",
-    description: "🚀 AI Enthusiast & Software Developer | React, Next.js, Python | CSE Student at Green University, Bangladesh",
-    creator: "@cyberbokul",
-    site: "@cyberbokul",
-    images: ["/og-image.jpg"],
+    card: 'summary_large_image',
+    title: 'Bakul Ahmed — The Living Machine',
+    description: DESCRIPTION,
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
+  robots: { index: true, follow: true },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.ico',
   },
-  verification: {
-    google: "google-verification-code",
-    yandex: "yandex-verification-code",
-    yahoo: "yahoo-verification-code",
-    bing: "bing-verification-code",
-  },
-  category: "technology",
-  classification: "portfolio",
-  other: {
-    "application-name": "Bakul Ahmed Portfolio",
-    "mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "default",
-    "apple-mobile-web-app-title": "Bakul Ahmed",
-    "theme-color": "#3b82f6",
-    "color-scheme": "light dark",
-  },
+  manifest: '/site.webmanifest',
 };
 
-const PERSON_SCHEMA = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: "Bakul Ahmed",
-  jobTitle: "Software Developer",
-  description:
-    "AI Enthusiast & Software Developer specializing in React, Next.js, Python & modern web technologies. CSE Student at Green University, Bangladesh.",
-  url: "https://bakul.dev",
-  sameAs: [
-    "https://github.com/bakulbd",
-    "https://linkedin.com/in/cyberbokul",
-    "https://twitter.com/cyberbokul",
-  ],
-  knowsAbout: [
-    "React",
-    "Next.js",
-    "TypeScript",
-    "Node.js",
-    "JavaScript",
-    "Python",
-    "PostgreSQL",
-    "MongoDB",
-    "AWS",
-    "Docker",
-    "Tailwind CSS",
-    "UI/UX Design",
-  ],
-  hasOccupation: {
-    "@type": "Occupation",
-    name: "Full Stack Developer",
-    occupationLocation: {
-      "@type": "Country",
-      name: "Global",
-    },
-  },
-  offers: {
-    "@type": "Offer",
-    itemOffered: {
-      "@type": "Service",
-      name: "Web Development Services",
-      description: "Custom web applications, e-commerce solutions, and modern responsive websites",
-    },
-  },
-} as const;
+export const viewport: Viewport = {
+  themeColor: '#090a0f',
+  colorScheme: 'dark',
+  width: 'device-width',
+  initialScale: 1,
+  // Never block pinch-zoom — it is an accessibility requirement, not a polish detail.
+  maximumScale: 5,
+};
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+/**
+ * Structured data describes the real person. Every claim here is CV-backed.
+ */
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: profile.title,
+  email: `mailto:${profile.contact.email}`,
+  url: SITE_URL,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Dhaka',
+    addressCountry: 'BD',
+  },
+  alumniOf: {
+    '@type': 'CollegeOrUniversity',
+    name: profile.education.institution,
+  },
+  knowsAbout: [
+    'Python',
+    'Java',
+    'C++',
+    'TypeScript',
+    'JavaScript',
+    'SQL',
+    'React',
+    'Next.js',
+    'Node.js',
+    'Three.js',
+    'Algorithms',
+    'Artificial Intelligence',
+    'Machine Learning',
+  ],
+  sameAs: [profile.contact.github, profile.contact.linkedin],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    <html lang="en" className={`${jetbrains.variable} ${inter.variable} ${fira.variable}`}>
+      <body>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(PERSON_SCHEMA) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
         />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-foreground`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={true}
-          disableTransitionOnChange={false}
-        >
-          <div className="flex flex-col min-h-screen">
-            <main className="flex-1 relative">
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'var(--card)',
-                color: 'var(--card-foreground)',
-                border: '1px solid var(--border)',
-              },
-            }}
-          />
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );
