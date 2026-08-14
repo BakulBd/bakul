@@ -27,6 +27,14 @@ export interface FrameState {
   pointer: { x: number; y: number };
   /** Activation wave triggered by clicking the neural field. */
   pulse: number;
+  /**
+   * Project emergence, [0,1]. 0 = the project sits flat inside the monitor,
+   * 1 = it has broken fully through the screen into the machine's space.
+   * Drives the screen's bulge and refraction, the emerging module's travel,
+   * the escaping particles, and the camera's dolly — one value so every part
+   * of the effect is, by construction, at the same point in the motion.
+   */
+  emerge: number;
   /** Live render telemetry, populated by the canvas — real values only. */
   fps: number;
   drawCalls: number;
@@ -42,6 +50,7 @@ export const frame: FrameState = {
   morph: 0,
   pointer: { x: 0, y: 0 },
   pulse: 0,
+  emerge: 0,
   fps: 0,
   drawCalls: 0,
   triangles: 0,
@@ -82,7 +91,7 @@ export const qualityProfiles: Record<Quality, QualityProfile> = {
  * DISCRETE STATE
  * ------------------------------------------------------------------ */
 
-export type PowerState = 'STANDBY' | 'ACTIVATING' | 'ONLINE';
+type PowerState = 'STANDBY' | 'ACTIVATING' | 'ONLINE';
 
 /** Neutral scene-drive settings — also the target of RESET SYSTEM. */
 const LAB_DEFAULTS = {
@@ -107,6 +116,15 @@ interface MachineStore {
   audioEnabled: boolean;
   debug: boolean;
   paletteOpen: boolean;
+
+  /**
+   * True while a project has been deliberately opened and should be pushed
+   * out through the monitor. Set only by an explicit selection (a click or an
+   * arrow key), never by the scroll-position sync — otherwise simply
+   * scrolling through the rack would fire the whole cinematic repeatedly.
+   */
+  projectEmerged: boolean;
+  setProjectEmerged: (v: boolean) => void;
 
   /** Debug-mode override. Applied only while `debug` is true. */
   debugSpeed: number;
@@ -148,6 +166,12 @@ export const useMachine = create<MachineStore>((set, get) => ({
   audioEnabled: false,
   debug: false,
   paletteOpen: false,
+
+  projectEmerged: false,
+  setProjectEmerged: (v) => {
+    if (get().projectEmerged === v) return;
+    set({ projectEmerged: v });
+  },
 
   debugSpeed: 1,
 
@@ -196,6 +220,9 @@ export const useMachine = create<MachineStore>((set, get) => ({
       lab: LAB_DEFAULTS,
       activeSubsystem: null,
       paletteOpen: false,
+      // Retracts anything currently pushed out through the screen — "reset"
+      // has to mean the scene is back at rest, not just the debug panel.
+      projectEmerged: false,
     });
   },
 }));

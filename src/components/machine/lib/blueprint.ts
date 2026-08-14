@@ -26,56 +26,198 @@ export type Shape =
   | { kind: 'cyl'; pos: Vec3; radius: number; height: number; rot?: Vec3; group: Group; tag?: string }
   | { kind: 'torus'; pos: Vec3; radius: number; tube: number; rot?: Vec3; group: Group; tag?: string };
 
-/** Groups let sections light or hide parts of the machine independently. */
-export type Group = 'core' | 'chassis' | 'conduit' | 'turbine' | 'rack';
+/**
+ * Groups let sections light or hide parts of the machine independently — and
+ * they are named after real mainboard hardware, because that is what this
+ * machine now is.
+ *
+ * The scene used to be an abstract reactor: torus collars, radial ribs, and
+ * conduits orbiting a core. It looked like something, but it did not mean
+ * anything — least of all to the computer scientists this portfolio is for.
+ * Every part is now a component someone reading this can name on sight, and
+ * the boot order below is the order a real machine brings them up.
+ */
+export type Group =
+  | 'board'
+  | 'core'
+  | 'memory'
+  | 'bus'
+  | 'gpu'
+  | 'cooling'
+  | 'storage'
+  | 'monitor';
 
 /**
  * Boot choreography (§3). Each subsystem illuminates inside its own window of
  * the power ramp, so the machine wakes in a readable order: power reaches the
- * core, travels the conduits, lights the chassis, spins up cooling, then
- * brings the project rack online. Shared by the chassis renderer and the
- * conduit power-flow pulses, so both read the exact same boot timing.
+ * core, travels the conduits, lights the chassis, spins up cooling, brings the
+ * display up, then mounts the project rack. Shared by the chassis renderer,
+ * the conduit power-flow pulses, the monitor's CRT warm-up, and the DOM POST
+ * screen, so every layer reads the exact same boot timing.
  */
 export const POWER_WINDOW: Record<Group, [number, number]> = {
-  core: [0.0, 0.22],
-  conduit: [0.1, 0.42],
-  chassis: [0.32, 0.62],
-  turbine: [0.5, 0.78],
-  rack: [0.66, 1.0],
+  board: [0.0, 0.16],
+  core: [0.08, 0.3],
+  memory: [0.22, 0.44],
+  bus: [0.34, 0.56],
+  gpu: [0.46, 0.68],
+  cooling: [0.56, 0.78],
+  storage: [0.66, 0.88],
+  // The display comes up last, exactly as it does on a real machine — POST
+  // finishes against hardware that is already running.
+  monitor: [0.78, 1.0],
 };
+
+/**
+ * The boot sequence as an ordered list, derived from POWER_WINDOW rather than
+ * restated.
+ *
+ * This is the single source every layer of the boot reads: the DOM POST
+ * screen prints a line when a stage is crossed, the 3D subsystem starts
+ * illuminating at that same value, and the relay click fires on that same
+ * frame. Hand-written copies of these numbers in three files is exactly how
+ * a boot ends up with the sound a beat ahead of the light and a log line
+ * behind both.
+ */
+export const BOOT_STAGES: { group: Group; at: number }[] = (
+  Object.keys(POWER_WINDOW) as Group[]
+)
+  .map((group) => ({ group, at: POWER_WINDOW[group][0] }))
+  .sort((a, b) => a.at - b.at);
 
 const TAU = Math.PI * 2;
 const HALF_PI = Math.PI / 2;
 
+/** Board deck. Everything else is mounted relative to this surface. */
+const BOARD_Y = -0.65;
+const BOARD_TOP = BOARD_Y + 0.07;
+const BOARD_W = 15.5;
+const BOARD_D = 11;
+
 /**
- * Turbine hub locations. Exported because turbines are the one part rendered
- * outside the instanced chassis — they spin about their own axis, which an
- * instance matrix baked in world space cannot express. The sampler still reads
- * them from the blueprint, so the spinning visuals and the particles that
- * dissolve from them stay describing the same object.
+ * Fan hub locations — CPU cooler, two on the graphics card, one case fan.
+ * Exported because fans are the one part rendered outside the instanced
+ * board: they spin about their own axis, which an instance matrix baked in
+ * world space cannot express. The sampler still reads them from the
+ * blueprint, so the spinning visuals and the particles that dissolve from
+ * them stay describing the same object.
  */
 export const TURBINE_PIVOTS: Vec3[] = [
-  [-4.6, -0.4, 3.4],
-  [4.6, -0.4, -3.4],
+  [0, 1.32, 0], // on top of the CPU heatsink
+  [-2.6, -0.02, 3.4], // graphics card, intake
+  [0.3, -0.02, 3.4], // graphics card, exhaust
+  [-6.0, 0.05, -3.6], // case fan at the board edge
 ];
 
 export const TURBINE_BLADES = 7;
 export const TURBINE_BLADE_RADIUS = 0.55;
 
+/** Memory: four DIMM slots in a bank beside the socket. */
+export const MEMORY_SLOTS = 4;
+
 /**
- * Conduit rail geometry. Exported so the power-flow pulses can travel the
- * exact path the physical rails occupy, rather than an approximation that
- * would drift out of alignment the moment either side changed independently.
+ * Modules are tagged so each one can be addressed on its own — the instanced
+ * batch skips tagged shapes, so tagging is all it takes to hand a DIMM to the
+ * component that lights it individually (see MemoryBank).
  */
-export const CONDUIT_RAILS = 4;
-export const CONDUIT_INNER_R = 2.9;
-export const CONDUIT_OUTER_R = 5.6;
-export const CONDUIT_Y = -0.4;
-export const conduitRailAngle = (i: number): number => (i / CONDUIT_RAILS) * TAU + Math.PI / 4;
+export const dimmTag = (i: number): string => `dimm-${i}`;
+const MEMORY_X0 = 3.1;
+const MEMORY_PITCH = 0.44;
+const MEMORY_Z = -0.4;
+
+/**
+ * Data bus routing.
+ *
+ * Real board traces run in right angles — Manhattan routing — because that is
+ * what an autorouter and a fabrication process produce. Curved orbital rails
+ * were the single strongest cue that the old scene was science fiction rather
+ * than hardware, so these are strictly axis-aligned polylines from the socket
+ * out to each subsystem.
+ *
+ * Exported as paths rather than baked straight into shapes so the packets
+ * travelling them (see BusTraffic) follow the exact route the physical trace
+ * occupies, instead of an approximation that drifts the moment either side is
+ * retuned.
+ */
+const TRACE_Y = BOARD_TOP + 0.03;
+export const BUS_TRACES: Vec3[][] = [
+  // socket → memory bank
+  [
+    [1.6, TRACE_Y, 0.6],
+    [2.5, TRACE_Y, 0.6],
+    [2.5, TRACE_Y, -0.4],
+    [3.0, TRACE_Y, -0.4],
+  ],
+  // socket → graphics card
+  [
+    [0.6, TRACE_Y, 1.6],
+    [0.6, TRACE_Y, 2.6],
+    [-1.2, TRACE_Y, 2.6],
+    [-1.2, TRACE_Y, 3.2],
+  ],
+  // socket → storage bays
+  [
+    [1.6, TRACE_Y, -1.0],
+    [5.0, TRACE_Y, -1.0],
+    [5.0, TRACE_Y, -2.0],
+    [6.4, TRACE_Y, -2.0],
+  ],
+  // socket → voltage regulators
+  [
+    [-1.6, TRACE_Y, -1.0],
+    [-2.7, TRACE_Y, -1.0],
+    [-2.7, TRACE_Y, -2.9],
+  ],
+  // regulators → power input at the board edge
+  [
+    [-2.7, TRACE_Y, -3.6],
+    [-6.6, TRACE_Y, -3.6],
+  ],
+  // socket → display out
+  [
+    [1.6, TRACE_Y, 1.2],
+    [3.6, TRACE_Y, 1.2],
+    [3.6, TRACE_Y, 3.2],
+  ],
+];
 
 /** Rack module bodies, tagged so a specific bay can be addressed individually. */
 export const RACK_MODULE_COUNT = 3;
 export const rackModuleTag = (i: number): string => `rack-module-${i}`;
+
+/**
+ * The monitor — the machine's display surface, and the portal a project
+ * emerges through.
+ *
+ * Exported because three separate things must agree on exactly where it sits:
+ * the bezel/stand shapes built into the blueprint below, the screen mesh in
+ * Monitor.tsx, and the camera station that dollies in for the emergence. A
+ * drifting copy of these numbers would put the camera slightly off-axis from
+ * the screen, which reads immediately as "wrong" in a close shot.
+ *
+ * Placed on the machine's right-hand side, raised above the conduit ring and
+ * angled toward the viewer. That side is deliberate: the reading column holds
+ * the left of the viewport and the camera's composition offset pushes the
+ * machine right, so this is the band that is actually visible on a wide
+ * screen — and it sits between the core and the project rack, which is
+ * exactly where the eye already is when a bay is opened. A monitor on the
+ * far side would spend the whole emergence hidden behind the text.
+ */
+export const MONITOR_POS: Vec3 = [3.6, 2.3, 3.9];
+export const MONITOR_ROT_Y = 0.42;
+export const MONITOR_SCREEN_W = 3.0;
+export const MONITOR_SCREEN_H = 1.85;
+
+/** Monitor-local point → world space. Only a Y rotation is involved. */
+function monitorToWorld(local: Vec3): Vec3 {
+  const c = Math.cos(MONITOR_ROT_Y);
+  const s = Math.sin(MONITOR_ROT_Y);
+  return [
+    local[0] * c + local[2] * s + MONITOR_POS[0],
+    local[1] + MONITOR_POS[1],
+    -local[0] * s + local[2] * c + MONITOR_POS[2],
+  ];
+}
 
 /* ---------------------------------------------------------------- *
  * THE MACHINE
@@ -95,43 +237,113 @@ function buildBlueprint(): Shape[] {
     shapes.push({ kind: 'box', pos: [x, 0.62, 0], size: [0.075, 0.78, 1.85], group: 'core' });
   }
 
-  // --- Chassis collars --------------------------------------------
-  shapes.push({ kind: 'torus', pos: [0, -0.4, 0], radius: 2.85, tube: 0.075, rot: [HALF_PI, 0, 0], group: 'chassis' });
-  shapes.push({ kind: 'torus', pos: [0, -0.4, 0], radius: 4.1, tube: 0.05, rot: [HALF_PI, 0, 0], group: 'chassis' });
+  // --- The board itself --------------------------------------------
+  shapes.push({ kind: 'box', pos: [0, BOARD_Y, 0], size: [BOARD_W, 0.14, BOARD_D], group: 'board' });
 
-  // Structural ribs radiating from the core.
-  const RIBS = 8;
-  for (let i = 0; i < RIBS; i++) {
-    const a = (i / RIBS) * TAU;
-    const r = 3.5;
-    shapes.push({
-      kind: 'box',
-      pos: [Math.cos(a) * r, -0.42, Math.sin(a) * r],
-      size: [1.3, 0.12, 0.22],
-      rot: [0, -a, 0],
-      group: 'chassis',
-    });
-  }
+  // Stiffener rails around the perimeter, so the deck reads as a fabricated
+  // board with an edge rather than a floating plane.
+  const halfBW = BOARD_W / 2;
+  const halfBD = BOARD_D / 2;
+  shapes.push({ kind: 'box', pos: [0, BOARD_Y + 0.06, halfBD], size: [BOARD_W, 0.1, 0.16], group: 'board' });
+  shapes.push({ kind: 'box', pos: [0, BOARD_Y + 0.06, -halfBD], size: [BOARD_W, 0.1, 0.16], group: 'board' });
+  shapes.push({ kind: 'box', pos: [halfBW, BOARD_Y + 0.06, 0], size: [0.16, 0.1, BOARD_D], group: 'board' });
+  shapes.push({ kind: 'box', pos: [-halfBW, BOARD_Y + 0.06, 0], size: [0.16, 0.1, BOARD_D], group: 'board' });
 
-  // --- Power conduits: four rails feeding the core ----------------
-  for (let i = 0; i < CONDUIT_RAILS; i++) {
-    const a = conduitRailAngle(i);
-    for (let s = 0; s < 7; s++) {
-      const r = CONDUIT_INNER_R + (s / 6) * (CONDUIT_OUTER_R - CONDUIT_INNER_R);
+  // Mounting standoffs at the corners.
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
       shapes.push({
-        kind: 'box',
-        pos: [Math.cos(a) * r, CONDUIT_Y, Math.sin(a) * r],
-        size: [0.34, 0.09, 0.09],
-        rot: [0, -a, 0],
-        group: 'conduit',
+        kind: 'cyl',
+        pos: [sx * (halfBW - 0.55), BOARD_Y + 0.12, sz * (halfBD - 0.55)],
+        radius: 0.14,
+        height: 0.16,
+        group: 'board',
       });
     }
   }
 
-  // --- Cooling turbines -------------------------------------------
+  // Electrolytic capacitors clustered around the socket — the single most
+  // recognisable "this is a mainboard" detail there is.
+  const CAPS: [number, number][] = [
+    [-1.9, 1.5], [-2.3, 0.9], [-1.9, -1.6], [-2.4, -2.2],
+    [1.9, 1.9], [2.4, 1.3], [2.0, -1.9], [-0.6, 2.4], [0.9, 2.5],
+  ];
+  for (const [cx, cz] of CAPS) {
+    shapes.push({
+      kind: 'cyl',
+      pos: [cx, BOARD_TOP + 0.21, cz],
+      radius: 0.11,
+      height: 0.42,
+      group: 'board',
+    });
+  }
+
+  // Voltage regulator heatsink, finned like the real thing.
+  shapes.push({ kind: 'box', pos: [-2.7, BOARD_TOP + 0.2, -3.3], size: [2.3, 0.4, 0.62], group: 'board' });
+  for (let i = 0; i < 7; i++) {
+    shapes.push({
+      kind: 'box',
+      pos: [-3.65 + i * 0.32, BOARD_TOP + 0.5, -3.3],
+      size: [0.1, 0.4, 0.58],
+      group: 'board',
+    });
+  }
+
+  // --- Memory: a bank of DIMMs standing in their slots --------------
+  for (let i = 0; i < MEMORY_SLOTS; i++) {
+    const x = MEMORY_X0 + i * MEMORY_PITCH;
+    // Slot body.
+    shapes.push({
+      kind: 'box',
+      pos: [x, BOARD_TOP + 0.09, MEMORY_Z],
+      size: [0.3, 0.18, 3.5],
+      group: 'memory',
+    });
+    // The module standing in it — tagged so it can light on its own.
+    shapes.push({
+      kind: 'box',
+      pos: [x, BOARD_TOP + 0.95, MEMORY_Z],
+      size: [0.13, 1.55, 3.25],
+      group: 'memory',
+      tag: dimmTag(i),
+    });
+  }
+
+  // --- Data bus: right-angle traces across the board ----------------
+  // Emitted as short segments along each polyline, so the physical trace and
+  // the packets that travel it are describing the same route by construction.
+  for (const path of BUS_TRACES) {
+    for (let i = 0; i < path.length - 1; i++) {
+      const [ax, ay, az] = path[i];
+      const [bx, , bz] = path[i + 1];
+      const alongX = Math.abs(bx - ax) > Math.abs(bz - az);
+      const length = alongX ? Math.abs(bx - ax) : Math.abs(bz - az);
+      const steps = Math.max(1, Math.round(length / 0.34));
+      for (let s = 0; s < steps; s++) {
+        const k = (s + 0.5) / steps;
+        shapes.push({
+          kind: 'box',
+          pos: [ax + (bx - ax) * k, ay, az + (bz - az) * k],
+          size: alongX ? [0.26, 0.05, 0.08] : [0.08, 0.05, 0.26],
+          group: 'bus',
+        });
+      }
+    }
+  }
+
+  // --- Graphics card in its slot ------------------------------------
+  shapes.push({ kind: 'box', pos: [-1.2, BOARD_TOP + 0.05, 3.4], size: [0.4, 0.16, 1.9], group: 'gpu' });
+  shapes.push({ kind: 'box', pos: [-1.2, BOARD_TOP + 0.34, 3.4], size: [6.9, 0.14, 1.85], group: 'gpu' });
+  // Shroud rails along the card's long edges.
+  shapes.push({ kind: 'box', pos: [-1.2, BOARD_TOP + 0.5, 4.28], size: [6.9, 0.28, 0.1], group: 'gpu' });
+  shapes.push({ kind: 'box', pos: [-1.2, BOARD_TOP + 0.5, 2.52], size: [6.9, 0.28, 0.1], group: 'gpu' });
+  // I/O bracket at the card's end.
+  shapes.push({ kind: 'box', pos: [2.35, BOARD_TOP + 0.55, 3.4], size: [0.12, 1.0, 1.9], group: 'gpu' });
+
+  // --- Cooling fans --------------------------------------------------
   for (const p of TURBINE_PIVOTS) {
-    shapes.push({ kind: 'torus', pos: p, radius: 0.92, tube: 0.11, rot: [HALF_PI, 0, 0], group: 'turbine' });
-    shapes.push({ kind: 'cyl', pos: p, radius: 0.2, height: 0.3, group: 'turbine' });
+    shapes.push({ kind: 'torus', pos: p, radius: 0.92, tube: 0.11, rot: [HALF_PI, 0, 0], group: 'cooling' });
+    shapes.push({ kind: 'cyl', pos: p, radius: 0.2, height: 0.3, group: 'cooling' });
     for (let b = 0; b < TURBINE_BLADES; b++) {
       const a = (b / TURBINE_BLADES) * TAU;
       shapes.push({
@@ -143,33 +355,81 @@ function buildBlueprint(): Shape[] {
         ],
         size: [0.62, 0.035, 0.19],
         rot: [0, -a, 0.34],
-        group: 'turbine',
+        group: 'cooling',
       });
     }
   }
 
-  // --- Project rack: modules in a bay ------------------------------
-  // Placed to one side so the camera can track along it (§7). Module bodies
-  // are tagged individually — the active bay (matching the DOM's
+  // --- Monitor: bezel, back shell, and stand -----------------------
+  // Built in monitor-local space and transformed, so the whole assembly
+  // stays welded to MONITOR_POS/ROT no matter how those are retuned.
+  {
+    const halfW = MONITOR_SCREEN_W / 2;
+    const halfH = MONITOR_SCREEN_H / 2;
+    const bezel = 0.11;
+    const rot: Vec3 = [0, MONITOR_ROT_Y, 0];
+
+    // Frame: four thin slabs around the screen aperture.
+    const frame: [Vec3, Vec3][] = [
+      [[0, halfH + bezel / 2, 0], [MONITOR_SCREEN_W + bezel * 2, bezel, 0.14]],
+      [[0, -halfH - bezel / 2, 0], [MONITOR_SCREEN_W + bezel * 2, bezel, 0.14]],
+      [[-halfW - bezel / 2, 0, 0], [bezel, MONITOR_SCREEN_H, 0.14]],
+      [[halfW + bezel / 2, 0, 0], [bezel, MONITOR_SCREEN_H, 0.14]],
+    ];
+    for (const [p, size] of frame) {
+      shapes.push({ kind: 'box', pos: monitorToWorld(p), size, rot, group: 'monitor' });
+    }
+
+    // Back shell, set behind the screen plane.
+    shapes.push({
+      kind: 'box',
+      pos: monitorToWorld([0, 0, -0.16]),
+      size: [MONITOR_SCREEN_W * 0.94, MONITOR_SCREEN_H * 0.94, 0.2],
+      rot,
+      group: 'monitor',
+    });
+
+    // Neck and foot, dropping to the machine deck.
+    shapes.push({
+      kind: 'box',
+      pos: monitorToWorld([0, -halfH - 0.55, -0.1]),
+      size: [0.3, 1.0, 0.16],
+      rot,
+      group: 'monitor',
+    });
+    shapes.push({
+      kind: 'box',
+      pos: monitorToWorld([0, -halfH - 1.06, 0.05]),
+      size: [1.5, 0.09, 0.85],
+      rot,
+      group: 'monitor',
+    });
+  }
+
+  // --- Storage bays: one drive per project --------------------------
+  // Mounted along the board's right edge so the camera can track down them
+  // (§7). Bodies are tagged individually — the active bay (matching the DOM's
   // activeProject) is rendered separately from this shared batch so it can
-  // glow and slide forward on its own, distinct from the other bays.
+  // glow and slide forward on its own, distinct from the others.
   const rackCentre = (RACK_MODULE_COUNT - 1) / 2;
+  const bayY = BOARD_TOP + 0.42;
   for (let i = 0; i < RACK_MODULE_COUNT; i++) {
     const z = (i - rackCentre) * 1.55;
     shapes.push({
       kind: 'box',
-      pos: [6.4, 0.1, z],
-      size: [1.5, 0.95, 1.28],
-      group: 'rack',
+      pos: [6.4, bayY, z],
+      size: [1.5, 0.8, 1.28],
+      group: 'storage',
       tag: rackModuleTag(i),
     });
-    shapes.push({ kind: 'box', pos: [7.2, 0.1, z], size: [0.08, 0.62, 0.9], group: 'rack' });
+    // Drive face plate, with its own activity strip.
+    shapes.push({ kind: 'box', pos: [7.2, bayY, z], size: [0.08, 0.5, 0.9], group: 'storage' });
   }
-  // Rack frame uprights, bracketing the full span with a small margin past
-  // the outermost module regardless of how many bays there are.
+  // Cage uprights, bracketing the full span with a small margin past the
+  // outermost bay regardless of how many there are.
   const rackEnd = rackCentre * 1.55 + 1.1;
-  shapes.push({ kind: 'box', pos: [6.4, 0.1, rackEnd], size: [1.9, 1.5, 0.1], group: 'rack' });
-  shapes.push({ kind: 'box', pos: [6.4, 0.1, -rackEnd], size: [1.9, 1.5, 0.1], group: 'rack' });
+  shapes.push({ kind: 'box', pos: [6.4, bayY, rackEnd], size: [1.9, 1.3, 0.1], group: 'storage' });
+  shapes.push({ kind: 'box', pos: [6.4, bayY, -rackEnd], size: [1.9, 1.3, 0.1], group: 'storage' });
 
   return shapes;
 }
@@ -316,7 +576,7 @@ export function sampleMachineSurface(count: number): {
  * shape reads as a network rather than a cloud.
  * ---------------------------------------------------------------- */
 
-export const NEURAL_LAYERS = [24, 40, 40, 28, 12];
+const NEURAL_LAYERS = [24, 40, 40, 28, 12];
 
 export interface Lattice {
   /** Node centres, one xyz triple per node. */

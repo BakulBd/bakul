@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { GraduationCap, Code2, Cpu, Wrench, Rocket, Sparkles, type LucideIcon } from 'lucide-react';
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { milestones, stageOrder, type Stage } from '@/lib/data/experience';
@@ -33,6 +33,17 @@ export function SectionExperience() {
 
   const select = (i: number) => {
     setActive(i);
+    /*
+     * Ripple the field behind the section on every selection.
+     *
+     * By this point in the scroll the machine has finished coming apart, so
+     * the lattice is what is actually on screen — sending the same activation
+     * wave the particle shader already understands makes the background
+     * visibly answer the click instead of drifting on independently. One
+     * value, read by the shader on its next frame, so the ripple and the
+     * relay click are simultaneous rather than merely close.
+     */
+    frame.pulse = 1;
     if (audioEnabled) audio.play('relay');
   };
 

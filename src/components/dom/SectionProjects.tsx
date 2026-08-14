@@ -69,11 +69,14 @@ function ModuleDetail({ project }: { project: Project }) {
         ))}
       </ul>
 
+      {/* One word per label — "Technical challenge" was the only two-word
+          label here and it wrapped, dragging its own row out of alignment
+          with the four above it. */}
       <dl className="panel-scroll mt-7 min-h-0 flex-1 m-0 pr-2">
         <Readout k="Problem" v={project.problem} />
         <Readout k="Solution" v={project.solution} />
         <Readout k="Architecture" v={project.architecture} />
-        <Readout k="Technical challenge" v={project.challenge} />
+        <Readout k="Challenge" v={project.challenge} />
         <Readout k="Result" v={project.result} />
       </dl>
 
@@ -111,13 +114,24 @@ const MANUAL_SELECT_PRIORITY_MS = 600;
 export function SectionProjects() {
   const activeProject = useMachine((s) => s.activeProject);
   const setActiveProject = useMachine((s) => s.setActiveProject);
+  const setProjectEmerged = useMachine((s) => s.setProjectEmerged);
+  const projectEmerged = useMachine((s) => s.projectEmerged);
+  const webglFailed = useMachine((s) => s.webglFailed);
   const audioEnabled = useMachine((s) => s.audioEnabled);
   const railRef = useRef<HTMLDivElement>(null);
   const lastManualSelectAt = useRef(0);
 
   const select = (index: number) => {
     lastManualSelectAt.current = performance.now();
+    const wasActive = useMachine.getState().activeProject === index;
+    const emerged = useMachine.getState().projectEmerged;
     setActiveProject(index);
+    // Opening a bay pushes it out through the monitor; clicking the bay that
+    // is already projected pulls it back in. Only ever driven from a real
+    // click or key press — the scroll-position sync below deliberately does
+    // not touch this, or moving through the rack would fire the whole
+    // cinematic over and over.
+    setProjectEmerged(!(wasActive && emerged));
     if (audioEnabled) audio.play('relay');
   };
 
@@ -177,11 +191,26 @@ export function SectionProjects() {
     const el = document.getElementById('section-projects');
     if (!el) return;
 
+    const rect = el.getBoundingClientRect();
+
+    /*
+     * Anything pushed out through the monitor is drawn back in once the
+     * visitor leaves the rack entirely. Without this, scrolling on with a
+     * project still projected would leave the camera part-way into a
+     * close-up of a screen that is no longer what the page is about, and the
+     * machine held square instead of idling. Checked before the
+     * manual-select guard below, because leaving the section should retract
+     * it whether or not a click just happened.
+     */
+    const offScreen = rect.bottom < 0 || rect.top > window.innerHeight;
+    if (offScreen && useMachine.getState().projectEmerged) {
+      useMachine.getState().setProjectEmerged(false);
+    }
+
     // A recent manual click owns the selection for a short window — see
     // MANUAL_SELECT_PRIORITY_MS above.
     if (performance.now() - lastManualSelectAt.current < MANUAL_SELECT_PRIORITY_MS) return;
 
-    const rect = el.getBoundingClientRect();
     const total = rect.height - window.innerHeight;
     if (total <= 0) return;
     const progress = Math.min(1, Math.max(0, -rect.top / total));
@@ -199,10 +228,13 @@ export function SectionProjects() {
     <Section id="projects" label="Project Bay" index="02">
       <Reveal>
         <Heading id="projects">Project Bay</Heading>
+        {/* Kept to two lines. The old version spent its last sentence
+            explaining that more bays could be added later — filler that cost
+            three lines of vertical space on a phone and pushed the rack
+            itself, the actual content, below the fold. */}
         <Lead>
           Shipped and in-progress work, installed as rack modules. Scroll to advance the rack, or
-          select a bay directly. New bays are added as new work ships — this rack is built to take
-          more than it currently holds.
+          select a bay to open it.
         </Lead>
       </Reveal>
 
@@ -228,7 +260,7 @@ export function SectionProjects() {
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => select(i)}
-                  className="panel panel-interactive flex w-full items-center gap-4 px-5 py-4 text-left"
+                  className="panel panel-interactive flex w-full items-start gap-3.5 px-5 py-4 text-left"
                   style={{
                     // The active module physically advances toward the viewer.
                     transform: isActive ? 'translateX(10px)' : 'translateX(0)',
@@ -242,21 +274,64 @@ export function SectionProjects() {
                     transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1), border-color 0.3s, box-shadow 0.3s',
                   }}
                 >
-                  <span className="t-mono text-xs text-[color:var(--color-ash-dim)]">{p.slot}</span>
+                  <span className="t-mono mt-0.5 text-[0.68rem] text-[color:var(--color-ash-dim)]">
+                    {p.slot}
+                  </span>
                   <span
-                    className={`led ${isEmpty ? 'led-idle' : isActive ? 'led-amber' : 'led-on'}`}
+                    className={`led mt-2 shrink-0 ${isEmpty ? 'led-idle' : isActive ? 'led-amber' : 'led-on'}`}
                     aria-hidden="true"
                   />
-                  <span className="flex-1">
-                    <span
-                      className="t-mono block text-xs"
-                      style={{ color: isEmpty ? 'var(--color-ash-dim)' : 'var(--color-ceramic)' }}
-                    >
-                      {p.title}
+
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span
+                        className="t-mono text-sm leading-snug"
+                        style={{ color: isEmpty ? 'var(--color-ash-dim)' : 'var(--color-ceramic)' }}
+                      >
+                        {p.title}
+                      </span>
+
+                      {/* States what the click does to the 3D layer, in the
+                          DOM, so the behaviour is discoverable without the
+                          canvas rather than left as an unexplained camera
+                          move. Hidden when the canvas isn't running. */}
+                      {isActive && !isEmpty && !webglFailed && (
+                        <span
+                          className="t-label shrink-0 normal-case tracking-normal"
+                          style={{
+                            color: projectEmerged ? 'var(--color-cyan)' : 'var(--color-ash-dim)',
+                          }}
+                        >
+                          {projectEmerged ? 'Projected ↗' : 'Project it'}
+                        </span>
+                      )}
                     </span>
+
+                    {/*
+                      Discrete chips, capped at three.
+                      Joining six technologies with separators produced a
+                      three-line grey run-on that read as noise and buried the
+                      project title above it — the one thing a visitor is
+                      actually scanning this list for. Three chips fit one line
+                      at every width the rack is used at, and the remainder is
+                      counted rather than wrapped. The full stack is listed in
+                      the detail panel beside this, so nothing is lost.
+                    */}
                     {!isEmpty && (
-                      <span className="t-label mt-1 block normal-case tracking-normal">
-                        {p.stack.join(' · ')}
+                      <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {p.stack.slice(0, 3).map((tech) => (
+                          <span
+                            key={tech}
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-fira)] text-[0.62rem] leading-none text-[color:var(--color-ash)]"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                        {p.stack.length > 3 && (
+                          <span className="font-[family-name:var(--font-fira)] text-[0.62rem] text-[color:var(--color-ash-dim)]">
+                            +{p.stack.length - 3}
+                          </span>
+                        )}
                       </span>
                     )}
                   </span>

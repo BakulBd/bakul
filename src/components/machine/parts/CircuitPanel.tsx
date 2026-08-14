@@ -27,6 +27,7 @@ const fragmentShader = /* glsl */ `
   precision highp float;
   uniform float uTime;
   uniform float uPower;
+  uniform float uMorph;
   uniform vec3 uAmber;
   uniform vec3 uCyan;
   varying vec2 vUv;
@@ -58,6 +59,22 @@ const fragmentShader = /* glsl */ `
     vec3 color = mix(uAmber, uCyan, 0.15) * (line * 0.9 + chip * 1.6 + pulse * 1.3);
     float alpha = (line * 0.55 + chip * 0.85 + pulse * 0.75) * uPower;
 
+    /*
+     * Boot wipe: the board energises column by column as the machine powers
+     * up, rather than the whole panel fading in as one sheet. Reads as
+     * current actually spreading across a board, and ties the backdrop to
+     * the same ramp the machine and the POST screen are following.
+     */
+    float wipe = smoothstep(0.0, 0.35, uPower * 1.35 - vUv.x * 0.9);
+    alpha *= wipe;
+
+    /*
+     * Recede during the transformation. Once the machine has come apart into
+     * the lattice, a hard circuit grid behind it competes with the particles
+     * for the same attention — the backdrop's job there is depth, not detail.
+     */
+    alpha *= 1.0 - uMorph * 0.82;
+
     if (alpha < 0.003) discard;
     gl_FragColor = vec4(color, alpha);
   }
@@ -70,6 +87,7 @@ export function CircuitPanel() {
     () => ({
       uTime: { value: 0 },
       uPower: { value: 0 },
+      uMorph: { value: 0 },
       uAmber: { value: new THREE.Color('#ff8c00') },
       uCyan: { value: new THREE.Color('#00e5ff') },
     }),
@@ -90,6 +108,7 @@ export function CircuitPanel() {
     if (!u) return;
     u.uTime.value += Math.min(dt, 0.05);
     u.uPower.value = frame.power;
+    u.uMorph.value = frame.morph;
   });
 
   return (

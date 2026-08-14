@@ -1,34 +1,50 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Power, ArrowRight, Download, Github } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
 import { profile } from '@/lib/data/profile';
+import {
+  BOOT_STAGES,
+  BUS_TRACES,
+  MEMORY_SLOTS,
+  RACK_MODULE_COUNT,
+  TURBINE_BLADES,
+  TURBINE_PIVOTS,
+  type Group,
+} from '@/components/machine/lib/blueprint';
 
 /**
- * FIRST 10 SECONDS (§3)
+ * FIRST 10 SECONDS (§3) — power-on self test.
  *
- * Starts almost completely dark with a standby core. Powers on via the button
- * or by scrolling. Reads as a cold industrial boot, not a title screen.
+ * Presented as a machine's POST screen: each subsystem is probed in turn and
+ * reports back, the way a computer enumerates its hardware before handing
+ * over to the OS. That framing is doing real work rather than being a
+ * costume — the visitor learns what the machine is made of while they wait
+ * for it, instead of watching a decorative progress bar.
  *
  * Critically: this never traps the visitor. The skip link, the quick-nav rail,
  * and the command palette are all live during standby, and scrolling powers the
  * system automatically — so a recruiter is never held at a gate.
  */
 
-/** Boot log lines, each tied to the power-ramp threshold it reports. */
-const BOOT_LOG: { at: number; text: string }[] = [
-  { at: 0.04, text: 'power signal detected — 3.3V rail nominal' },
-  { at: 0.12, text: 'energising primary conduits' },
-  { at: 0.22, text: 'circuit bus 0x01 .. 0x04 online' },
-  { at: 0.34, text: 'vent actuators released' },
-  { at: 0.46, text: 'thermal turbines spinning up' },
-  { at: 0.58, text: 'mechanical relays engaged' },
-  { at: 0.7, text: 'secondary subsystems awake' },
-  { at: 0.82, text: 'project bay powered' },
-  { at: 0.93, text: 'all systems nominal' },
-];
+/**
+ * What each subsystem reports. Keyed by the same `Group` the 3D scene lights,
+ * and the counts are read from the blueprint's own constants rather than
+ * retyped — a POST screen that claims four rails while the machine renders
+ * six is worse than no POST screen at all.
+ */
+const STAGE_REPORT: Record<Group, { device: string; detail: string }> = {
+  board: { device: 'BOARD', detail: 'mainboard + power rails' },
+  core: { device: 'CPU', detail: 'processor die + heatsink' },
+  memory: { device: 'MEM', detail: `${MEMORY_SLOTS} DIMM slots populated` },
+  bus: { device: 'BUS', detail: `${BUS_TRACES.length} data lanes routed` },
+  gpu: { device: 'GPU', detail: 'graphics card in slot' },
+  cooling: { device: 'FAN', detail: `${TURBINE_PIVOTS.length} fans × ${TURBINE_BLADES} blades` },
+  storage: { device: 'DISK', detail: `${RACK_MODULE_COUNT} project bays mounted` },
+  monitor: { device: 'VIDEO', detail: 'BAKUL OS — display online' },
+};
 
 export function BootSequence() {
   const powerState = useMachine((s) => s.powerState);
@@ -37,8 +53,6 @@ export function BootSequence() {
   const reducedMotion = useMachine((s) => s.reducedMotion);
 
   const [power, setPower] = useState(0);
-  const [log, setLog] = useState<string[]>([]);
-  const emitted = useRef(new Set<number>());
 
   // Mirror the frame-loop power value into React at a low rate. Reading it
   // every frame in state would defeat the point of the frame singleton, so we
@@ -46,18 +60,7 @@ export function BootSequence() {
   useEffect(() => {
     if (powerState === 'STANDBY') return;
 
-    const id = window.setInterval(() => {
-      setPower(frame.power);
-      document.documentElement.style.setProperty('--power', frame.power.toFixed(3));
-
-      for (const line of BOOT_LOG) {
-        if (frame.power >= line.at && !emitted.current.has(line.at)) {
-          emitted.current.add(line.at);
-          setLog((prev) => [...prev.slice(-6), line.text]);
-        }
-      }
-    }, 90);
-
+    const id = window.setInterval(() => setPower(frame.power), 90);
     return () => window.clearInterval(id);
   }, [powerState]);
 
@@ -69,6 +72,7 @@ export function BootSequence() {
   const online = powerState === 'ONLINE';
   // Fade the standby panel out as the machine takes over the screen.
   const standbyOpacity = powerState === 'STANDBY' ? 1 : Math.max(0, 1 - power * 1.8);
+  const pct = Math.round(power * 100);
 
   return (
     <div className="relative flex min-h-screen flex-col justify-center">
@@ -91,16 +95,39 @@ export function BootSequence() {
             aria-hidden="true"
           />
           <p className="t-label m-0">
-            {powerState === 'STANDBY' ? 'Bakul // System Standby' : 'Bakul // Activating'}
+            {powerState === 'STANDBY' ? 'System Standby' : 'Power-On Self Test'}
           </p>
         </div>
 
-        <p className="t-mono mt-6 text-[clamp(1.05rem,3vw,1.6rem)] text-[color:var(--color-ash)]">
-          Computing engine offline
+        {/*
+          The name leads from the very first frame.
+
+          It used to appear only as a six-word status label until the boot
+          finished, which meant the single most important word on the site was
+          the smallest thing on screen for the first several seconds — and for
+          anyone who never scrolled, permanently. Marked aria-hidden because
+          the real <h1> lives in the reveal block below and is in the DOM from
+          the first byte; this is the visual treatment of a name a screen
+          reader has already been given, not a second copy of it.
+        */}
+        <p
+          aria-hidden="true"
+          className="t-display mt-5 text-[clamp(3rem,12vw,8.5rem)] leading-[0.92] text-[color:var(--color-ceramic)]"
+        >
+          {profile.name.split(' ')[0]}
+          <span className="text-[color:var(--color-ash)]"> {profile.name.split(' ')[1]}</span>
+        </p>
+
+        <p className="t-mono mt-4 text-[clamp(0.85rem,2.2vw,1.15rem)] emissive-cyan">
+          {profile.title}
+        </p>
+
+        <p className="t-label mt-5 text-[color:var(--color-ash-dim)]">
+          {powerState === 'STANDBY' ? 'Computing engine offline' : 'Bringing subsystems online…'}
         </p>
 
         {powerState === 'STANDBY' && (
-          <div className="mt-9 flex flex-wrap items-center gap-5">
+          <div className="mt-8 flex flex-wrap items-center gap-5">
             <button type="button" onClick={handlePower} className="btn btn-primary">
               <Power aria-hidden="true" />
               Power System
@@ -110,46 +137,71 @@ export function BootSequence() {
         )}
       </div>
 
-      {/* ---------- BOOT LOG ---------- */}
+      {/* ---------- POST ---------- */}
       {powerState !== 'STANDBY' && !online && (
         <div
-          className="panel-flat mt-10 max-w-[52ch] p-5"
+          className="panel-flat mt-10 w-full max-w-[34rem] p-5 sm:p-6"
           role="status"
           aria-live="polite"
-          aria-label="System boot progress"
+          aria-label="Power-on self test progress"
         >
-          <div className="h-[3px] w-full bg-[#1a1c23]">
+          <div className="flex items-baseline justify-between gap-4 border-b border-[#24272f] pb-3">
+            <span className="t-label emissive-amber">BAKUL BIOS — POST</span>
+            <span className="font-[family-name:var(--font-fira)] text-xs tabular-nums text-[color:var(--color-ash)]">
+              {pct}%
+            </span>
+          </div>
+
+          <div className="mt-3 h-[3px] w-full bg-[#1a1c23]">
             <div
               className="h-full bg-[color:var(--color-amber)]"
               style={{
-                width: `${power * 100}%`,
+                width: `${pct}%`,
                 boxShadow: '0 0 12px #ff8c00',
                 transition: 'width 0.1s linear',
               }}
             />
           </div>
-          <p className="t-label mt-3">
-            Boot {Math.round(power * 100)}%
-          </p>
-          <ul className="mt-4 list-none space-y-1 p-0">
-            {log.map((line, i) => {
-              const isLast = i === log.length - 1;
+
+          {/* Device table. Each row resolves the moment the 3D subsystem it
+              names starts drawing power — same constant, same frame. */}
+          <ul className="mt-4 list-none space-y-1.5 p-0">
+            {BOOT_STAGES.map((stage, i) => {
+              const report = STAGE_REPORT[stage.group];
+              const done = power >= stage.at;
+              const isLatest =
+                done && (i === BOOT_STAGES.length - 1 || power < BOOT_STAGES[i + 1].at);
               return (
                 <li
-                  key={`${line}-${i}`}
-                  className="font-[family-name:var(--font-fira)] text-xs text-[color:var(--color-ash)]"
-                  style={{ opacity: 0.35 + (i / Math.max(1, log.length - 1)) * 0.65 }}
+                  key={stage.group}
+                  className="grid grid-cols-[4.2rem_1fr_auto] items-baseline gap-3 font-[family-name:var(--font-fira)] text-xs"
+                  style={{
+                    opacity: done ? 1 : 0.32,
+                    transition: 'opacity 0.25s linear',
+                  }}
                 >
-                  <span className="text-[color:var(--color-cyan)]">&gt;</span> {line}
-                  {isLast && (
-                    <span className="caret ml-1 text-[color:var(--color-amber)]" aria-hidden="true">
-                      ▌
-                    </span>
-                  )}
+                  <span className="text-[color:var(--color-cyan)]">{report.device}</span>
+                  <span className="truncate text-[color:var(--color-ash)]">{report.detail}</span>
+                  <span
+                    style={{
+                      color: done ? 'var(--color-amber)' : 'var(--color-ash-dim)',
+                    }}
+                  >
+                    {done ? 'OK' : '····'}
+                    {isLatest && (
+                      <span className="caret ml-1" aria-hidden="true">
+                        ▌
+                      </span>
+                    )}
+                  </span>
                 </li>
               );
             })}
           </ul>
+
+          <p className="t-label mt-4 border-t border-[#24272f] pt-3 normal-case tracking-normal">
+            {pct >= 99 ? 'Handing off to BAKUL OS…' : 'Enumerating subsystems…'}
+          </p>
         </div>
       )}
 
@@ -169,7 +221,7 @@ export function BootSequence() {
         }}
         className={online ? '' : 'sr-only'}
       >
-        <h1 className="t-display text-[clamp(2.6rem,10vw,7rem)]">
+        <h1 className="t-display text-[clamp(3rem,12vw,8.5rem)] leading-[0.92]">
           {profile.name.split(' ')[0]}
           <span className="text-[color:var(--color-ash)]"> {profile.name.split(' ')[1]}</span>
         </h1>

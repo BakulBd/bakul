@@ -111,7 +111,6 @@ export const subsystems = [
   },
 ] as const;
 
-export type Subsystem = (typeof subsystems)[number];
 
 /** Certifications & awards — CV verbatim, no embellishment. */
 export const credentials = [

@@ -24,10 +24,10 @@
  * sound good.
  */
 
-export type ProjectStatus = 'online' | 'empty';
+type ProjectStatus = 'online' | 'empty';
 
 /** Drives the machine's reaction when a bay locks in (lighting + conduit tempo). */
-export type ProjectSignature = 'data' | 'compute' | 'none';
+type ProjectSignature = 'data' | 'compute' | 'none';
 
 export interface Project {
   slot: string;

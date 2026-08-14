@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { profile } from '@/lib/data/profile';
+import { projects } from '@/lib/data/projects';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -9,10 +10,23 @@ export const runtime = 'edge';
  * type into an `ImageResponse`, which renders through Satori (no CSS `@font-face`,
  * no `next/font`). Falls back to the system-default face if the fetch fails,
  * so a network hiccup degrades the card instead of breaking image generation. */
+/**
+ * Every glyph the card can render, so the subsetted font request covers all
+ * of them. A missing character here renders as a blank box in the shared
+ * preview — the one place nobody would ever see it before it went out.
+ */
+const GLYPHS =
+  profile.name +
+  profile.title +
+  profile.disciplines.join('') +
+  projects.map((p) => p.title + p.kind).join('') +
+  profile.education.cgpa +
+  'CGPA · Featured work +0123456789/•—';
+
 async function loadInter(weight: 400 | 800) {
   const css = await fetch(
     `https://fonts.googleapis.com/css2?family=Inter:wght@${weight}&text=${encodeURIComponent(
-      profile.name + profile.title + profile.disciplines.join(''),
+      GLYPHS,
     )}`,
   ).then((r) => r.text());
   const match = css.match(/src: url\(([^)]+)\)/);
@@ -78,10 +92,37 @@ export default async function OpengraphImage() {
             letterSpacing: 4,
             fontFamily: 'Inter',
             color: '#8b909c',
-            marginTop: 20,
+            marginTop: 18,
           }}
         >
           {profile.disciplines.join('   •   ').toUpperCase()}
+        </div>
+
+        {/*
+          The card used to stop at the job title, which told a recruiter
+          scrolling a feed nothing they could not have guessed from the name.
+          Naming the actual shipped work and the CGPA is the difference
+          between a business card and a reason to click — and both are read
+          from the same data the page renders, so a share preview can never
+          drift out of step with the site.
+        */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 18,
+            marginTop: 40,
+            paddingTop: 28,
+            borderTop: '1px solid #24272f',
+          }}
+        >
+          <div style={{ display: 'flex', fontSize: 21, fontFamily: 'Inter', color: '#ff8c00' }}>
+            CGPA {profile.education.cgpa}
+          </div>
+          <div style={{ display: 'flex', fontSize: 21, color: '#3a3f4a' }}>—</div>
+          <div style={{ display: 'flex', fontSize: 21, fontFamily: 'Inter', color: '#8b909c' }}>
+            {projects.map((p) => p.title).join('   •   ')}
+          </div>
         </div>
       </div>
     ),

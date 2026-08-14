@@ -8,10 +8,12 @@ import { audio } from '@/lib/audio/engine';
 import { CameraRig } from './CameraRig';
 import { Chassis } from './parts/Chassis';
 import { Turbines } from './parts/Turbines';
-import { ConduitPulses } from './parts/ConduitPulses';
+import { BusTraffic } from './parts/BusTraffic';
 import { Starfield } from './parts/Starfield';
 import { CircuitPanel } from './parts/CircuitPanel';
 import { MorphField } from './parts/MorphField';
+import { Monitor } from './parts/Monitor';
+import { BOOT_STAGES } from './lib/blueprint';
 import { MORPH_START, MORPH_END } from '@/lib/data/sections';
 
 /**
@@ -40,22 +42,21 @@ function Driver() {
       const rate = reducedMotion ? 4 : 0.34;
       frame.power = Math.min(1, frame.power + clamped * rate);
 
-      // Relay clicks as each subsystem comes online, keyed by the threshold
-      // they cross so they track the visual boot exactly. These four values
-      // are a literal subset of BOOT_LOG's own thresholds in BootSequence —
-      // not just close to them — so the click and its matching log line
-      // ("energising primary conduits", "vent actuators released",
-      // "mechanical relays engaged", "project bay powered") print on the
-      // exact same frame instead of a beat apart.
+      // A relay clicks as each subsystem comes online. Read from BOOT_STAGES —
+      // the same list the POST screen prints its rows from and the same
+      // POWER_WINDOW starts the 3D subsystems illuminate at — so the sound,
+      // the light, and the "OK" all land on one frame instead of a beat
+      // apart. Copies of these numbers in three files is precisely how a boot
+      // drifts out of sync.
       //
       // Thresholds are tracked as crossed regardless of whether sound is on —
       // only the playback is gated. If tracking were gated too, a visitor who
       // boots muted and then enables sound partway through (or after boot
       // finishes) would hear every threshold they'd already silently crossed
       // fire at once, a burst of clicks with nothing on screen to match them.
-      for (const threshold of [0.12, 0.34, 0.58, 0.82]) {
-        if (frame.power >= threshold && !relayFired.current.has(threshold)) {
-          relayFired.current.add(threshold);
+      for (const stage of BOOT_STAGES) {
+        if (frame.power >= stage.at && !relayFired.current.has(stage.at)) {
+          relayFired.current.add(stage.at);
           if (audioEnabled && !reducedMotion) audio.play('relay');
         }
       }
@@ -74,6 +75,22 @@ function Driver() {
     /* ---- Activation pulse decay ---- */
     if (frame.pulse > 0) {
       frame.pulse = Math.max(0, frame.pulse - clamped * 0.85);
+    }
+
+    /* ---- Project emergence ---- */
+    // Eased toward its target rather than snapped, so the glass stretches and
+    // relaxes at a physical rate. Reduced motion jumps straight to the end
+    // state: the project is still shown outside the screen, it just doesn't
+    // travel there — the information is identical either way.
+    const wantEmerge = useMachine.getState().projectEmerged ? 1 : 0;
+    if (reducedMotion) {
+      frame.emerge = wantEmerge;
+    } else {
+      // Out faster than back: breaking through should feel like it has force
+      // behind it, returning like it is being drawn back in.
+      const rate = wantEmerge > frame.emerge ? 1.55 : 1.1;
+      frame.emerge += (wantEmerge - frame.emerge) * (1 - Math.exp(-rate * clamped * 3));
+      if (Math.abs(wantEmerge - frame.emerge) < 0.001) frame.emerge = wantEmerge;
     }
 
     /* ---- Audio load ---- */
@@ -109,11 +126,33 @@ function MachineTransform({ children }: { children: React.ReactNode }) {
     if (!g) return;
     if (reducedMotion) return;
 
-    // Slow idle yaw — an idling machine, not a turntable.
-    g.rotation.y += Math.min(dt, 0.05) * 0.03 * (0.35 + frame.velocity * 1.6);
+    const clamped = Math.min(dt, 0.05);
 
-    // Pointer tilt, heavily damped.
-    const targetTilt = -frame.pointer.y * 0.07;
+    /*
+     * The machine settles square while a project is coming out.
+     *
+     * The idle yaw is what makes the machine feel alive at rest, but the
+     * monitor rides on this same group — so with the yaw still running, the
+     * camera's dolly toward the screen would be aiming at a target that has
+     * rotated away by the time it arrives, and the close shot would land
+     * off-axis. Damping the rotation back to zero as `emerge` rises makes the
+     * shot deterministic, and reads as the machine deliberately squaring up
+     * to present something rather than as the animation being switched off.
+     */
+    const settle = frame.emerge;
+    if (settle > 0.001) {
+      const k = 1 - Math.exp(-3.2 * clamped * (0.4 + settle));
+      // Shortest way home, so a machine sitting just past a full turn
+      // unwinds a few degrees instead of spinning all the way back.
+      const wrapped = Math.atan2(Math.sin(g.rotation.y), Math.cos(g.rotation.y));
+      g.rotation.y = wrapped + (0 - wrapped) * k * settle;
+    } else {
+      // Slow idle yaw — an idling machine, not a turntable.
+      g.rotation.y += clamped * 0.03 * (0.35 + frame.velocity * 1.6);
+    }
+
+    // Pointer tilt, heavily damped, and eased out while presenting.
+    const targetTilt = -frame.pointer.y * 0.07 * (1 - settle);
     g.rotation.x += (targetTilt - g.rotation.x) * 0.028;
   });
 
@@ -227,7 +266,8 @@ export function Scene() {
       <MachineTransform>
         <Chassis />
         <Turbines />
-        <ConduitPulses />
+        <BusTraffic />
+        <Monitor />
         <MorphField profile={profile} />
       </MachineTransform>
     </>

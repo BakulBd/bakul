@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { sectionById, type Phase } from '@/lib/data/sections';
+import { useRafScroll } from '@/hooks/useRafScroll';
+import { useMachine } from '@/store/machine';
 
 /**
  * Shared DOM primitives for the machine's interface layer.
@@ -51,8 +53,56 @@ export function Section({
   const heightVh = (section?.height ?? 1) * 100;
   const tone = section ? TONE_BY_PHASE[section.phase] : undefined;
 
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useMachine((s) => s.reducedMotion);
+
+  /*
+   * Cross-dissolve between segments.
+   *
+   * Each section's content is pinned for the length of its own scroll window,
+   * so without this it sits at full opacity right up until the moment it is
+   * scrolled off and the next one hard-cuts in behind it. That reads as a
+   * seam — a gap between segments rather than one continuous machine — and it
+   * is the single most visible thing separating this from a piece of motion
+   * design.
+   *
+   * Driven off the section's own rect rather than a shared scroll fraction so
+   * it stays correct at any section height, and written straight to style: a
+   * per-frame React state update here would re-render every section's whole
+   * subtree on every scroll frame, which is exactly the cost the frame
+   * singleton exists to avoid.
+   */
+  useRafScroll(() => {
+    const el = sectionRef.current;
+    const stage = stageRef.current;
+    if (!el || !stage) return;
+
+    if (reducedMotion) {
+      stage.style.opacity = '1';
+      stage.style.transform = 'none';
+      return;
+    }
+
+    const vh = window.innerHeight;
+    const rect = el.getBoundingClientRect();
+
+    // Generous plateaus at both ends: fully settled for the whole time the
+    // section is actually being read, moving only at the hand-off.
+    const enter = Math.min(1, Math.max(0, (vh - rect.top) / (vh * 0.55)));
+    const exit = Math.min(1, Math.max(0, (vh * 0.5 - rect.bottom) / (vh * 0.5)));
+
+    const ease = (k: number) => k * k * (3 - 2 * k);
+    const inK = ease(enter);
+    const outK = ease(exit);
+
+    stage.style.opacity = String(inK * (1 - outK));
+    stage.style.transform = `translate3d(0, ${(1 - inK) * 26 - outK * 26}px, 0)`;
+  });
+
   return (
     <section
+      ref={sectionRef}
       id={`section-${id}`}
       aria-labelledby={`heading-${id}`}
       style={{ minHeight: `${heightVh}vh` }}
@@ -62,6 +112,10 @@ export function Section({
 
       <div className="sticky top-0 z-[1] flex min-h-screen items-center py-24">
         <div
+          ref={stageRef}
+          // `will-change` is deliberate and scoped: this element's transform
+          // and opacity genuinely change on most scroll frames.
+          style={{ willChange: 'opacity, transform' }}
           className={`w-full px-6 md:px-10 lg:pl-[calc(var(--rail-w)+2.5rem)] ${
             narrow ? 'max-w-[680px]' : 'mx-auto max-w-[1240px]'
           }`}
@@ -158,12 +212,19 @@ export function Panel({
   return <Tag className={`panel ${className}`}>{children}</Tag>;
 }
 
-/** Key/value readout row, used across Core, Projects, and Impact. */
+/**
+ * Key/value readout row, used across Core, Projects, and Impact.
+ *
+ * The label column is fixed at 8rem rather than 10rem, and labels are kept to
+ * a single word wherever possible: a two-word label wrapped onto a second
+ * line inside a narrow column, which pushed its own value out of vertical
+ * alignment with every other row and made a tidy table look ragged.
+ */
 export function Readout({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 border-t border-[#24272f] py-3 sm:flex-row sm:gap-6">
-      <dt className="t-label shrink-0 sm:w-40">{k}</dt>
-      <dd className="t-body m-0 text-sm">{v}</dd>
+      <dt className="t-label shrink-0 pt-0.5 sm:w-32">{k}</dt>
+      <dd className="t-body m-0 min-w-0 text-sm leading-relaxed">{v}</dd>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { frame, useMachine } from '@/store/machine';
 import { sections } from '@/lib/data/sections';
+import { MONITOR_POS, MONITOR_ROT_Y } from './lib/blueprint';
 
 /**
  * Camera stations — one viewpoint per section, positioned around the machine
@@ -24,21 +25,21 @@ interface Station {
  * FOV needs the camera around 20 units out, so these are not arbitrary numbers.
  */
 const STATIONS: Record<string, Station> = {
-  // Standby: tight on the core, deep inside the dark machine.
-  boot: { pos: [0, 0.3, 5.2], target: [0, 0, 0], fov: 34 },
-  // Post-reveal resting view of the complete machine.
-  core: { pos: [0, 3.6, 17.5], target: [0, -0.2, 0], fov: 42 },
-  // Track along the project rack, angled so the bay reads in perspective.
-  // Tightened for a 3-bay rack — the shortest span this station has framed;
-  // pulled in closer than the original 4-bay tuning so 3 modules don't read
-  // as sparse.
-  projects: { pos: [12.0, 1.9, 10.2], target: [6.4, 0, 0], fov: 38 },
-  // Raised three-quarter view for the assembly line.
-  experience: { pos: [-11.5, 4.8, 14.0], target: [0, -0.4, 0], fov: 44 },
-  // Control-centre overhead.
-  impact: { pos: [0, 10.0, 15.0], target: [0, 0, 0], fov: 46 },
-  // Communication terminal.
-  contact: { pos: [0, 1.4, 14.0], target: [0, 0, -2], fov: 42 },
+  // Standby: down at deck level among the components, before anything lights.
+  boot: { pos: [0, 0.4, 5.2], target: [0, 0, 0], fov: 34 },
+  // Post-reveal resting view. Raised well above the deck — the machine is a
+  // board now, and a board only reads as one from an angle that shows its
+  // surface. A near-level shot flattens it back into an abstract silhouette,
+  // which is exactly the problem this redesign set out to fix.
+  core: { pos: [1.5, 7.6, 15.5], target: [0, -0.5, 0.4], fov: 42 },
+  // Track down the storage bays, angled so they read in perspective.
+  projects: { pos: [12.5, 4.6, 9.8], target: [6.0, -0.2, 0], fov: 38 },
+  // Raised three-quarter across the board, favouring the memory and socket.
+  experience: { pos: [-11.0, 7.2, 13.0], target: [0, -0.5, 0], fov: 44 },
+  // Near-overhead: the layout shot, where the board plan is clearest.
+  impact: { pos: [0.5, 13.0, 11.0], target: [0, -0.5, 0], fov: 46 },
+  // Low and forward, looking back across the deck past the card.
+  contact: { pos: [0, 3.2, 14.0], target: [0, -0.4, -1.5], fov: 42 },
 };
 
 /**
@@ -47,7 +48,31 @@ const STATIONS: Record<string, Station> = {
  * scroll — otherwise a visitor who powers on without scrolling would sit inside
  * the heatsink and never see what they switched on.
  */
-const REVEAL_TARGET: Station = { pos: [0, 3.6, 17.5], target: [0, -0.2, 0], fov: 42 };
+const REVEAL_TARGET: Station = { pos: [1.5, 7.6, 15.5], target: [0, -0.5, 0.4], fov: 42 };
+
+/**
+ * The monitor close-up, computed from the screen's own placement rather than
+ * hand-typed — square onto the glass, far enough back that the emerging
+ * module clears frame, and a longer lens so the shot compresses like a real
+ * product close-up instead of bowing at the edges.
+ *
+ * This is only reachable while the machine has settled square (see
+ * MachineTransform in Scene.tsx), which is what makes a fixed world-space
+ * station land on-axis every time.
+ */
+const MONITOR_STATION: Station = (() => {
+  const dist = 7.2;
+  const c = Math.cos(MONITOR_ROT_Y);
+  const s = Math.sin(MONITOR_ROT_Y);
+  // The screen's outward normal in world space (+z rotated about Y).
+  const nx = s;
+  const nz = c;
+  return {
+    pos: [MONITOR_POS[0] + nx * dist, MONITOR_POS[1] + 0.55, MONITOR_POS[2] + nz * dist],
+    target: [MONITOR_POS[0], MONITOR_POS[1], MONITOR_POS[2]],
+    fov: 30,
+  };
+})();
 
 function lerpStation(a: Station, b: Station, k: number): Station {
   return {
@@ -67,6 +92,8 @@ function lerpStation(a: Station, b: Station, k: number): Station {
 
 const _pos = new THREE.Vector3();
 const _target = new THREE.Vector3();
+const _monPos = new THREE.Vector3();
+const _monTarget = new THREE.Vector3();
 const _lookTarget = new THREE.Vector3();
 const _forward = new THREE.Vector3();
 const _right = new THREE.Vector3();
@@ -170,7 +197,53 @@ export function CameraRig() {
     _target.set(...station.target);
     applyComposition(_pos, _target, compositionOffset);
 
-    const fov = station.fov * fovScale;
+    let fov = station.fov * fovScale;
+
+    /*
+     * Dolly toward the screen while a project breaks out of it.
+     *
+     * Blended here in world space, after the scroll station and its
+     * composition offset are resolved, rather than inside resolveStation:
+     * the scroll stations all aim near the origin, so their `distanceScale`
+     * is applied from the origin, and reusing that on a station aimed at the
+     * monitor (which is nowhere near the origin) would swing the camera off
+     * the screen's axis on exactly the narrow viewports that need the pull-
+     * back most. Scaling the monitor station about its own target instead
+     * keeps it square to the glass at every aspect ratio.
+     *
+     * Skipped entirely under reduced motion — with the eased travel
+     * suppressed this would be an instantaneous viewpoint teleport, which is
+     * precisely the kind of jump that preference exists to prevent. Nothing
+     * is lost: the project's content lives in the DOM panel either way.
+     */
+    if (!reducedMotion && frame.emerge > 0.001) {
+      _monTarget.set(...MONITOR_STATION.target);
+      _monPos
+        .set(...MONITOR_STATION.pos)
+        .sub(_monTarget)
+        .multiplyScalar(distanceScale)
+        .add(_monTarget);
+
+      /*
+       * Hold the screen off-centre for the same reason the wide shots hold
+       * the machine off-centre — the reading column occupies the left of the
+       * viewport, and a close-up that centres the monitor parks it directly
+       * behind the heading. Scaled well down from the wide-shot offset
+       * because this station sits ~6 units from its subject rather than ~18,
+       * and the same world-space nudge that reads as a third of a screen out
+       * there would throw the monitor out of frame entirely here.
+       */
+      applyComposition(_monPos, _monTarget, compositionOffset * 0.4);
+
+      // Capped short of a full takeover so the visitor's scroll position
+      // stays legible underneath the move.
+      const e = frame.emerge;
+      const k = e * e * (3 - 2 * e) * 0.66;
+
+      _pos.lerp(_monPos, k);
+      _target.lerp(_monTarget, k);
+      fov = THREE.MathUtils.lerp(fov, MONITOR_STATION.fov * fovScale, k);
+    }
 
     // Pointer parallax: a small camera offset, not a scene rotation, so the
     // visitor feels they are moving their head rather than spinning the object.

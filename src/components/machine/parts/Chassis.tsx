@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { frame, useMachine } from '@/store/machine';
 import {
   blueprint,
+  dimmTag,
+  MEMORY_SLOTS,
   POWER_WINDOW,
   RACK_MODULE_COUNT,
   rackModuleTag,
@@ -15,6 +17,26 @@ import {
 import { projects } from '@/lib/data/projects';
 
 const TITANIUM = new THREE.Color('#454a52');
+
+/**
+ * Base colour per subsystem.
+ *
+ * A single titanium for everything is what made the board read as moulded
+ * foam rather than hardware: a real mainboard is a near-black laminate with
+ * bright metal only where there is actually metal. Giving the deck its own
+ * dark substrate and reserving the light alloy for heatsinks and fan rotors
+ * is what separates the components from the thing they are mounted on.
+ */
+const COLOR_BY_GROUP: Record<Group, THREE.Color> = {
+  board: new THREE.Color('#0e1219'),
+  core: new THREE.Color('#4a4f58'),
+  memory: new THREE.Color('#242932'),
+  bus: new THREE.Color('#5c4a24'),
+  gpu: new THREE.Color('#1e222a'),
+  cooling: new THREE.Color('#4e535c'),
+  storage: new THREE.Color('#363b43'),
+  monitor: new THREE.Color('#252a32'),
+};
 const AMBER = new THREE.Color('#ff8c00');
 const CYAN = new THREE.Color('#00e5ff');
 const IDLE_EMISSIVE = new THREE.Color('#8b909c');
@@ -28,11 +50,19 @@ const IDLE_EMISSIVE = new THREE.Color('#8b909c');
  * genuinely glow, because they are the part that is actually carrying energy.
  */
 const EMISSIVE_GAIN: Record<Group, number> = {
+  // Bare PCB and casework are surfaces the key light catches, not sources.
+  board: 0.05,
   core: 0.12,
-  chassis: 0.05,
-  conduit: 0.85,
-  turbine: 0.1,
-  rack: 0.16,
+  // Memory glows on access — the bank is the most legible activity readout
+  // on a real board, so it gets to actually read as one here.
+  memory: 0.32,
+  bus: 0.85,
+  gpu: 0.18,
+  cooling: 0.1,
+  storage: 0.16,
+  // The bezel is a housing, not a light source — the screen inside it does
+  // the glowing, so the frame stays as dark as the rest of the casework.
+  monitor: 0.06,
 };
 
 const dummy = new THREE.Object3D();
@@ -96,9 +126,9 @@ function InstancedBatch({
     >
       <meshStandardMaterial
         ref={materialRef}
-        color={TITANIUM}
-        metalness={0.58}
-        roughness={0.42}
+        color={COLOR_BY_GROUP[group] ?? TITANIUM}
+        metalness={group === 'board' ? 0.22 : 0.58}
+        roughness={group === 'board' ? 0.72 : 0.42}
         emissive={AMBER}
         emissiveIntensity={0}
         transparent
@@ -172,10 +202,10 @@ function Subsystem({ group }: { group: Group }) {
             ref={(m) => {
               if (m) torusMats.current[i] = m;
             }}
-            color={TITANIUM}
+            color={COLOR_BY_GROUP[group] ?? TITANIUM}
             metalness={0.58}
             roughness={0.38}
-            emissive={group === 'conduit' ? CYAN : AMBER}
+            emissive={group === 'bus' || group === 'memory' ? CYAN : AMBER}
             emissiveIntensity={0}
             transparent
             opacity={0}
@@ -204,7 +234,7 @@ function RackModule({ index, shape }: { index: number; shape: Extract<Shape, { k
     const mat = matRef.current;
     if (!mesh || !mat) return;
 
-    const [start, end] = POWER_WINDOW.rack;
+    const [start, end] = POWER_WINDOW.storage;
     const lit = THREE.MathUtils.smoothstep(frame.power, start, end);
     const dissolve = 1 - THREE.MathUtils.smoothstep(frame.morph, 0.0, 0.5);
     const opacity = lit * dissolve;
@@ -268,6 +298,82 @@ function RackModules() {
 }
 
 /**
+ * The memory bank, addressed one module at a time.
+ *
+ * A bank of DIMMs lit uniformly is just four bright slabs; a bank where the
+ * modules light in turn is unmistakably memory being accessed. The address
+ * walks the bank on the same clock the bus packets travel on, so what the
+ * traces are carrying and what the memory is doing describe one machine
+ * rather than two independent loops — and the rate rides scroll velocity, so
+ * the bank visibly works harder exactly when everything else does.
+ */
+function MemoryBank() {
+  const modules = useMemo(
+    () =>
+      Array.from({ length: MEMORY_SLOTS }, (_, i) => {
+        const tag = dimmTag(i);
+        const shape = blueprint.find(
+          (s): s is Extract<Shape, { kind: 'box' }> => s.kind === 'box' && s.tag === tag,
+        );
+        return shape ? { index: i, shape } : null;
+      }).filter((m): m is { index: number; shape: Extract<Shape, { kind: 'box' }> } => m !== null),
+    [],
+  );
+
+  const matsRef = useRef<(THREE.MeshStandardMaterial | null)[]>([]);
+  const cursor = useRef(0);
+
+  useFrame((_, dt) => {
+    const [start, end] = POWER_WINDOW.memory;
+    const lit = THREE.MathUtils.smoothstep(frame.power, start, end);
+    const dissolve = 1 - THREE.MathUtils.smoothstep(frame.morph, 0.0, 0.5);
+    const opacity = lit * dissolve;
+
+    const { reducedMotion } = useMachine.getState();
+    if (!reducedMotion) {
+      // Same cadence the bus packets run at, so access and transfer agree.
+      cursor.current += Math.min(dt, 0.05) * (0.9 + frame.velocity * 5.5);
+    }
+
+    for (let i = 0; i < matsRef.current.length; i++) {
+      const m = matsRef.current[i];
+      if (!m) continue;
+      // Triangular falloff around the addressed module: the neighbour either
+      // side glows faintly, which reads as a burst walking the bank rather
+      // than four independent blinkers.
+      const phase = Math.abs(((cursor.current - i) % MEMORY_SLOTS) + MEMORY_SLOTS) % MEMORY_SLOTS;
+      const d = Math.min(phase, MEMORY_SLOTS - phase);
+      const hit = Math.max(0, 1 - d);
+      m.opacity = opacity;
+      m.visible = opacity > 0.01;
+      m.emissiveIntensity = opacity * (0.12 + hit * 1.5);
+    }
+  });
+
+  return (
+    <>
+      {modules.map((m) => (
+        <mesh key={m.index} position={m.shape.pos} scale={m.shape.size}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial
+            ref={(mat) => {
+              if (mat) matsRef.current[m.index] = mat;
+            }}
+            color={COLOR_BY_GROUP.memory}
+            metalness={0.5}
+            roughness={0.44}
+            emissive={CYAN}
+            emissiveIntensity={0}
+            transparent
+            opacity={0}
+          />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+/**
  * The solid machine body. Deliberately holds no transform of its own: the
  * shared MachineTransform in Scene.tsx moves the chassis and the particle
  * field together, so the particles dissolving off a surface stay locked to
@@ -276,10 +382,11 @@ function RackModules() {
 export function Chassis() {
   return (
     <group>
-      {/* Turbines are rendered separately — see Turbines.tsx */}
-      {(['core', 'chassis', 'conduit', 'rack'] as Group[]).map((g) => (
+      {/* Fans are rendered separately — see Turbines.tsx */}
+      {(['board', 'core', 'memory', 'bus', 'gpu', 'storage', 'monitor'] as Group[]).map((g) => (
         <Subsystem key={g} group={g} />
       ))}
+      <MemoryBank />
       <RackModules />
     </group>
   );
