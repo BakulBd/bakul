@@ -78,19 +78,27 @@ html.lenis, html.lenis body { height: auto; }
 }
 :focus:not(:focus-visible) { outline: none; }
 
-/* ---------- Typography scale ---------- */
-.t-mono {
-  font-family: var(--font-mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
+/* ---------- Typography scale ----------
+   Declared inside `components` so Tailwind's `utilities` layer — which the
+   cascade places after it — can still override individual properties.
+   Without the layer these classes sit after the utilities import at equal
+   specificity and win every tie, which silently killed every
+   `normal-case` / `tracking-normal` override in the codebase and rendered
+   long prose as spaced uppercase monospace. */
+@layer components {
+  .t-mono {
+    font-family: var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 
-.t-label {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-ash);
+  .t-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-ash);
+  }
 }
 
 /*
@@ -116,6 +124,38 @@ html.lenis, html.lenis body { height: auto; }
   line-height: 1.65;
   color: #c3c8d2;
   text-wrap: pretty;
+}
+
+/* ---------- Readability scrim ----------
+   Sits between the canvas and the content so text contrast is never left to
+   chance.
+
+   The wide-screen treatment is a *horizontal* gradient: dark under the
+   left-hand reading column, clearing to nothing on the right so the machine
+   is never boxed in. That shape is meaningless on a phone, where the content
+   is full-width — the right half of every paragraph landed on the clear end
+   of the gradient and sat directly on the lit board. Narrow viewports get a
+   near-flat scrim instead, because there is no "beside the text" to protect
+   there; the machine reads through it as depth rather than as a subject. */
+.readability-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(9, 10, 15, 0.93) 0%,
+    rgba(9, 10, 15, 0.9) 55%,
+    rgba(9, 10, 15, 0.93) 100%
+  );
+}
+
+@media (min-width: 1024px) {
+  .readability-scrim {
+    background: linear-gradient(
+      100deg,
+      rgba(9, 10, 15, 0.95) 0%,
+      rgba(9, 10, 15, 0.92) 42%,
+      rgba(9, 10, 15, 0.6) 58%,
+      rgba(9, 10, 15, 0) 78%
+    );
+  }
 }
 
 /* ---------- Material: brushed titanium panel ---------- */

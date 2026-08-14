@@ -52,15 +52,30 @@ export function SectionCore() {
                     }}
                   >
                     <span className={`led ${isActive ? 'led-on' : 'led-idle'}`} aria-hidden="true" />
-                    <span className="flex-1">
+                    <span className="min-w-0 flex-1">
                       <span
                         className="t-mono block text-xs"
                         style={{ color: isActive ? 'var(--color-cyan)' : 'var(--color-ceramic)' }}
                       >
                         {sub.label}
                       </span>
-                      <span className="t-label mt-1 block normal-case tracking-normal">
-                        {sub.items.join(' · ')}
+                      {/*
+                        Chips, not a separator-joined run-on.
+                        Five technologies joined with dots rendered as five
+                        lines of spaced uppercase monospace on a phone — a
+                        wall of text that buried the subsystem name above it.
+                        Chips give each item its own edge, wrap cleanly, and
+                        stay readable at the label's small size.
+                      */}
+                      <span className="mt-2 flex flex-wrap gap-1.5">
+                        {sub.items.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-fira)] text-[0.62rem] leading-none normal-case tracking-normal text-[color:var(--color-ash)]"
+                          >
+                            {item}
+                          </span>
+                        ))}
                       </span>
                     </span>
                     <span
@@ -99,9 +114,12 @@ export function SectionCore() {
               ) : (
                 <>
                   <p className="t-label m-0">Idle</p>
+                  {/* Short by design: this panel is a full screen of height on
+                      a phone, and it previously spent all of it explaining
+                      that nothing was hidden — which the chips above already
+                      demonstrate by simply showing everything. */}
                   <p className="t-body mt-3 text-sm">
-                    Select a subsystem to inspect its contents. All four are listed above — nothing
-                    here is hidden behind the interaction.
+                    Select a subsystem to read what it covers.
                   </p>
                 </>
               )}

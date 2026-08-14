@@ -64,15 +64,12 @@ export function Experience() {
         Readability scrim. The machine is bright and moves, so text contrast
         cannot be left to chance — this sits between the canvas and the content
         and guarantees the reading column stays legible whatever is rendered
-        behind it. It fades out to the right so the machine is never boxed in.
+        behind it. Its shape is viewport-dependent — see .readability-scrim in
+        globals.css for why a phone needs a different one from a desktop.
       */}
       <div
         aria-hidden="true"
-        className="no-print pointer-events-none fixed inset-0 z-[5]"
-        style={{
-          background:
-            'linear-gradient(100deg, rgba(9,10,15,0.95) 0%, rgba(9,10,15,0.92) 42%, rgba(9,10,15,0.6) 58%, rgba(9,10,15,0) 78%)',
-        }}
+        className="readability-scrim no-print pointer-events-none fixed inset-0 z-[5]"
       />
 
       <FilmGrain />
