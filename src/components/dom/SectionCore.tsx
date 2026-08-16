@@ -1,7 +1,6 @@
 'use client';
 
 import { useMachine } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 import { profile, subsystems, credentials } from '@/lib/data/profile';
 import { Heading, Lead, Reveal, Section, Readout, Panel } from './Primitives';
 
@@ -14,14 +13,14 @@ import { Heading, Lead, Reveal, Section, Readout, Panel } from './Primitives';
 export function SectionCore() {
   const activeSubsystem = useMachine((s) => s.activeSubsystem);
   const setActiveSubsystem = useMachine((s) => s.setActiveSubsystem);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
 
   const active = subsystems.find((s) => s.id === activeSubsystem) ?? null;
 
+  /* No audio call here: SoundBridge plays the engage cue off the
+     `activeSubsystem` transition, so it sounds identical however the
+     subsystem was selected. */
   const select = (id: string) => {
-    const next = activeSubsystem === id ? null : id;
-    setActiveSubsystem(next);
-    if (next && audioEnabled) audio.play('relay');
+    setActiveSubsystem(activeSubsystem === id ? null : id);
   };
 
   return (

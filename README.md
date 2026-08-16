@@ -78,6 +78,9 @@ src/
   lib/data/        Content. Single source of truth. Real facts only.
   lib/lab/         Working algorithm + compiler implementations.
   lib/audio/       Procedural Web Audio. No files, zero network bytes.
+  lib/site.ts      Resolves the deployment's own origin. No hard-coded URLs.
+  lib/seo.ts       The JSON-LD identity graph.
+  lib/og.tsx       The share card, rendered at build time.
   store/machine.ts State machine + per-frame singleton.
   hooks/           Capability detection, adaptive quality, scroll engine.
   components/
@@ -122,6 +125,95 @@ Real site underneath the canvas. Verified: skip link is the first tab stop, one
 `<main>`, one `<h1>`, nine section `<h2>`s, every input labelled, every button
 and link named, the canvas wrapper is `aria-hidden`, and `prefers-reduced-motion`
 powers the machine on instantly with motion suppressed.
+
+## Domain — moving the site
+
+**Nothing in `src/` hard-codes a URL.** The origin is resolved once in
+`src/lib/site.ts` and everything that needs an absolute URL is built from it:
+the canonical tag, Open Graph, `sitemap.xml`, `robots.txt`, the JSON-LD `@id`s,
+and the domain printed on the share card.
+
+Resolution order, first match wins:
+
+1. `NEXT_PUBLIC_SITE_URL` / `SITE_URL` — an explicit value someone set
+2. `VERCEL_PROJECT_PRODUCTION_URL` — the host's *stable* production domain
+3. `URL` (Netlify) / `CF_PAGES_URL` (Cloudflare Pages)
+4. `VERCEL_URL` / `DEPLOY_PRIME_URL` — this specific preview deployment
+5. `http://localhost:3000`
+
+Point a new domain at the deployment and it is picked up automatically on the
+managed hosts; set `NEXT_PUBLIC_SITE_URL` anywhere else. Either way it is a
+config change, never a code change.
+
+Two things worth knowing:
+
+- **It is read at build time.** The homepage is statically prerendered, so the
+  URLs are baked in by `next build`. Managed hosts expose their environment to
+  the build automatically; a hand-rolled Docker build must pass the value to
+  the *build* stage.
+- **Preview deployments are excluded from search.** A branch deploy serves
+  identical content on a throwaway hostname; indexed, it competes with the real
+  domain for Bakul's own name. Non-production builds emit
+  `noindex` plus a blanket `Disallow: /`.
+
+## Search & sharing
+
+The one query this site has to win is the owner's name, so the work is aimed at
+entity resolution rather than keyword density:
+
+- **One connected JSON-LD `@graph`** (`src/lib/seo.ts`) — a `ProfilePage` whose
+  `mainEntity` is a `Person` who `authored` the `SoftwareSourceCode` listed on
+  the same page. Nodes reference each other by `@id`, so a crawler resolves one
+  identity instead of several fragments. Every claim is CV-backed.
+- **`sameAs` + `rel="me"`** to GitHub and LinkedIn, in both directions — the
+  strongest available signal that these profiles are the same person.
+- **A search-first `<title>`** (`Bakul Ahmed — Computer Science Engineer`). The
+  brand line, *The Living Machine*, moves to the Open Graph card, where
+  personality helps and keywords don't.
+- **`max-image-preview: large`**, without which the generated card is built and
+  then shown as a thumbnail.
+- **The CV PDF is in the sitemap** — it is a separately indexable document whose
+  text corroborates the name, the degree, and the roles.
+
+The share card (`src/lib/og.tsx`) is generated at build time, not per request:
+on the edge runtime it was re-rendered on every unfurl *including a live Google
+Fonts fetch*, and crawlers time out. One renderer feeds both `opengraph-image`
+and Twitter, so the two can never diverge.
+
+## Sound
+
+Muted by default, remembered per visitor, silenced when the tab is hidden.
+Every sound is synthesised — zero network bytes.
+
+The engine (`src/lib/audio/engine.ts`) is built as one instrument rather than a
+bag of beeps:
+
+- **Everything is in one key.** All pitched voices draw from a single A minor
+  pentatonic table, so any two sounds that overlap are consonant. Arbitrary
+  frequencies are most of why synthesised interface audio sounds cheap.
+- **Everything shares one room.** A convolution reverb built from a procedurally
+  generated impulse response — with real early reflections, not just a decaying
+  noise tail — glues the voices together.
+- **Nothing can clip.** Per-role buses (ambient / interface / event) sum into a
+  brick-wall limiter. Measured peak under a deliberate voice pile-up is 0.22 of
+  full scale.
+- **The bed reports state.** Scroll velocity opens the pad's filter; section
+  changes re-voice its fifth, so the score develops across a visit.
+
+`SoundBridge` derives every cue from a *state transition*, not from whichever
+component caused it — so powering up by clicking the button and powering up by
+scrolling sound the same, and new controls get interface feedback from the
+delegated listeners without a single call site. Opt a control out with
+`data-sound="off"`.
+
+## The substrate
+
+The perspective grid behind the content (`components/dom/Backdrop.tsx`) is the
+same figure the share card is built on, so the preview in a recruiter's Slack
+and the page they land on are recognisably the same object. Two elements, no
+JavaScript: the grid is a repeating gradient painted once, and the motion is a
+composited `translate3d` looping by exactly one cell. It sits *above* the
+readability scrim — below it, a 0.9-opacity dark wash erases it entirely.
 
 ## Contact form
 

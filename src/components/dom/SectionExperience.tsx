@@ -44,7 +44,10 @@ export function SectionExperience() {
      * relay click are simultaneous rather than merely close.
      */
     frame.pulse = 1;
-    if (audioEnabled) audio.play('relay');
+    // Fired here rather than from SoundBridge because the selected milestone is
+    // local component state, not store state — there is no transition for the
+    // bridge to observe.
+    if (audioEnabled) audio.play('lock');
   };
 
   /* Advance the line as the section scrolls. Coalesced to one read per

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Command, Volume2, VolumeX, Gauge } from 'lucide-react';
 import { useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
@@ -14,7 +14,12 @@ import { audio } from '@/lib/audio/engine';
  *
  * Audio is muted by default and only ever starts from an explicit click, which
  * respects both the visitor's attention and browser autoplay policy (§20).
+ * The engine's lifecycle lives in SoundBridge — this component is the control
+ * surface for it, nothing more.
  */
+
+const VOLUME_KEY = 'bakul:volume';
+
 export function SystemControls() {
   const audioEnabled = useMachine((s) => s.audioEnabled);
   const toggleAudio = useMachine((s) => s.toggleAudio);
@@ -22,12 +27,35 @@ export function SystemControls() {
   const quality = useMachine((s) => s.quality);
   const reducedMotion = useMachine((s) => s.reducedMotion);
 
-  /* Keep the engine in step with the store, and tear it down on unmount. */
-  useEffect(() => {
-    audio.setEnabled(audioEnabled);
-  }, [audioEnabled]);
+  const [volume, setVolume] = useState(0.7);
+  const [showVolume, setShowVolume] = useState(false);
+  const hideTimer = useRef<number | undefined>(undefined);
 
-  useEffect(() => () => audio.dispose(), []);
+  /* Restore the saved level before anything can be heard at the wrong one. */
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(VOLUME_KEY);
+      if (stored !== null) {
+        const v = Number(stored);
+        if (Number.isFinite(v) && v >= 0 && v <= 1) {
+          setVolume(v);
+          audio.setVolume(v);
+        }
+      }
+    } catch {
+      /* storage unavailable — the default level is fine */
+    }
+  }, []);
+
+  const changeVolume = (v: number) => {
+    setVolume(v);
+    audio.setVolume(v);
+    try {
+      window.localStorage.setItem(VOLUME_KEY, String(v));
+    } catch {
+      /* preference simply won't persist */
+    }
+  };
 
   /*
    * WebKit (every iOS browser, since Apple mandates it under the hood) only
@@ -35,14 +63,27 @@ export function SystemControls() {
    * inside a real user-gesture handler — a React effect reacting to the
    * resulting state change runs one tick later, after the gesture's own call
    * stack has already unwound, which WebKit treats as no gesture at all and
-   * leaves the context silently suspended. The effect above still runs and
-   * keeps the engine correct for every other path (command palette, resets);
+   * leaves the context silently suspended. SoundBridge's effect still runs and
+   * keeps the engine correct for every other path (command palette, restore);
    * this direct call is only what makes the very first enable land on iOS.
    */
   const handleToggleAudio = () => {
-    audio.setEnabled(!audioEnabled);
+    const next = !audioEnabled;
+    audio.setEnabled(next);
     toggleAudio();
+    // Reveal the level control the moment sound is turned on, so "it's too
+    // loud" has an answer already on screen rather than being a reason to
+    // turn it straight back off.
+    if (next) revealVolume(2600);
   };
+
+  const revealVolume = (ms: number) => {
+    window.clearTimeout(hideTimer.current);
+    setShowVolume(true);
+    hideTimer.current = window.setTimeout(() => setShowVolume(false), ms);
+  };
+
+  useEffect(() => () => window.clearTimeout(hideTimer.current), []);
 
   return (
     <div
@@ -53,7 +94,11 @@ export function SystemControls() {
         backdropFilter: 'blur(16px) saturate(1.15)',
         WebkitBackdropFilter: 'blur(16px) saturate(1.15)',
         boxShadow: '0 16px 40px -24px rgba(0,0,0,0.8)',
+        // Clears the notch / status bar on phones that report an inset.
+        top: 'max(0.75rem, env(safe-area-inset-top))',
+        right: 'max(0.75rem, env(safe-area-inset-right))',
       }}
+      onMouseLeave={() => setShowVolume(false)}
     >
       {/* Quality readout — honest about what the visitor is being served. */}
       <span
@@ -78,9 +123,40 @@ export function SystemControls() {
         <Command aria-hidden="true" className="h-4 w-4" />
       </button>
 
+      {/*
+        Level control. Collapsed to nothing until sound is on and the visitor is
+        actually at the dock — a slider permanently occupying the bar would be
+        chrome for a feature that is off by default.
+      */}
+      <div
+        className="grid transition-[grid-template-columns,opacity] duration-300 ease-out"
+        style={{
+          gridTemplateColumns: audioEnabled && showVolume ? '1fr' : '0fr',
+          opacity: audioEnabled && showVolume ? 1 : 0,
+        }}
+      >
+        <div className="overflow-hidden">
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={volume}
+            onChange={(e) => changeVolume(Number(e.target.value))}
+            onFocus={() => revealVolume(9000)}
+            aria-label="Sound level"
+            tabIndex={audioEnabled ? 0 : -1}
+            data-sound="off"
+            className="volume-slider mx-2 w-20 align-middle"
+          />
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={handleToggleAudio}
+        onMouseEnter={() => audioEnabled && revealVolume(4000)}
+        onFocus={() => audioEnabled && revealVolume(9000)}
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--color-ceramic)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--color-cyan)]"
         aria-pressed={audioEnabled}
         aria-label={audioEnabled ? 'Turn sound off' : 'Turn sound on'}

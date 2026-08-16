@@ -9,10 +9,11 @@
  * Do not add metrics, awards, employers, or results that are not verifiable.
  */
 
-/** The one production domain, referenced everywhere metadata needs a URL —
- * layout, sitemap, robots, the generated OG image — so it only ever needs
- * updating in one place. */
-export const SITE_URL = 'https://bakul.app';
+/*
+ * The site's own URL is deliberately NOT here. It is not a fact about Bakul,
+ * it is a fact about where this deployment happens to live — resolved from the
+ * environment in `@/lib/site` so the domain can change without a code change.
+ */
 
 export const profile = {
   name: 'Bakul Ahmed',

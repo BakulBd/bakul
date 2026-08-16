@@ -19,7 +19,7 @@ export function FilmGrain() {
   return (
     <div
       aria-hidden="true"
-      className="no-print pointer-events-none fixed inset-0 z-[6] grain-drift"
+      className="no-print pointer-events-none fixed inset-0 z-[7] grain-drift"
       style={{
         backgroundImage: `url("${GRAIN_SVG}")`,
         backgroundSize: '180px 180px',

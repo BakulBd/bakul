@@ -57,7 +57,7 @@ function Driver() {
       for (const stage of BOOT_STAGES) {
         if (frame.power >= stage.at && !relayFired.current.has(stage.at)) {
           relayFired.current.add(stage.at);
-          if (audioEnabled && !reducedMotion) audio.play('relay');
+          if (audioEnabled && !reducedMotion) audio.play('tick');
         }
       }
 
@@ -70,7 +70,17 @@ function Driver() {
     // Mapped to the scroll span between the project rack and the assembly
     // line — a pure background flourish now, no dedicated section to justify
     // it narratively, but the same visual spectacle the machine always had.
+    const morphBefore = frame.morph;
     frame.morph = THREE.MathUtils.smoothstep(frame.t, MORPH_START, MORPH_END);
+
+    // The transformation is the site's signature moment, so it gets its own
+    // voice — a long filter sweep that runs alongside the machine coming
+    // apart. Fired once, on the way in only: scrolling back up should not
+    // retrigger a two-and-a-half-second sweep, and scrubbing across the
+    // threshold would otherwise stack them.
+    if (audioEnabled && !reducedMotion && morphBefore < 0.02 && frame.morph >= 0.02) {
+      audio.play('morph');
+    }
 
     /* ---- Activation pulse decay ---- */
     if (frame.pulse > 0) {

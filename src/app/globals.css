@@ -399,6 +399,170 @@ html.lenis, html.lenis body { height: auto; }
 }
 .panel-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 140, 0, 0.55); }
 
+/* ==================================================================
+   THE SUBSTRATE — perspective ground plane
+   See components/dom/Backdrop.tsx for what it is and why.
+
+   Layer order, bottom to top: WebGL canvas (0) → readability scrim (5) →
+   substrate (6) → film grain (7) → content (10). The substrate must be above
+   the scrim: a 0.9-opacity dark wash over it would erase it entirely.
+   ================================================================== */
+.substrate {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+  /* Short focal length = strong convergence. A large value here produces an
+     almost-parallel grid, which reads as a flat pattern rather than depth. */
+  perspective: 300px;
+  perspective-origin: 50% 50%;
+  /* Fades in with the machine — see --power, set by the boot sequence. */
+  opacity: calc(var(--power) * 0.85);
+  transition: opacity 0.8s ease-out;
+}
+
+.substrate__plane {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 320vw;
+  margin-left: -160vw;
+  height: 55vh;
+  transform-origin: 50% 100%;
+  /* Laid nearly flat, tilted just enough to see across. */
+  transform: rotateX(76deg);
+  overflow: hidden;
+  /* Dissolve towards the horizon. Applied on the plane, not the moving grid
+     inside it, so the fade stays fixed while the grid travels through it —
+     masking the animated element would drag the fade along with it. */
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 78%);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 78%);
+}
+
+.substrate__grid {
+  position: absolute;
+  /* Twice the plane's height, so there is always material above to travel
+     down into view. */
+  inset: -100% 0 0 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 229, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 229, 255, 0.09) 1px, transparent 1px);
+  background-size: 72px 72px;
+  animation: substrate-flow 6s linear infinite;
+  will-change: transform;
+}
+
+/* Exactly one cell, so the loop point is invisible. */
+@keyframes substrate-flow {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, 72px, 0); }
+}
+
+.substrate__horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 55vh;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 229, 255, 0.28) 34%,
+    rgba(255, 140, 0, 0.22) 66%,
+    transparent 100%
+  );
+}
+
+.substrate__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 62% at 50% 46%,
+    rgba(9, 10, 15, 0) 0%,
+    rgba(9, 10, 15, 0.34) 74%,
+    rgba(9, 10, 15, 0.62) 100%
+  );
+}
+
+/* On a phone the reading column is full-width, so the floor would sit directly
+   under body text rather than beside it. Pulled shallower and dimmer there. */
+@media (max-width: 767px) {
+  .substrate { opacity: calc(var(--power) * 0.5); }
+  .substrate__plane { height: 38vh; }
+  .substrate__horizon { bottom: 38vh; }
+}
+
+/* ---------- Machined corner brackets ----------
+   Four short rules inset from each corner of a panel, drawn as background
+   gradients rather than pseudo-elements — `.panel` has already spent both its
+   ::before and ::after on the scratch grain and the milled top edge, and this
+   costs no extra element in the tree either way. Reads as a registration mark
+   on a technical drawing. */
+.bracketed {
+  background-image:
+    /* top-left */
+    linear-gradient(to right, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    linear-gradient(to bottom, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    /* top-right */
+    linear-gradient(to left, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    linear-gradient(to bottom, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    /* bottom-left */
+    linear-gradient(to right, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    linear-gradient(to top, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    /* bottom-right */
+    linear-gradient(to left, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px),
+    linear-gradient(to top, rgba(0, 229, 255, 0.35) 0 10px, transparent 10px);
+  background-repeat: no-repeat;
+  background-size:
+    10px 1px, 1px 10px,
+    10px 1px, 1px 10px,
+    10px 1px, 1px 10px,
+    10px 1px, 1px 10px;
+  background-position:
+    9px 9px, 9px 9px,
+    calc(100% - 9px) 9px, calc(100% - 9px) 9px,
+    9px calc(100% - 9px), 9px calc(100% - 9px),
+    calc(100% - 9px) calc(100% - 9px), calc(100% - 9px) calc(100% - 9px);
+}
+
+/* ---------- Level control ----------
+   Styled explicitly in both engines: an unstyled range input is the one native
+   control that looks conspicuously like a browser default no matter how dark
+   the surface it sits on. */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-cyan) 0%, rgba(0, 229, 255, 0.22) 100%);
+  cursor: pointer;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--color-ceramic);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+  cursor: pointer;
+}
+.volume-slider::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-ceramic);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+  cursor: pointer;
+}
+.volume-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.22);
+}
+
 /* ---------- Scanline overlay (very restrained) ---------- */
 .scanlines::after {
   content: '';

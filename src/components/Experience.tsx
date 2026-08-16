@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 import { useCapabilities, useAdaptiveQuality } from '@/hooks/useCapabilities';
 import { useScrollEngine } from '@/hooks/useScrollEngine';
 import { sections } from '@/lib/data/sections';
@@ -12,6 +12,8 @@ import { CommandPalette } from './dom/CommandPalette';
 import { DebugConsole } from './dom/DebugConsole';
 import { SystemControls } from './dom/SystemControls';
 import { FilmGrain } from './dom/FilmGrain';
+import { Backdrop } from './dom/Backdrop';
+import { SoundBridge } from './dom/SoundBridge';
 import { BootSequence } from './dom/BootSequence';
 import { SectionCore } from './dom/SectionCore';
 import { SectionProjects } from './dom/SectionProjects';
@@ -49,6 +51,47 @@ export function Experience() {
     }
   }, [webglFailed, powerState, completeActivation]);
 
+  /*
+   * Mirror the machine's power ramp into a CSS custom property, so DOM chrome
+   * can energise on exactly the same curve as the 3D scene rather than on a
+   * timer that approximates it.
+   *
+   * `frame.power` advances in the render loop and is deliberately not React
+   * state (see store/machine.ts), so it has to be sampled. The value is
+   * quantised to 5% steps, which caps the whole boot at twenty style writes —
+   * CSS custom properties on the root element invalidate style for the
+   * subtree, and doing that at 60fps for a value only used to fade things in
+   * would be paying a real cost for precision nobody can see.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (powerState === 'STANDBY') {
+      root.style.setProperty('--power', '0');
+      return;
+    }
+
+    // Without WebGL there is no render loop to advance frame.power, so nothing
+    // would ever fade in. The DOM experience is complete on its own — pin it on.
+    if (webglFailed) {
+      root.style.setProperty('--power', '1');
+      return;
+    }
+
+    let raf = 0;
+    let last = -1;
+    const tick = () => {
+      const v = Math.round(frame.power * 20) / 20;
+      if (v !== last) {
+        last = v;
+        root.style.setProperty('--power', String(v));
+      }
+      if (v < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [powerState, webglFailed]);
+
   const bootSection = sections[0];
 
   return (
@@ -72,7 +115,13 @@ export function Experience() {
         className="readability-scrim no-print pointer-events-none fixed inset-0 z-[5]"
       />
 
+      {/* Perspective ground plane, above the scrim so it survives it. */}
+      <Backdrop />
+
       <FilmGrain />
+
+      {/* No markup — derives every sound cue from state. */}
+      <SoundBridge />
 
       <ProgressRail />
       <MobileNav />
@@ -85,7 +134,11 @@ export function Experience() {
         <section
           id={`section-${bootSection.id}`}
           aria-labelledby="heading-boot"
-          style={{ minHeight: '100vh' }}
+          /* dvh, not vh: on mobile Safari and Chrome `100vh` is the viewport
+             with the URL bar *hidden*, so a 100vh first screen is taller than
+             what is actually visible on load and the call to action sits below
+             the fold until the visitor scrolls. */
+          style={{ minHeight: '100dvh' }}
           className="relative"
         >
           <h2 id="heading-boot" className="sr-only">

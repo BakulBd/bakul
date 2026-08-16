@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Send, Mail, Github, Linkedin, Phone, MapPin, Download } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
@@ -24,6 +24,20 @@ export function SectionContact() {
   const [notice, setNotice] = useState('');
   const audioEnabled = useMachine((s) => s.audioEnabled);
   const formRef = useRef<HTMLFormElement>(null);
+
+  /*
+   * The outcome gets its own cue, not just the send.
+   *
+   * A form that plays a confident sound the moment you press the button and
+   * then says nothing when the request fails has told you the opposite of what
+   * happened. `transmit` fires on despatch; this resolves it — arrival or
+   * failure — so the audio and the notice agree.
+   */
+  useEffect(() => {
+    if (!audioEnabled) return;
+    if (phase === 'sent') audio.play('activate');
+    else if (phase === 'error') audio.play('error');
+  }, [phase, audioEnabled]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

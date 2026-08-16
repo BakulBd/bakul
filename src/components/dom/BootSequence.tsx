@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Power, ArrowRight, Download, Github } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 import { profile } from '@/lib/data/profile';
 import {
   BOOT_STAGES,
@@ -49,7 +48,6 @@ const STAGE_REPORT: Record<Group, { device: string; detail: string }> = {
 export function BootSequence() {
   const powerState = useMachine((s) => s.powerState);
   const beginActivation = useMachine((s) => s.beginActivation);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
   const reducedMotion = useMachine((s) => s.reducedMotion);
 
   const [power, setPower] = useState(0);
@@ -64,9 +62,11 @@ export function BootSequence() {
     return () => window.clearInterval(id);
   }, [powerState]);
 
+  /* SoundBridge plays the power-up off the state transition, so clicking this
+     button and simply scrolling to activate now sound the same — they are the
+     same event as far as a visitor is concerned. */
   const handlePower = () => {
     beginActivation();
-    if (audioEnabled) audio.play('power');
   };
 
   const online = powerState === 'ONLINE';
@@ -140,7 +140,10 @@ export function BootSequence() {
       {/* ---------- POST ---------- */}
       {powerState !== 'STANDBY' && !online && (
         <div
-          className="panel-flat mt-10 w-full max-w-[34rem] p-5 sm:p-6"
+          /* `bracketed` draws registration marks at the four corners — the
+             convention for a measured readout on a technical drawing, and the
+             detail that makes this read as an instrument rather than a card. */
+          className="panel-flat bracketed mt-10 w-full max-w-[34rem] p-5 sm:p-6"
           role="status"
           aria-live="polite"
           aria-label="Power-on self test progress"

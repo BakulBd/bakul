@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { frame, useMachine, qualityProfiles, type Quality } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 
 /**
  * KERNEL PANIC / DEBUG OVERRIDE (§16)
@@ -32,7 +31,6 @@ export function DebugConsole() {
   const setQuality = useMachine((s) => s.setQuality);
   const debugSpeed = useMachine((s) => s.debugSpeed);
   const setDebugSpeed = useMachine((s) => s.setDebugSpeed);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
 
   const [panicking, setPanicking] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
@@ -58,12 +56,9 @@ export function DebugConsole() {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Fires here rather than at each entry point (the command palette's
-    // "sudo override" and the `debug` keyboard sequence) so both paths into
-    // this mode sound the same instead of one being silent. It's a discrete
-    // one-shot cue, not a continuous effect, so it plays regardless of
-    // reduced motion the same way the other one-shot voices do.
-    if (audioEnabled) audio.play('glitch');
+    // The panic cue is played by SoundBridge off the `debug` transition, so
+    // both entry points (the command palette's "sudo override" and the `debug`
+    // keyboard sequence) sound identical without either knowing about audio.
 
     if (reduced) {
       setLines(PANIC_LINES);
@@ -90,7 +85,7 @@ export function DebugConsole() {
       timers.forEach(clearTimeout);
       document.body.classList.remove('panicking');
     };
-  }, [debug, audioEnabled]);
+  }, [debug]);
 
   /* ---- Real telemetry poll ---- */
   useEffect(() => {

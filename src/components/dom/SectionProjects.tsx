@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { useMachine } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { projects, type Project } from '@/lib/data/projects';
 import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
@@ -117,7 +116,6 @@ export function SectionProjects() {
   const setProjectEmerged = useMachine((s) => s.setProjectEmerged);
   const projectEmerged = useMachine((s) => s.projectEmerged);
   const webglFailed = useMachine((s) => s.webglFailed);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
   const railRef = useRef<HTMLDivElement>(null);
   const lastManualSelectAt = useRef(0);
 
@@ -131,8 +129,10 @@ export function SectionProjects() {
     // click or key press — the scroll-position sync below deliberately does
     // not touch this, or moving through the rack would fire the whole
     // cinematic over and over.
+    // No audio call here: SoundBridge plays the bay-lock cue off the
+    // `activeProject` transition and the emergence cue off `projectEmerged`,
+    // so a click, an arrow key and the command palette all sound the same.
     setProjectEmerged(!(wasActive && emerged));
-    if (audioEnabled) audio.play('relay');
   };
 
   /*
