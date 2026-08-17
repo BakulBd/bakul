@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { projects, type Project } from '@/lib/data/projects';
@@ -157,6 +157,9 @@ export function SectionProjects() {
 
   const select = (index: number) => {
     lastManualSelectAt.current = performance.now();
+    // The machine answers a bay being opened, as it does a subsystem being
+    // inspected and a milestone locking in — same wave, same frame.
+    frame.pulse = 1;
     const wasActive = useMachine.getState().activeProject === index;
     const emerged = useMachine.getState().projectEmerged;
     setActiveProject(index);

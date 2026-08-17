@@ -23,6 +23,13 @@ export interface FrameState {
   power: number;
   /** Signature transformation: 0 = mechanical, 1 = neural. */
   morph: number;
+  /**
+   * Narrative tone, [0,1]: 0 = mechanical (amber), 1 = computational (cyan).
+   * The same value the DOM tints its section wash from — see toneAt in
+   * lib/data/sections — so the lighting rig and the page agree on what the
+   * visitor is currently reading about.
+   */
+  tone: number;
   /** Pointer in normalised device coordinates, [-1,1]. */
   pointer: { x: number; y: number };
   /** Activation wave triggered by clicking the neural field. */
@@ -48,6 +55,7 @@ export const frame: FrameState = {
   delta: 0,
   power: 0,
   morph: 0,
+  tone: 0,
   pointer: { x: 0, y: 0 },
   pulse: 0,
   emerge: 0,

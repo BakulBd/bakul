@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIsCompact } from '@/hooks/useViewport';
 import { useRafScroll } from '@/hooks/useRafScroll';
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 
 /**
  * THE MACHINE, UNOBSTRUCTED — a compact-viewport moment.
@@ -122,7 +122,28 @@ export function MachineViewport({
         Nothing occupies the middle of this screen. That emptiness is the
         whole feature — it is the only place in the compact layout where the
         machine is the subject rather than the backdrop.
+
+        It is also the only place a touch can reach it. The canvas itself is
+        `pointer-events: none` (it must be, or it would swallow every scroll
+        on the page), so on a phone the machine is the one thing on the site
+        that cannot be touched — precisely here, on the screen built to make
+        it the subject. This pad sits over that empty middle and sends the
+        same activation wave a subsystem or a bay selection sends, so the
+        field ripples under the finger.
+
+        A plain div with a pointer handler rather than a button: it exposes no
+        action, changes no state a visitor could need, and announcing it to a
+        screen reader would be announcing a decoration. Everything this screen
+        communicates is in the heading and caption around it.
       */}
+      <div
+        aria-hidden="true"
+        onPointerDown={() => {
+          frame.pulse = 1;
+        }}
+        className="absolute inset-x-0 top-1/4 h-1/2"
+      />
+
 
       <p
         className="t-body max-w-[38ch] text-sm"

@@ -140,10 +140,10 @@ const GLYPHS = [
  * routes using it are statically generated; a network failure degrades the
  * card to the system face rather than failing the build.
  */
-async function loadInter(weight: 400 | 600 | 800): Promise<ArrayBuffer | null> {
+async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
   try {
     const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=Inter:wght@${weight}&text=${encodeURIComponent(GLYPHS)}`,
+      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&text=${encodeURIComponent(GLYPHS)}`,
       { headers: { 'User-Agent': 'Mozilla/5.0' } },
     ).then((r) => r.text());
     const match = css.match(/src: url\(([^)]+)\)/);
@@ -159,17 +159,40 @@ async function loadInter(weight: 400 | 600 | 800): Promise<ArrayBuffer | null> {
  * ------------------------------------------------------------------ */
 
 export async function renderShareCard(): Promise<ImageResponse> {
-  const [regular, semibold, bold] = await Promise.all([
-    loadInter(400),
-    loadInter(600),
-    loadInter(800),
+  /*
+   * The card's name is set in the site's display face, not its body face.
+   *
+   * This is the one place the brand has to survive being taken out of its own
+   * context — the card is what appears in a Slack unfurl, a LinkedIn post, an
+   * iMessage preview, and it is very often seen *before* the site itself. With
+   * the name in Inter here and Space Grotesk on the page, the preview and the
+   * landing were showing the same word in two different voices, which is the
+   * one inconsistency a share card cannot afford: recognition is its entire
+   * job. The perspective grid was already drawn to match the site's substrate
+   * for exactly this reason; the type had simply been left behind.
+   *
+   * Loaded in parallel and each independently optional — `loadGoogleFont`
+   * returns null on any network failure, and Satori falls back to the system
+   * face for whichever weight is missing rather than failing the build.
+   */
+  const [regular, semibold, bold, display] = await Promise.all([
+    loadGoogleFont('Inter', 400),
+    loadGoogleFont('Inter', 600),
+    loadGoogleFont('Inter', 800),
+    loadGoogleFont('Space Grotesk', 700),
   ]);
 
   const fonts = [
     ...(regular ? [{ name: 'Inter', data: regular, weight: 400 as const, style: 'normal' as const }] : []),
     ...(semibold ? [{ name: 'Inter', data: semibold, weight: 600 as const, style: 'normal' as const }] : []),
     ...(bold ? [{ name: 'Inter', data: bold, weight: 800 as const, style: 'normal' as const }] : []),
+    ...(display
+      ? [{ name: 'Space Grotesk', data: display, weight: 700 as const, style: 'normal' as const }]
+      : []),
   ];
+
+  /* Only claim the display face if its bytes actually arrived. */
+  const displayFamily = display ? 'Space Grotesk' : 'Inter';
 
   return new ImageResponse(
     (
@@ -252,9 +275,14 @@ export async function renderShareCard(): Promise<ImageResponse> {
                 style={{
                   display: 'flex',
                   fontSize: 104,
-                  fontWeight: 800,
+                  // 700 is Space Grotesk's heaviest cut, matching `.t-display`.
+                  fontFamily: displayFamily,
+                  fontWeight: 700,
                   color: COLOR.ceramic,
-                  letterSpacing: -3.5,
+                  // -2.3px at 104px ≈ the -0.022em the site sets. The old
+                  // -3.5 was tuned for Inter, which is drawn narrower and can
+                  // take more negative tracking before glyphs collide.
+                  letterSpacing: -2.3,
                   lineHeight: 1.02,
                 }}
               >

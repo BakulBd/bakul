@@ -184,11 +184,28 @@ function Lights() {
     // changes the environment rather than one isolated lamp.
     const gain = useMachine.getState().lab.light;
 
+    /*
+     * Narrative tone, shared with the DOM.
+     *
+     * `frame.tone` runs 0 (mechanical) to 1 (computational) and is the same
+     * number the section wash behind the copy is tinted from. Cross-fading
+     * the warm key against the cool rim on it means the machine is lit amber
+     * while the page is talking about hardware and turns cyan as it turns to
+     * outcomes — so the background is reporting the page's state rather than
+     * running its own independent light show.
+     *
+     * Applied as a rebalance, not a switch: the key never goes fully dark, or
+     * the metal would lose its form entirely on the later sections.
+     */
+    const tone = frame.tone;
+    const warm = 1 - tone * 0.62;
+    const cool = 1 + tone * 0.85;
+
     // Key light belongs to the mechanical half; it fades as the machine
     // becomes structured and the particles become self-illuminating.
-    if (keyRef.current) keyRef.current.intensity = p * mechanical * 252 * gain;
-    if (fillRef.current) fillRef.current.intensity = p * mechanical * 58 * gain;
-    if (rimRef.current) rimRef.current.intensity = p * (0.35 + frame.morph * 0.68) * 96 * gain;
+    if (keyRef.current) keyRef.current.intensity = p * mechanical * 252 * gain * warm;
+    if (fillRef.current) fillRef.current.intensity = p * mechanical * 58 * gain * warm;
+    if (rimRef.current) rimRef.current.intensity = p * (0.35 + frame.morph * 0.68) * 96 * gain * cool;
 
     if (coreRef.current) {
       // The core breathes — a slow processing rhythm, faster under load (§6).

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 import { useIsCompact } from '@/hooks/useViewport';
 import { profile, subsystems, credentials } from '@/lib/data/profile';
 import { Heading, Lead, Reveal, Section, Readout, Panel } from './Primitives';
@@ -23,6 +23,18 @@ export function SectionCore() {
      subsystem was selected. */
   const select = (id: string) => {
     setActiveSubsystem(activeSubsystem === id ? null : id);
+    /*
+     * Send the same activation wave the particle shader already understands,
+     * so the machine answers a subsystem being inspected.
+     *
+     * The assembly line already did this on every milestone selection and the
+     * contact form does it on submit; the core did not, which made this the
+     * one control surface on the site where clicking something produced a
+     * change in the DOM and no reaction at all behind it. One value, read by
+     * the shader on its next frame, so the ripple and the click are
+     * simultaneous rather than merely close.
+     */
+    frame.pulse = 1;
   };
 
   return (

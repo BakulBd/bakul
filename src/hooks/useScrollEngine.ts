@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { frame, useMachine } from '@/store/machine';
-import { measureStations, sectionAt, sections } from '@/lib/data/sections';
+import { measureStations, sectionAt, sections, toneAt } from '@/lib/data/sections';
 
 /**
  * Native scroll, smoothed — never hijacked.
@@ -100,6 +100,9 @@ export function useScrollEngine() {
 
       frame.t = t;
       frame.delta = delta;
+      // Narrative tone, from the same measured stations the camera uses, so
+      // the lighting rig shifts colour on exactly the beat the camera moves.
+      frame.tone = toneAt(t);
 
       // Smooth the velocity so a single wheel notch does not spike the machine.
       const instantaneous = Math.min(1, (Math.abs(delta) / dt) * 2.2);

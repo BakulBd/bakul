@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { sectionById, type Phase } from '@/lib/data/sections';
+import { sectionById, toneForPhase, type Phase } from '@/lib/data/sections';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { useMachine } from '@/store/machine';
@@ -15,14 +15,20 @@ import { useMachine } from '@/store/machine';
  * Ambient wash per phase — amber while the copy is about the physical
  * machine, cyan once it turns to results and outcomes. Tied to the site's
  * own narrative rather than picked for decoration.
+ *
+ * Derived from `toneForPhase`, the same function the 3D lighting rig reads,
+ * rather than from a second hand-maintained table. The two used to be
+ * separate lists of the same fact, which is a standing invitation for the
+ * wash behind the copy and the light on the machine to disagree about which
+ * half of the story the visitor is in.
+ *
+ * The boot phases deliberately have no wash: nothing has been powered on yet,
+ * so there is no state for a colour to report.
  */
-const TONE_BY_PHASE: Partial<Record<Phase, 'amber' | 'cyan'>> = {
-  CORE: 'amber',
-  PROJECTS: 'amber',
-  EXPERIENCE: 'cyan',
-  IMPACT: 'cyan',
-  CONTACT: 'cyan',
-};
+function toneClassFor(phase: Phase): 'amber' | 'cyan' | undefined {
+  if (phase === 'BOOT' || phase === 'ACTIVATING') return undefined;
+  return toneForPhase(phase) === 1 ? 'cyan' : 'amber';
+}
 
 /**
  * A full section of the experience. Sections are real landmarks with real
@@ -52,7 +58,7 @@ export function Section({
   // choreography drift apart silently.
   const section = sectionById(id);
   const heightVh = (section?.height ?? 1) * 100;
-  const tone = section ? TONE_BY_PHASE[section.phase] : undefined;
+  const tone = section ? toneClassFor(section.phase) : undefined;
 
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);

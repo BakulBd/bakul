@@ -163,6 +163,48 @@ export function measureStations() {
   deriveTimeline();
 }
 
+/**
+ * NARRATIVE TONE — one source, read by both layers.
+ *
+ * Amber while the copy is about the physical machine, cyan once it turns to
+ * results and outcomes. The DOM has always tinted its ambient section wash
+ * from this; the 3D scene did not, which meant the background could be lit
+ * amber behind a section the foreground had already washed cyan. Two layers
+ * disagreeing about what state the page is in is precisely the seam that
+ * separates "a site with a 3D background" from one machine.
+ *
+ * Expressed as a scalar rather than a colour so it can be interpolated: 0 is
+ * fully mechanical, 1 fully computational, and any value between is a real
+ * position in the hand-off rather than a switch that flips at a boundary.
+ */
+export const toneForPhase = (phase: Phase): number =>
+  phase === 'EXPERIENCE' || phase === 'IMPACT' || phase === 'CONTACT' ? 1 : 0;
+
+/**
+ * Tone at an arbitrary scroll position, smoothly.
+ *
+ * Interpolates between the two sections bracketing `t` using the same measured
+ * stations the camera brackets against, so the colour hand-off happens exactly
+ * where the camera move does instead of a few hundred pixels either side.
+ */
+export function toneAt(t: number): number {
+  const last = sections.length - 1;
+  if (t <= stationT[0]) return toneForPhase(sections[0].phase);
+  if (t >= stationT[last]) return toneForPhase(sections[last].phase);
+
+  for (let i = 0; i < last; i++) {
+    if (t >= stationT[i] && t <= stationT[i + 1]) {
+      const span = stationT[i + 1] - stationT[i];
+      const k = span > 0 ? (t - stationT[i]) / span : 0;
+      const eased = k * k * (3 - 2 * k);
+      const a = toneForPhase(sections[i].phase);
+      const b = toneForPhase(sections[i + 1].phase);
+      return a + (b - a) * eased;
+    }
+  }
+  return 0;
+}
+
 export const sectionById = (id: string) => sections.find((s) => s.id === id);
 
 /** Nearest section for a given normalised scroll position. */
