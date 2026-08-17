@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { frame, useMachine } from '@/store/machine';
-import { sectionAt, sections } from '@/lib/data/sections';
+import { measureStations, sectionAt, sections } from '@/lib/data/sections';
 
 /**
  * Native scroll, smoothed — never hijacked.
@@ -30,6 +30,21 @@ export function useScrollEngine() {
     const sectionEls = sections.map((s) => document.getElementById(`section-${s.id}`));
 
     /*
+     * Camera settle points are measured from real geometry, not assumed from
+     * the section registry's screen-height figures — see measureStations.
+     *
+     * Re-measured whenever the document's own size changes, which covers far
+     * more than a window resize: a phone's URL bar collapsing, an orientation
+     * flip, the boot sequence swapping the standby panel for the reveal, a
+     * subsystem accordion opening, and web fonts landing and rewrapping every
+     * paragraph on the page. Each of those moves every section below it, and
+     * a `resize` listener alone sees none of them.
+     */
+    measureStations();
+    const ro = new ResizeObserver(() => measureStations());
+    ro.observe(document.documentElement);
+
+    /*
      * The nav highlight has to match what is actually on screen, which is a
      * different question from where the camera settles. `sectionAt(t)` picks
      * the section whose pinned *centre* is nearest the scroll fraction — right
@@ -46,7 +61,28 @@ export function useScrollEngine() {
         const r = sectionEls[i]?.getBoundingClientRect();
         if (r && r.top <= 1 && r.bottom > 1) return sections[i].id;
       }
-      return sections[sections.length - 1].id;
+
+      /*
+       * No registered section straddles the top edge.
+       *
+       * That is not only the "scrolled past the end" case it used to be
+       * treated as: the compact layout inserts a MachineViewport between two
+       * sections, and it is not in the registry — while it is on screen, no
+       * registered section crosses the top edge at all. Returning the last
+       * section there lit "Contact" in the navigation for a full screen in
+       * the middle of the page, which is worse than being slightly stale:
+       * it tells the visitor they are somewhere they are not.
+       *
+       * The honest answer is the last section the visitor has actually
+       * entered, so an unregistered block between two sections reads as
+       * still being in the one above it.
+       */
+      let lastStarted = sections[0].id;
+      for (let i = 0; i < sections.length; i++) {
+        const r = sectionEls[i]?.getBoundingClientRect();
+        if (r && r.top <= 1) lastStarted = sections[i].id;
+      }
+      return lastStarted;
     };
 
     const readProgress = () => {
@@ -83,7 +119,10 @@ export function useScrollEngine() {
       const onScroll = () => commit(readProgress());
       window.addEventListener('scroll', onScroll, { passive: true });
       commit(readProgress());
-      return () => window.removeEventListener('scroll', onScroll);
+      return () => {
+        window.removeEventListener('scroll', onScroll);
+        ro.disconnect();
+      };
     }
 
     lenis = new Lenis({
@@ -106,6 +145,7 @@ export function useScrollEngine() {
     return () => {
       cancelAnimationFrame(raf);
       lenis?.destroy();
+      ro.disconnect();
     };
   }, [reducedMotion, setActiveSection, setPhase, beginActivation, powerState]);
 }

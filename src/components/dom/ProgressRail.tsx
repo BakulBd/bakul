@@ -1,5 +1,6 @@
 'use client';
 
+import { Power, Cpu, Boxes, Route, BarChart3, Send, type LucideIcon } from 'lucide-react';
 import { useMachine } from '@/store/machine';
 import { sections } from '@/lib/data/sections';
 import { scrollToSection } from '@/hooks/useScrollEngine';
@@ -64,24 +65,67 @@ export function ProgressRail() {
 }
 
 /**
+ * One glyph per destination. A six-cell bar has roughly 60px of width per
+ * cell, which is not enough for a legible word — the icon is what makes a
+ * destination recognisable at a glance, and the label underneath confirms it.
+ */
+const SECTION_ICON: Record<string, LucideIcon> = {
+  boot: Power,
+  core: Cpu,
+  projects: Boxes,
+  experience: Route,
+  impact: BarChart3,
+  contact: Send,
+};
+
+/**
  * Mobile navigation. The rail does not survive a narrow viewport, so quick
- * access becomes a horizontal scroller pinned to the bottom — thumb-reachable
- * and never covering content (§22).
+ * access becomes a bar pinned to the bottom — thumb-reachable, and showing
+ * every destination at once (§22).
+ *
+ * It used to be a horizontal scroller, which quietly failed its one job: at
+ * 390px the six items measured 542px wide, so Impact and Contact sat off the
+ * right edge with no scrollbar, no fade, and no other affordance suggesting
+ * they existed. A visitor on a phone simply could not see that the site had a
+ * contact section. A fixed six-column grid cannot overflow by construction,
+ * which is the whole reason to prefer it here over anything that scrolls.
+ *
+ * Sized from `--nav-h` so the page's bottom clearance is derived from the same
+ * number rather than a magic constant that drifts out of step with it.
  */
 export function MobileNav() {
   const activeSection = useMachine((s) => s.activeSection);
+  const activeIndex = Math.max(
+    0,
+    sections.findIndex((s) => s.id === activeSection),
+  );
 
   return (
     <nav
       aria-label="Section navigation"
-      className="no-print fixed bottom-0 left-0 z-40 w-full rounded-t-2xl border-t border-[#16181f] bg-[rgba(9,10,15,0.94)] backdrop-blur-md lg:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="mobile-nav no-print lg:hidden"
     >
-      <ol className="m-0 flex list-none gap-1 overflow-x-auto p-2">
+      {/* Position readout: which of the six you are in, as a filled track.
+          Cheap, and it gives the bar a reason to feel like an instrument
+          rather than a generic tab bar. */}
+      <span
+        aria-hidden="true"
+        className="mobile-nav__indicator"
+        style={{
+          width: `${100 / sections.length}%`,
+          transform: `translateX(${activeIndex * 100}%)`,
+        }}
+      />
+
+      <ol
+        className="m-0 grid list-none p-0"
+        style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}
+      >
         {sections.map((s) => {
           const isActive = s.id === activeSection;
+          const Icon = SECTION_ICON[s.id] ?? Boxes;
           return (
-            <li key={s.id} className="shrink-0">
+            <li key={s.id} className="min-w-0">
               <a
                 href={`#section-${s.id}`}
                 onClick={(e) => {
@@ -89,13 +133,21 @@ export function MobileNav() {
                   scrollToSection(s.id);
                 }}
                 aria-current={isActive ? 'true' : undefined}
-                className="t-label block px-3 py-2"
-                style={{
-                  color: isActive ? 'var(--color-amber)' : 'var(--color-ash)',
-                  borderBottom: `2px solid ${isActive ? 'var(--color-amber)' : 'transparent'}`,
-                }}
+                className="mobile-nav__item"
+                style={{ color: isActive ? 'var(--color-amber)' : 'var(--color-ash)' }}
               >
-                {s.label}
+                <Icon
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px] shrink-0"
+                  style={{
+                    filter: isActive ? 'drop-shadow(0 0 8px var(--color-amber))' : 'none',
+                  }}
+                />
+                {/* Not `.t-label`: that class's 0.2em tracking is what pushed
+                    the longest label past its cell. Tracking is tightened
+                    here so "Experience" fits at the narrowest width the bar
+                    is ever laid out at. */}
+                <span className="mobile-nav__label">{s.label}</span>
               </a>
             </li>
           );

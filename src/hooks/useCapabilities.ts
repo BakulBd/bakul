@@ -48,8 +48,30 @@ function detectQuality(): { quality: Quality; webglFailed: boolean } {
 
   const software = /swiftshader|llvmpipe|software|microsoft basic/i.test(renderer);
 
+  /*
+   * An explicit request to spend less. Data Saver is not only about bytes —
+   * every browser that exposes it treats it as "this visitor is on a
+   * constrained device or connection", and honouring it costs one line.
+   */
+  const saveData = Boolean(
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData,
+  );
+
   let quality: Quality = 'high';
-  if (software || cores <= 2 || memory <= 2) quality = 'low';
+  if (software || saveData || cores <= 2 || memory <= 2) quality = 'low';
+  /*
+   * A phone gets its own tier, not `medium` and not `low`.
+   *
+   * `medium` keeps 10,000 additive particles alive, which is fill-rate bound
+   * and more than a small display can show. `low` switches bloom off, which
+   * on a scene made of emissive surfaces costs more than it saves. The
+   * `mobile` profile splits the difference deliberately — see the comment on
+   * it in store/machine.ts.
+   *
+   * A coarse pointer on a wide screen (a touchscreen laptop, a TV) is not a
+   * phone and keeps medium — hence both conditions, not either.
+   */
+  else if (coarse && narrow) quality = 'mobile';
   else if (coarse || narrow || cores <= 4 || memory <= 4) quality = 'medium';
 
   return { quality, webglFailed: false };
@@ -72,6 +94,22 @@ export function useCapabilities() {
     return () => mq.removeEventListener('change', apply);
   }, [setQuality, setWebglFailed, setReducedMotion]);
 }
+
+/**
+ * The next tier down from each.
+ *
+ * Written as a table rather than a conditional so adding a tier cannot
+ * silently skip a step — the previous `quality === 'high' ? 'medium' : 'low'`
+ * would have sent a struggling phone from `mobile` straight past every
+ * intermediate setting to the floor. `low` maps to itself, which is what
+ * makes the guard below terminate.
+ */
+const DOWNGRADE: Record<Quality, Quality> = {
+  high: 'medium',
+  medium: 'mobile',
+  mobile: 'low',
+  low: 'low',
+};
 
 /**
  * Watches real frame timing and steps quality down if the machine cannot hold
@@ -105,7 +143,7 @@ export function useAdaptiveQuality() {
           slowWindows++;
           // Three consecutive slow seconds is a real problem, not a hiccup.
           if (slowWindows >= 3) {
-            setQuality(quality === 'high' ? 'medium' : 'low');
+            setQuality(DOWNGRADE[quality]);
             return;
           }
         } else {

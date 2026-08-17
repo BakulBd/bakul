@@ -75,7 +75,21 @@ export function BootSequence() {
   const pct = Math.round(power * 100);
 
   return (
-    <div className="relative flex min-h-screen flex-col justify-center">
+    /*
+     * `dvh`, matching the section around it.
+     *
+     * `min-h-screen` is `100vh`, which on mobile Safari and Chrome means the
+     * viewport with the URL bar hidden — taller than what is actually on
+     * screen at load. Nested inside a section already capped at `100dvh`,
+     * that pushed the bottom of this block (the Power System button, the
+     * whole reason the first screen exists) below the fold on exactly the
+     * devices where the first screen matters most.
+     *
+     * The bottom padding is clearance for the mobile nav: this block is
+     * vertically centred, and without it the centring is computed against a
+     * box whose last 56px are covered by the bar.
+     */
+    <div className="relative flex min-h-[100dvh] flex-col justify-center pb-[calc(var(--nav-h)+1rem)] lg:pb-0">
       {/* ---------- STANDBY ---------- */}
       <div
         style={{
@@ -110,9 +124,14 @@ export function BootSequence() {
           the first byte; this is the visual treatment of a name a screen
           reader has already been given, not a second copy of it.
         */}
+        {/* 14vw rather than 12vw: on a phone this is the largest thing on the
+            most important screen of the site, and at 12vw it was setting the
+            name at 47px on a 390px viewport — smaller than the display size
+            the same clamp gives a laptop, for a screen with far less
+            competing for attention. */}
         <p
           aria-hidden="true"
-          className="t-display mt-5 text-[clamp(3rem,12vw,8.5rem)] leading-[0.92] text-[color:var(--color-ceramic)]"
+          className="t-display mt-5 text-[clamp(3rem,13vw,8.5rem)] leading-[0.92] text-[color:var(--color-ceramic)]"
         >
           {profile.name.split(' ')[0]}
           <span className="text-[color:var(--color-ash)]"> {profile.name.split(' ')[1]}</span>
@@ -121,6 +140,19 @@ export function BootSequence() {
         <p className="t-mono mt-4 text-[clamp(0.85rem,2.2vw,1.15rem)] emissive-cyan">
           {profile.title}
         </p>
+
+        {/*
+          The disciplines belong on the standby screen, not only in the reveal
+          behind it.
+
+          A phone's first screen was the name, the job title, a status line
+          and a button — four short lines centred in an 844px viewport, with
+          roughly 460px of empty space above them and 500px below. Nothing was
+          wrong with any single element; there was simply not enough on screen
+          to compose. These four words are already written, already true, and
+          are exactly what a visitor wants next after the title.
+        */}
+        <p className="t-label mt-4">{profile.disciplines.join(' • ')}</p>
 
         <p className="t-label mt-5 text-[color:var(--color-ash-dim)]">
           {powerState === 'STANDBY' ? 'Computing engine offline' : 'Bringing subsystems online…'}
@@ -224,7 +256,10 @@ export function BootSequence() {
         }}
         className={online ? '' : 'sr-only'}
       >
-        <h1 className="t-display text-[clamp(3rem,12vw,8.5rem)] leading-[0.92]">
+        {/* Same clamp as the standby treatment above — these two are the same
+            word in the same place, and a different scale on each makes the
+            name visibly jump size at the moment the boot completes. */}
+        <h1 className="t-display text-[clamp(3rem,13vw,8.5rem)] leading-[0.92]">
           {profile.name.split(' ')[0]}
           <span className="text-[color:var(--color-ash)]"> {profile.name.split(' ')[1]}</span>
         </h1>
@@ -257,6 +292,30 @@ export function BootSequence() {
           </a>
         </div>
       </div>
+
+      {/*
+        Scroll affordance, standby only.
+
+        "or scroll to activate" is already written next to the button, but on
+        a touch screen the instruction and the gesture are in different
+        places — the words are mid-screen and the gesture happens anywhere.
+        A moving mark at the foot of the first screen is the conventional
+        signal that there is more below, and it doubles as the answer to
+        "what does scrolling do here". It disappears the moment the machine
+        starts powering on, because by then it has been answered.
+      */}
+      {powerState === 'STANDBY' && (
+        <div
+          aria-hidden="true"
+          /* Clear of the bottom bar. The container's own bottom edge is the
+             full 100dvh, whose last stretch the fixed nav sits on top of —
+             anchoring to bottom-0 would put the cue underneath it. */
+          className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--nav-h)+0.5rem)] flex flex-col items-center gap-2 lg:hidden"
+        >
+          <span className="t-label text-[0.55rem] text-[color:var(--color-ash-dim)]">Scroll</span>
+          <span className="scroll-cue" />
+        </div>
+      )}
     </div>
   );
 }

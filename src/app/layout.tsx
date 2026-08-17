@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono, Inter, Fira_Code } from 'next/font/google';
+import { JetBrains_Mono, Inter, Fira_Code, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { profile } from '@/lib/data/profile';
 import { SITE_URL, IS_PRODUCTION_DEPLOY, GOOGLE_SITE_VERIFICATION } from '@/lib/site';
@@ -23,6 +23,33 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+});
+
+/*
+ * Display face — headings and the hero only.
+ *
+ * Inter is an outstanding interface and reading face and stays exactly where
+ * it is for body copy. What it is not is distinctive: Inter + JetBrains Mono
+ * is the default developer-portfolio stack, and setting the largest words on
+ * the page in it means the one element a visitor sees first says nothing
+ * about this site that it does not also say about a thousand others.
+ *
+ * Space Grotesk earns the slot on its own terms rather than for novelty. It
+ * is a grotesque drawn from proportional-drawing roots, so its skeleton is
+ * the same engineering-drawing lineage the whole site is built on, and its
+ * quirks — the flat-sided 'a', the angular 'k', the squared terminals — read
+ * as machined rather than humanist. At hero size those details are what make
+ * the name look set rather than typed.
+ *
+ * Only weight 700: `.t-display` is the sole consumer and asks for one weight,
+ * so shipping the variable range would be downloading instances that are
+ * never painted.
+ */
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['700'],
 });
 
 const fira = Fira_Code({
@@ -182,7 +209,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${jetbrains.variable} ${inter.variable} ${fira.variable}`}>
+    <html
+      lang="en"
+      className={`${jetbrains.variable} ${inter.variable} ${fira.variable} ${spaceGrotesk.variable}`}
+    >
       <head>
         {/*
           rel="me" is the IndieWeb/Google identity signal: it states that the

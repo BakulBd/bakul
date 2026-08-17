@@ -1,6 +1,7 @@
 'use client';
 
 import { useMachine } from '@/store/machine';
+import { useIsCompact } from '@/hooks/useViewport';
 import { profile, subsystems, credentials } from '@/lib/data/profile';
 import { Heading, Lead, Reveal, Section, Readout, Panel } from './Primitives';
 
@@ -13,6 +14,7 @@ import { Heading, Lead, Reveal, Section, Readout, Panel } from './Primitives';
 export function SectionCore() {
   const activeSubsystem = useMachine((s) => s.activeSubsystem);
   const setActiveSubsystem = useMachine((s) => s.setActiveSubsystem);
+  const compact = useIsCompact();
 
   const active = subsystems.find((s) => s.id === activeSubsystem) ?? null;
 
@@ -44,13 +46,21 @@ export function SectionCore() {
                     onClick={() => select(sub.id)}
                     aria-expanded={isActive}
                     aria-controls="subsystem-detail"
-                    className="panel panel-interactive group flex w-full items-center gap-4 px-5 py-4 text-left"
+                    /* `items-start`, not `items-center`: once the chips wrap
+                       to two or three rows the row gets tall, and centring
+                       floated the LED and the +/− marker into the middle of
+                       an otherwise empty column, disconnected from the label
+                       they belong to. They anchor to the label's line instead. */
+                    className="panel panel-interactive group flex w-full items-start gap-4 px-5 py-4 text-left"
                     style={{
                       borderColor: isActive ? 'var(--color-cyan)' : undefined,
                       boxShadow: isActive ? '0 0 30px -14px var(--color-cyan)' : undefined,
                     }}
                   >
-                    <span className={`led ${isActive ? 'led-on' : 'led-idle'}`} aria-hidden="true" />
+                    <span
+                      className={`led mt-1.5 ${isActive ? 'led-on' : 'led-idle'}`}
+                      aria-hidden="true"
+                    />
                     <span className="min-w-0 flex-1">
                       <span
                         className="t-mono block text-xs"
@@ -78,12 +88,35 @@ export function SectionCore() {
                       </span>
                     </span>
                     <span
-                      className="t-mono text-xs text-[color:var(--color-ash-dim)] transition-transform group-hover:translate-x-0.5"
+                      className="t-mono mt-0.5 text-xs text-[color:var(--color-ash-dim)] transition-transform group-hover:translate-x-0.5"
                       aria-hidden="true"
                     >
                       {isActive ? '—' : '+'}
                     </span>
                   </button>
+
+                  {/*
+                    COMPACT: the description opens under the control that
+                    asked for it.
+
+                    In two columns, the detail panel sits beside the list and
+                    the connection is obvious. In one column that panel lands
+                    below all four subsystems — so on a phone, tapping a
+                    subsystem appeared to do nothing at all: the text it
+                    revealed was a full screen further down, out of sight,
+                    with an "Idle — select a subsystem" placeholder occupying
+                    the space in between. A disclosure keeps the answer
+                    attached to the question.
+                  */}
+                  {compact && isActive && (
+                    <div
+                      id="subsystem-detail"
+                      className="panel-flat mt-1.5 border-l-2 border-l-[color:var(--color-cyan)] p-5"
+                    >
+                      <p className="t-label emissive-cyan m-0">{sub.category}</p>
+                      <p className="t-body mt-2.5 text-sm">{sub.description}</p>
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -92,40 +125,42 @@ export function SectionCore() {
 
         {/* ---------- Detail readout ---------- */}
         <Reveal delay={160}>
-          <div id="subsystem-detail" aria-live="polite">
-            <Panel className="p-6">
-              {active ? (
-                <>
-                  <p className="t-label emissive-cyan m-0">{active.category}</p>
-                  <h3 className="t-mono mt-2 text-lg">{active.label}</h3>
-                  <p className="t-body mt-3 text-sm">{active.description}</p>
-                  <ul className="mt-5 flex list-none flex-wrap gap-2 p-0">
-                    {active.items.map((item) => (
-                      <li
-                        key={item}
-                        className="panel-flat px-3 py-1.5 font-[family-name:var(--font-fira)] text-xs text-[color:var(--color-ceramic)]"
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <>
-                  <p className="t-label m-0">Idle</p>
-                  {/* Short by design: this panel is a full screen of height on
-                      a phone, and it previously spent all of it explaining
-                      that nothing was hidden — which the chips above already
-                      demonstrate by simply showing everything. */}
-                  <p className="t-body mt-3 text-sm">
-                    Select a subsystem to read what it covers.
-                  </p>
-                </>
-              )}
-            </Panel>
+          <div aria-live="polite">
+            {/* Only in two columns. In one, this is the disclosure rendered
+                inline under the selected subsystem above. */}
+            {!compact && (
+              <Panel className="p-6">
+                <div id="subsystem-detail">
+                  {active ? (
+                    <>
+                      <p className="t-label emissive-cyan m-0">{active.category}</p>
+                      <h3 className="t-mono mt-2 text-lg">{active.label}</h3>
+                      <p className="t-body mt-3 text-sm">{active.description}</p>
+                      <ul className="mt-5 flex list-none flex-wrap gap-2 p-0">
+                        {active.items.map((item) => (
+                          <li
+                            key={item}
+                            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-fira)] text-xs text-[color:var(--color-ceramic)]"
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <p className="t-label m-0">Idle</p>
+                      <p className="t-body mt-3 text-sm">
+                        Select a subsystem to read what it covers.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </Panel>
+            )}
 
             {/* ---------- Education ---------- */}
-            <Panel className="mt-4 p-6">
+            <Panel className={`p-6 ${compact ? '' : 'mt-4'}`}>
               <p className="t-label emissive-amber m-0">Education</p>
               <h3 className="t-mono mt-2 text-base">{profile.education.institution}</h3>
               <dl className="mt-4 m-0">

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { sectionById, type Phase } from '@/lib/data/sections';
 import { useRafScroll } from '@/hooks/useRafScroll';
+import { useIsCompact } from '@/hooks/useViewport';
 import { useMachine } from '@/store/machine';
 
 /**
@@ -58,6 +59,29 @@ export function Section({
   const reducedMotion = useMachine((s) => s.reducedMotion);
 
   /*
+   * PINNING IS A WIDE-VIEWPORT AFFORDANCE, NOT A UNIVERSAL ONE.
+   *
+   * The pinned stage works on a wide screen because the content fits inside
+   * one viewport there: it holds still, the machine reconfigures behind it,
+   * and the scroll length of the section becomes dwell time.
+   *
+   * On a phone the same content is 900–2600px tall against an 844px viewport,
+   * and the whole premise inverts. A sticky box taller than the viewport
+   * sticks at top:0 with its bottom permanently clipped, then releases at the
+   * end of its container — so the section renders as a truncated block
+   * followed by several hundred pixels of nothing (measured: 806px of void
+   * after Projects, 448px after Experience). The pinning is buying dwell time
+   * for content that needs to be scrolled through, and paying for it by
+   * hiding the bottom of that content.
+   *
+   * So: pinned when there is room to pin, a plain document flow when there
+   * isn't. Nothing about the choreography is lost — the camera reads measured
+   * settle points (see measureStations), so it stays synchronised with
+   * whatever layout is actually on screen.
+   */
+  const compact = useIsCompact();
+
+  /*
    * Cross-dissolve between segments.
    *
    * Each section's content is pinned for the length of its own scroll window,
@@ -72,13 +96,18 @@ export function Section({
    * per-frame React state update here would re-render every section's whole
    * subtree on every scroll frame, which is exactly the cost the frame
    * singleton exists to avoid.
+   *
+   * Suppressed entirely when not pinned. The dissolve assumes the section is
+   * held still while it is read; against a section you scroll *through*, the
+   * same curve fades the copy out from under the reader mid-paragraph.
+   * Entrance animation on a compact viewport is `Reveal`'s job instead.
    */
   useRafScroll(() => {
     const el = sectionRef.current;
     const stage = stageRef.current;
     if (!el || !stage) return;
 
-    if (reducedMotion) {
+    if (reducedMotion || compact) {
       stage.style.opacity = '1';
       stage.style.transform = 'none';
       return;
@@ -98,25 +127,35 @@ export function Section({
 
     stage.style.opacity = String(inK * (1 - outK));
     stage.style.transform = `translate3d(0, ${(1 - inK) * 26 - outK * 26}px, 0)`;
-  });
+  }, [compact, reducedMotion]);
 
   return (
     <section
       ref={sectionRef}
       id={`section-${id}`}
       aria-labelledby={`heading-${id}`}
-      style={{ minHeight: `${heightVh}vh` }}
+      // Natural height when unpinned: the scroll length of a compact section
+      // is however tall its content is, not a figure from the registry.
+      style={compact ? undefined : { minHeight: `${heightVh}vh` }}
       className="relative w-full"
     >
       {tone && <div className="section-glow" data-tone={tone} aria-hidden="true" />}
 
-      <div className="sticky top-0 z-[1] flex min-h-screen items-center py-24">
+      <div
+        className={
+          compact
+            ? 'relative z-[1] py-14'
+            : 'sticky top-0 z-[1] flex min-h-[100dvh] items-center py-24'
+        }
+      >
         <div
           ref={stageRef}
           // `will-change` is deliberate and scoped: this element's transform
-          // and opacity genuinely change on most scroll frames.
-          style={{ willChange: 'opacity, transform' }}
-          className={`w-full px-6 md:px-10 lg:pl-[calc(var(--rail-w)+2.5rem)] ${
+          // and opacity genuinely change on most scroll frames — but only
+          // while the dissolve is running. Promoting a layer per section on a
+          // phone, where the dissolve is off, is pure memory for no motion.
+          style={compact ? undefined : { willChange: 'opacity, transform' }}
+          className={`w-full px-5 sm:px-6 md:px-10 lg:pl-[calc(var(--rail-w)+2.5rem)] ${
             narrow ? 'max-w-[680px]' : 'mx-auto max-w-[1240px]'
           }`}
         >
@@ -182,14 +221,73 @@ export function Reveal({
   );
 }
 
-/** Section heading. Consistent scale, always a real <h2>. */
+/**
+ * Section heading. Consistent scale, always a real <h2>.
+ *
+ * The reveal is a mask, not a fade: the text rises into view from behind its
+ * own baseline, the way a title card resolves. Every other reveal on this
+ * page is the same 14px fade, and applying that to the one element the eye
+ * lands on first is where a site stops reading as designed and starts reading
+ * as templated — the headings are the page's punctuation and they should
+ * arrive like it.
+ *
+ * The mechanism is an `overflow: hidden` wrapper with the text translated
+ * fully below it, which composites as one transform on one layer. A per-word
+ * or per-character split would be the fashionable version of this and costs a
+ * DOM node per token plus a layout pass; at this type size the whole line
+ * arriving as one object reads more deliberate anyway.
+ *
+ * The <h2> itself is never the animated element — the transform lives on an
+ * inner span — so the heading's own box, which `aria-labelledby` and the skip
+ * link both resolve against, is always its real size and position.
+ */
 export function Heading({ id, children }: { id: string; children: ReactNode }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setShown(true);
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShown(true);
+        io.disconnect();
+      },
+      { rootMargin: '0px 0px -12% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <h2
+      ref={ref}
       id={`heading-${id}`}
       className="t-display text-[clamp(2.1rem,6vw,4.2rem)] text-[color:var(--color-ceramic)]"
     >
-      {children}
+      {/* `pb`/`-mb` pair: descenders (g, y, j) sit below the baseline, and an
+          overflow-hidden box drawn to the line box alone would clip them off
+          for the whole animation and then pop them back. The padding gives
+          the mask somewhere to put them; the negative margin keeps the
+          heading's outer size unchanged. */}
+      <span className="block overflow-hidden pb-[0.14em] mb-[-0.14em]">
+        <span
+          className="block"
+          style={{
+            transform: shown ? 'translateY(0)' : 'translateY(105%)',
+            transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {children}
+        </span>
+      </span>
     </h2>
   );
 }

@@ -61,7 +61,15 @@ export const frame: FrameState = {
  * QUALITY TIERS
  * ------------------------------------------------------------------ */
 
-export type Quality = 'high' | 'medium' | 'low';
+/**
+ * `mobile` sits between `medium` and `low` and is not simply "a smaller
+ * medium" — it is tuned for a different bottleneck. A phone's constraint is
+ * fill rate and thermal headroom, not geometry, so it trades particle count
+ * away (the cheapest thing to lose on a small display) in order to keep bloom
+ * (the most expensive thing to lose visually, since this scene is almost
+ * entirely emissive surfaces).
+ */
+export type Quality = 'high' | 'medium' | 'mobile' | 'low';
 
 export interface QualityProfile {
   particles: number;
@@ -84,6 +92,30 @@ export interface QualityProfile {
 export const qualityProfiles: Record<Quality, QualityProfile> = {
   high: { particles: 20000, dpr: [1, 1.5], bloom: true, rackDetail: 2, neuralLinks: 700 },
   medium: { particles: 10000, dpr: [1, 1.25], bloom: true, rackDetail: 1, neuralLinks: 360 },
+  /*
+   * Phones. Bloom stays on; the particle budget pays for it.
+   *
+   * This tier previously did not exist and a phone was served `low`, which
+   * switches bloom off entirely. On a scene built almost wholly from emissive
+   * surfaces — the conduits, the core, the lattice the machine dissolves into
+   * — that is the single most expensive thing to lose: without it the machine
+   * reads as flat lit plastic rather than as something powered, which is the
+   * whole subject of the site.
+   *
+   * It is affordable now for a reason that was not true before: the canvas no
+   * longer mounts during page load on a phone (see Experience.tsx), so the 3D
+   * layer is not competing with the main thread for time-to-interactive. Its
+   * cost is now purely runtime frame time, which is exactly what
+   * `useAdaptiveQuality` measures — and if a device cannot hold the rate, it
+   * steps down to `low` and loses bloom after all. Fixed cost was the thing
+   * worth avoiding; a measured, self-correcting one is not.
+   *
+   * DPR is capped at 1.15 rather than 1: a phone reports device pixel ratios
+   * of 3 or more, and fragment cost scales with the square of that cap, so it
+   * is the cheapest lever available and the one the visitor is least able to
+   * see behind a readability scrim.
+   */
+  mobile: { particles: 6500, dpr: [1, 1.15], bloom: true, rackDetail: 1, neuralLinks: 260 },
   low: { particles: 4000, dpr: [0.75, 1], bloom: false, rackDetail: 0, neuralLinks: 160 },
 };
 

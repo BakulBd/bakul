@@ -10,7 +10,7 @@ import {
   buildLinks,
   sampleLattice,
 } from '../lib/blueprint';
-import { PRESENCE_FADE_START, PRESENCE_FADE_END } from '@/lib/data/sections';
+import { timeline } from '@/lib/data/sections';
 import {
   morphVertexShader,
   morphFragmentShader,
@@ -173,7 +173,9 @@ export function MorphField({ profile }: { profile: QualityProfile }) {
      * paragraph.
      */
     const presence =
-      1 - THREE.MathUtils.smoothstep(frame.t, PRESENCE_FADE_START, PRESENCE_FADE_END) * 0.78;
+      1 -
+      THREE.MathUtils.smoothstep(frame.t, timeline.presenceFadeStart, timeline.presenceFadeEnd) *
+        0.78;
 
     u.uTime.value += clamped;
     u.uMorph.value = frame.morph;

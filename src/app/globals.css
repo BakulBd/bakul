@@ -24,11 +24,19 @@
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-code: var(--font-fira), ui-monospace, monospace;
+  /* Headings and the hero only — see the note in layout.tsx. Falls back
+     through the body sans so a failed font load degrades to the old
+     treatment rather than to a system default. */
+  --font-headline: var(--font-display), var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
   color-scheme: dark;
   --rail-w: 3.25rem;
+  /* Height of the mobile bottom bar, excluding the safe-area inset. Declared
+     here so the bar's own size and the page's bottom clearance are one
+     number — they were previously an h-16 spacer guessing at a p-2 bar. */
+  --nav-h: 3.5rem;
   /* Set by the boot sequence so DOM chrome can fade in with the machine. */
   --power: 0;
 }
@@ -42,6 +50,10 @@ html {
   background: var(--color-carbon);
   /* Lenis drives smoothing; native smooth-scroll would fight it. */
   scroll-behavior: auto;
+  /* iOS inflates font sizes in landscape unless told not to, which breaks
+     every carefully-set clamp() on this page the moment a phone is turned. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Set directly, not just on body: decorative elements (.section-glow's
      off-screen gradient bleed) genuinely extend the layout's scrollable
      area, and body's overflow-x doesn't reliably propagate to the viewport
@@ -112,9 +124,17 @@ html.lenis, html.lenis body { height: auto; }
  * loading a fourth font file.
  */
 .t-display {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-family: var(--font-headline);
+  /* 700 — Space Grotesk's heaviest cut. The old 800 was an Inter instance;
+     asking for it here would have the browser synthesise a bolder face than
+     the file contains, which smears the very terminals that make this face
+     worth using. `font-synthesis-weight: none` on body already forbids that,
+     so the declared weight has to be one that actually exists. */
+  font-weight: 700;
+  /* Space Grotesk is set on a wider body than Inter and needs less negative
+     tracking to look tight; -0.035em closed it up into collisions at hero
+     size. */
+  letter-spacing: -0.022em;
   line-height: 0.98;
   text-wrap: balance;
 }
@@ -144,6 +164,12 @@ html.lenis, html.lenis body { height: auto; }
     rgba(9, 10, 15, 0.9) 55%,
     rgba(9, 10, 15, 0.93) 100%
   );
+  /* Lifted to near-nothing while a MachineViewport is centred, so the machine
+     gets one full screen of the compact layout entirely to itself. Defaults
+     to 1 — fully protective — so any path that never sets it, including a
+     wide viewport where no viewport section renders, is unaffected. */
+  opacity: var(--scrim, 1);
+  transition: opacity 0.45s ease-out;
 }
 
 @media (min-width: 1024px) {
@@ -578,6 +604,288 @@ html.lenis, html.lenis body { height: auto; }
   opacity: 0.32;
 }
 
+/* ==================================================================
+   MOBILE BOTTOM NAVIGATION
+   Six fixed cells. See MobileNav in dom/ProgressRail.tsx for why this is a
+   grid and not a scroller.
+   ================================================================== */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: 100%;
+  border-top: 1px solid #1b1e26;
+  border-radius: 14px 14px 0 0;
+  background: rgba(9, 10, 15, 0.96);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 -18px 40px -30px rgba(0, 0, 0, 0.95);
+  /* Keeps the row itself clear of the home indicator without inflating the
+     cells — the inset pads below the touch targets, not inside them. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* The lit cell, travelling along the bar. A transform, so moving it is a
+   composited slide rather than a per-cell repaint. */
+.mobile-nav__indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-amber);
+  box-shadow: 0 0 12px var(--color-amber);
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.mobile-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  /* 56px — comfortably past the 44px minimum touch target, and the source of
+     truth for how much bottom clearance the page reserves. */
+  min-height: var(--nav-h);
+  padding: 0.5rem 0.125rem;
+  text-align: center;
+  transition: color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav__label {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  /* Never let the longest label ("Experience") widen its own cell. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================================================================
+   PROJECT SIGNATURE VISUALS
+   See components/dom/ProjectVisual.tsx for what each diagram depicts and
+   why these are diagrams rather than screenshots.
+
+   Everything below animates transform or opacity only — no layout, no
+   filters, no paint-heavy properties — so a diagram costs the compositor
+   about as much as a spinner while showing considerably more.
+   ================================================================== */
+.pv__stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 128, 145, 0.16);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0, 229, 255, 0.05), transparent 70%),
+    rgba(7, 8, 12, 0.9);
+}
+
+/* A faint engineering grid under the schematic — the drafting paper the
+   diagram is drawn on. Two gradients, no image. */
+.pv__stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(120, 128, 145, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 128, 145, 0.07) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.pv__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pv__caption {
+  margin-top: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-ash);
+  text-wrap: pretty;
+}
+
+/* ---- Shared schematic vocabulary ---- */
+.pv-text {
+  font-family: var(--font-fira), ui-monospace, monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.09em;
+  fill: var(--color-ash);
+}
+.pv-text--bright { fill: var(--color-ceramic); }
+.pv-text--cyan { fill: var(--color-cyan); }
+.pv-text--amber { fill: var(--color-amber); }
+
+.pv-rail { stroke: rgba(120, 128, 145, 0.34); stroke-width: 1; }
+.pv-tie {
+  stroke: rgba(0, 229, 255, 0.34);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.pv-box {
+  fill: rgba(26, 28, 35, 0.92);
+  stroke: rgba(0, 229, 255, 0.36);
+  stroke-width: 1;
+}
+.pv-mesh { stroke: rgba(0, 229, 255, 0.26); stroke-width: 0.8; }
+.pv-tick { stroke: rgba(120, 128, 145, 0.24); stroke-width: 1; }
+.pv-outline {
+  fill: none;
+  stroke: rgba(0, 229, 255, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.pv-solid { fill: var(--color-amber); }
+.pv-ghost {
+  fill: none;
+  stroke: var(--color-cyan);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+}
+.pv-packet { fill: var(--color-cyan); }
+
+/* ---- hdgame.me: prediction runs ahead, authority follows ---- */
+/* Deliberately different easings on one shared duration: the client marker
+   pulls ahead through the middle of the pass and the server's lags, which is
+   the divergence the correction packet then answers. */
+.pv-run-client {
+  animation: pv-traverse 4.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.pv-run-server {
+  animation: pv-traverse 4.4s cubic-bezier(0.55, 0, 0.45, 1) infinite;
+  animation-delay: 0.42s;
+}
+@keyframes pv-traverse {
+  0%   { transform: translateX(20px); opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateX(300px); opacity: 0; }
+}
+
+/* The correction: server state snapping the client back into agreement. */
+.pv-correct {
+  animation: pv-correct 4.4s ease-in-out infinite;
+  animation-delay: 1.1s;
+}
+@keyframes pv-correct {
+  0%, 55%  { transform: translate(150px, 132px); opacity: 0; }
+  62%      { opacity: 1; }
+  85%      { transform: translate(190px, 52px); opacity: 1; }
+  100%     { transform: translate(190px, 52px); opacity: 0; }
+}
+
+/* ---- Epistemic Guard: nothing passes unexplained ---- */
+.pv-jaw { fill: var(--color-amber); opacity: 0.85; }
+.pv-jaw--top { animation: pv-jaw-top 5.2s ease-in-out infinite; }
+.pv-jaw--bottom { animation: pv-jaw-bottom 5.2s ease-in-out infinite; }
+@keyframes pv-jaw-top {
+  0%, 48%   { transform: translateY(0); }
+  60%, 84%  { transform: translateY(-16px); }
+  96%, 100% { transform: translateY(0); }
+}
+@keyframes pv-jaw-bottom {
+  0%, 48%   { transform: translateY(0); }
+  60%, 84%  { transform: translateY(16px); }
+  96%, 100% { transform: translateY(0); }
+}
+
+/* A submission arrives, waits at the closed gate, then passes once the gate
+   parts — the hold in the middle is the entire point of the apparatus. */
+.pv-submit { animation: pv-submit 5.2s ease-in-out infinite; }
+.pv-submit--2 { animation-delay: 2.6s; opacity: 0.45; }
+@keyframes pv-submit {
+  0%       { transform: translateX(24px); opacity: 0; }
+  10%      { opacity: 1; }
+  38%, 58% { transform: translateX(138px); opacity: 1; }
+  86%      { transform: translateX(292px); opacity: 1; }
+  100%     { transform: translateX(292px); opacity: 0; }
+}
+
+/* ---- Green Guardian: detection into an event log ---- */
+.pv-node {
+  fill: var(--color-cyan);
+  animation: pv-node-pulse 2.8s ease-in-out infinite;
+}
+@keyframes pv-node-pulse {
+  0%, 100% { opacity: 0.34; }
+  50%      { opacity: 1; }
+}
+
+.pv-gaze {
+  stroke: var(--color-amber);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.8;
+  /* Rotates about the point between the eyes that the ray is drawn from, so
+     the origin stays pinned to the face while the direction sweeps. Must
+     track the `x1`/`y1` in ProjectVisual's gaze line. */
+  transform-origin: 80px 76px;
+  transform-box: view-box;
+  animation: pv-gaze-sweep 4.6s ease-in-out infinite;
+}
+@keyframes pv-gaze-sweep {
+  0%, 100% { transform: rotate(-34deg); }
+  50%      { transform: rotate(34deg); }
+}
+
+.pv-slot { fill: rgba(26, 28, 35, 0.9); stroke: rgba(120, 128, 145, 0.2); stroke-width: 1; }
+.pv-slot-fill {
+  fill: var(--color-cyan);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: pv-slot-log 4.4s ease-out infinite;
+}
+@keyframes pv-slot-log {
+  0%   { transform: scaleX(0); opacity: 0; }
+  12%  { transform: scaleX(1); opacity: 0.5; }
+  60%  { transform: scaleX(1); opacity: 0.14; }
+  100% { transform: scaleX(1); opacity: 0.14; }
+}
+/* One row resolves amber — a flagged event, which is the output the whole
+   pipeline exists to produce. */
+.pv-slot-fill--flag { fill: var(--color-amber); }
+
+/* ---------- Scroll affordance ----------
+   A charge travelling down a short track — the same visual grammar as the
+   conduits in the scene, rather than a generic bouncing chevron. The track is
+   the element, the charge is its ::after, so this is one node and one
+   composited transform. The global reduced-motion rule freezes it to a still
+   mark automatically. */
+.scroll-cue {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 34px;
+  overflow: hidden;
+  background: linear-gradient(to bottom, rgba(139, 144, 156, 0.28), transparent);
+}
+.scroll-cue::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 12px;
+  background: linear-gradient(to bottom, transparent, var(--color-amber));
+  box-shadow: 0 0 8px var(--color-amber);
+  animation: scroll-cue-fall 1.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+@keyframes scroll-cue-fall {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(340%); opacity: 0; }
+}
+
 /* ---------- Skip link ---------- */
 .skip-link {
   position: fixed;
@@ -631,6 +939,134 @@ html.lenis, html.lenis body { height: auto; }
   100% { background-position: 0 0; }
 }
 .grain-drift { animation: grain-drift 9s steps(6) infinite; }
+
+/* ==================================================================
+   COMPACT VIEWPORT — cost, not appearance
+
+   Everything here is a performance decision, and each one is a thing the
+   compositor was doing every frame for a visual that a phone either cannot
+   resolve or cannot afford. Matched to the same 1024px breakpoint the layout
+   and useViewport's `isCompact` use, so all three agree on what "compact"
+   means.
+   ================================================================== */
+@media (max-width: 1023.98px) {
+  /*
+   * The single biggest win on this page.
+   *
+   * `backdrop-filter: blur(16px)` forces the compositor to snapshot
+   * everything painted beneath the element and run a separable gaussian over
+   * it — per element, per frame, at device resolution. This page stacks a
+   * dozen `.panel`s over a live WebGL canvas *and* an animated grid, so on a
+   * phone that is a dozen full-size blurred backdrop passes competing with
+   * the renderer for the same GPU.
+   *
+   * Removing it costs nothing visually here: the panels sit above the
+   * readability scrim, which is already 0.9-opacity carbon, so there was
+   * almost nothing legible behind them to blur. The gradient is pushed to
+   * near-opaque to make up the small amount of translucency that is lost.
+   */
+  .panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(
+      180deg,
+      rgba(35, 38, 47, 0.97) 0%,
+      rgba(14, 16, 22, 0.985) 100%
+    );
+  }
+
+  .panel-flat {
+    background: rgba(13, 15, 22, 0.96);
+  }
+
+  /* The scratch grain is a repeating gradient painted over every panel. At
+     phone scale its 3px period lands below one CSS pixel of visible texture
+     and reads as flat noise, so it is paying a paint cost for nothing. */
+  .panel::before {
+    display: none;
+  }
+
+  /* Panels are decoration-heavy at desktop scale; at phone scale the corner
+     radius and hairlines do the work and the ambient drop shadow is just
+     more overdraw. */
+  .panel {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Hover lift cannot fire on a touch device — the transition still installs
+     a compositor hook on every panel. */
+  .panel-interactive:hover {
+    transform: none;
+  }
+
+  /*
+   * Skip rendering work for sections that are nowhere near the screen.
+   *
+   * Opening up the compact layout — every project case study in full, every
+   * milestone printed, a dedicated machine screen — took the document from
+   * roughly 11,900px to 16,000px. That is the right trade for content, but it
+   * means style, layout and paint are being computed for a great deal of
+   * markup that is thousands of pixels away.
+   *
+   * `content-visibility: auto` lets the browser skip all of that until a
+   * section approaches the viewport. `contain-intrinsic-size` is what makes
+   * it safe: without a size hint a skipped section collapses, the scrollbar
+   * jumps as each one is realised, and — more seriously here — the measured
+   * settle points are read from section geometry, so collapsing sections
+   * would feed the camera nonsense. The value is a deliberate over-estimate
+   * of a typical compact section; it is only ever used while a section is
+   * skipped, and being wrong by a few hundred pixels off-screen costs
+   * nothing, whereas being wrong by a whole section's height does not.
+   *
+   * Applied to sections only — never to the fixed chrome, the canvas, or
+   * anything position-fixed, all of which must keep rendering regardless of
+   * where the document has been scrolled to.
+   */
+  main > section {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1400px;
+  }
+
+  /* The first screen is never skipped: it is what the visitor is looking at
+     before any scrolling has happened, and letting it be size-estimated on
+     load is a guaranteed layout shift on the one screen that must not have
+     one. */
+  main > section:first-of-type {
+    content-visibility: visible;
+  }
+}
+
+/*
+ * Touch input, at any width.
+ *
+ * Keyed to the input device rather than the viewport: a touchscreen laptop
+ * needs the larger targets and gets none of the compact-width rules above.
+ */
+@media (pointer: coarse) {
+  .btn {
+    /* 44px minimum height at the button's own 0.75rem type. */
+    padding: 0.9rem 1.35rem;
+  }
+
+  /* Grey flash on tap is the browser guessing at feedback; the components
+     here state their own pressed state. */
+  a,
+  button,
+  [role='option'],
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Hover styling latches on after a tap on touch devices — the element keeps
+     the hover state until something else is touched, which reads as a stuck
+     selection. Pressed feedback replaces it. */
+  .btn:hover {
+    transform: none;
+  }
+  .btn:active {
+    transform: scale(0.985);
+  }
+}
 
 /* ==================================================================
    REDUCED MOTION

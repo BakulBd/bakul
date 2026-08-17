@@ -22,27 +22,50 @@ export function SectionImpact() {
       </Reveal>
 
       {/* ---------- Counters ---------- */}
-      {/* Five metrics — grid-cols-5 at the widest breakpoint keeps them in one
-          clean row instead of leaving a lone orphan card on a 4-up grid. */}
-      <div className="mt-11 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {metrics.map((m, i) => (
-          <Reveal key={m.id} delay={i * 70}>
-            <Panel className="h-full p-6">
-              {/* Five columns at the widest breakpoint means less width per
-                  card than the old four-up grid budgeted for — a long suffix
-                  like " semesters" genuinely doesn't fit the old 2.9rem cap
-                  and was being silently clipped by the panel's own
-                  overflow:hidden. break-words is a safety net for any future
-                  suffix length; the smaller cap is the real fix. */}
-              <p className="t-display break-words text-[clamp(1.9rem,4vw,2.6rem)] emissive-amber">
-                <Counter value={m.value} precision={m.precision} suffix={m.suffix} />
-              </p>
-              <h3 className="t-mono mt-3 text-xs">{m.label}</h3>
-              <p className="t-body mt-2 text-xs">{m.detail}</p>
-              <p className="t-label mt-4 border-t border-[#24272f] pt-3">Source — {m.source}</p>
-            </Panel>
-          </Reveal>
-        ))}
+      {/*
+        Five metrics — grid-cols-5 at the widest breakpoint keeps them in one
+        clean row instead of leaving a lone orphan card on a 4-up grid.
+
+        The first metric leads. Five identical cards in a row state that every
+        figure here carries equal weight, and they do not: the CGPA is the one
+        number a recruiter is scanning this section for, and it was rendered at
+        exactly the same size as the count of problems solved on Codeforces.
+        Below the five-up breakpoint it takes the full row and a larger
+        setting; at five-up the row's own geometry does the ordering and it
+        returns to a single cell.
+      */}
+      <div className="mt-11 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+        {metrics.map((m, i) => {
+          const lead = i === 0;
+          return (
+            <Reveal
+              key={m.id}
+              delay={i * 70}
+              className={lead ? 'col-span-2 lg:col-span-1' : ''}
+            >
+              <Panel className="h-full p-5 sm:p-6">
+                {/* Five columns at the widest breakpoint means less width per
+                    card than the old four-up grid budgeted for — a long suffix
+                    like " semesters" genuinely doesn't fit the old 2.9rem cap
+                    and was being silently clipped by the panel's own
+                    overflow:hidden. break-words is a safety net for any future
+                    suffix length; the smaller cap is the real fix. */}
+                <p
+                  className={`t-display break-words emissive-amber ${
+                    lead
+                      ? 'text-[clamp(2.6rem,11vw,2.6rem)]'
+                      : 'text-[clamp(1.65rem,4vw,2.6rem)]'
+                  }`}
+                >
+                  <Counter value={m.value} precision={m.precision} suffix={m.suffix} />
+                </p>
+                <h3 className="t-mono mt-3 text-xs">{m.label}</h3>
+                <p className="t-body mt-2 text-xs">{m.detail}</p>
+                <p className="t-label mt-4 border-t border-[#24272f] pt-3">Source — {m.source}</p>
+              </Panel>
+            </Reveal>
+          );
+        })}
       </div>
 
       {/* ---------- Grouped detail ---------- */}

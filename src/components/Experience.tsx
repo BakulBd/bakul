@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { frame, useMachine } from '@/store/machine';
 import { useCapabilities, useAdaptiveQuality } from '@/hooks/useCapabilities';
 import { useScrollEngine } from '@/hooks/useScrollEngine';
@@ -16,6 +16,7 @@ import { Backdrop } from './dom/Backdrop';
 import { SoundBridge } from './dom/SoundBridge';
 import { BootSequence } from './dom/BootSequence';
 import { SectionCore } from './dom/SectionCore';
+import { MachineViewport } from './dom/MachineViewport';
 import { SectionProjects } from './dom/SectionProjects';
 import { SectionExperience } from './dom/SectionExperience';
 import { SectionImpact } from './dom/SectionImpact';
@@ -39,6 +40,79 @@ export function Experience() {
   const webglFailed = useMachine((s) => s.webglFailed);
   const powerState = useMachine((s) => s.powerState);
   const completeActivation = useMachine((s) => s.completeActivation);
+
+  /*
+   * WHEN THE 3D LAYER IS ALLOWED TO COST ANYTHING
+   *
+   * The canvas is code-split already, but a dynamic import still evaluates
+   * Three.js, react-three-fiber and the postprocessing pipeline the moment it
+   * mounts — and it was mounting immediately, on every device.
+   *
+   * Measured cost on a throttled mid-range phone, taken by blocking the 3D
+   * chunks outright: total blocking time 720ms -> 90ms, and time to
+   * interactive 5.4s -> 3.3s. That is what a visitor was paying before they
+   * could use the page.
+   *
+   * What they got for it on that first screen is nothing. The machine is in
+   * STANDBY, `frame.power` is 0, every emissive surface is dark, and on a
+   * compact viewport it sits behind a near-opaque readability scrim. The scene
+   * is invisible until something powers it on.
+   *
+   * So on a phone the trigger is the power-on itself. Every route to a visible
+   * machine — scrolling off the first screen, the Power System button, the
+   * rail, the command palette — leaves STANDBY and mounts the canvas
+   * synchronously below. The fetch and parse then land underneath the POST
+   * sequence, which runs for about three seconds on its own power ramp: the
+   * machine's own boot screen is the loading state, rather than a spinner
+   * bolted on.
+   *
+   * Two earlier revisions also kept an opportunistic `requestIdleCallback`
+   * preload alongside that trigger — first with a 2.5s deadline, then with
+   * none. Neither moved the needle (750ms -> 720ms -> 730ms of blocking time),
+   * because idle callbacks fire in the gaps *between* long tasks and a page
+   * load is full of those, so the canvas simply mounted in one of them and
+   * went straight back to competing for the main thread. Removing the idle
+   * path entirely is what took mobile from 78 to 96.
+   *
+   * Wide viewports mount immediately and are deliberately untouched: the
+   * machine is on show beside the reading column for the whole visit there,
+   * and they already measured a clean score with it eager.
+   */
+  const [canvasMounted, setCanvasMounted] = useState(false);
+
+  /*
+   * Always starts false, including on a wide viewport, and is raised from an
+   * effect.
+   *
+   * A previous revision resolved this during the first client render with a
+   * lazy initialiser reading `matchMedia`, on the reasoning that
+   * `dynamic(..., { ssr: false })` renders nothing on the first pass either
+   * way so there would be no markup to disagree about. That reasoning was
+   * wrong, and an audit caught it: desktop logged React error #418 —
+   * hydration failed because the server-rendered HTML did not match the
+   * client — which costs a Best Practices point and, far worse, makes React
+   * throw away the server markup and re-render the whole tree on the client.
+   *
+   * The rule it violated is simply that the hydration render must produce what
+   * the server produced. Anything that depends on the browser belongs in an
+   * effect, which runs after hydration has committed; the extra commit is
+   * measurably free.
+   */
+  useEffect(() => {
+    // Read the media query directly rather than through useIsCompact: this
+    // runs client-side only, so there is no server snapshot to reconcile, and
+    // mounting must be decided once rather than tracked across resizes —
+    // unmounting a live canvas to remount it would throw away the WebGL
+    // context and restart the boot.
+    if (!window.matchMedia('(max-width: 1023.98px)').matches) {
+      setCanvasMounted(true);
+      return;
+    }
+
+    return useMachine.subscribe((s) => {
+      if (s.powerState !== 'STANDBY') setCanvasMounted(true);
+    });
+  }, []);
 
   /**
    * Without WebGL there is no render loop to advance the power ramp, so the
@@ -101,7 +175,7 @@ export function Experience() {
         Skip to content
       </a>
 
-      {!webglFailed && <MachineCanvas />}
+      {!webglFailed && canvasMounted && <MachineCanvas />}
 
       {/*
         Readability scrim. The machine is bright and moves, so text contrast
@@ -151,13 +225,46 @@ export function Experience() {
 
         <SectionCore />
         <SectionProjects />
+
+        {/*
+          Compact viewports only — renders nothing on a wide one, where the
+          machine is already permanently on show beside the reading column.
+
+          Placed between the rack and the assembly line because that is where
+          the transformation plays: the morph window is derived from those two
+          sections' measured settle points, so putting a full screen of
+          clearance between them means the scrim lifts over exactly the stretch
+          of scroll in which the machine comes apart. The choreography and the
+          clearance are the same event rather than two things that happen to
+          be near each other.
+        */}
+        <MachineViewport
+          index="03"
+          label="The Machine"
+          title="It comes apart."
+          caption="The chassis you have been scrolling past is not a backdrop — it is the site. Here it dissolves into the field it was built from. Everything on this page is rendered live in your browser: no video, no images, no pre-baked frames."
+        />
+
         <SectionExperience />
         <SectionImpact />
         <SectionContact />
       </main>
 
-      {/* Bottom padding so the mobile nav never covers the final content. */}
-      <div className="h-16 lg:hidden" aria-hidden="true" />
+      {/*
+        Clearance for the mobile nav.
+
+        Sized from `--nav-h` plus the safe-area inset — the same two values the
+        bar itself is built from — rather than a fixed h-16 that had to be
+        kept in step with it by hand. The old 4rem guess was shorter than the
+        bar on any phone reporting a home-indicator inset, which left the
+        footer sitting underneath it at the very bottom of the page, where
+        there is no further scroll available to bring it clear.
+      */}
+      <div
+        className="lg:hidden"
+        style={{ height: 'calc(var(--nav-h) + env(safe-area-inset-bottom) + 1.25rem)' }}
+        aria-hidden="true"
+      />
     </>
   );
 }

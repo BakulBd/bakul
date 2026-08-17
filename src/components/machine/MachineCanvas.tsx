@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, Component, type ReactNode } from 'react';
+import { Suspense, Component, useEffect, useState, type ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { useMachine, useQualityProfile } from '@/store/machine';
@@ -49,9 +49,32 @@ function Effects() {
   );
 }
 
+/**
+ * Stops the render loop while the page is not being looked at.
+ *
+ * Browsers throttle `requestAnimationFrame` in a background tab but do not
+ * reliably stop it, and on a phone "backgrounded" is the common case — the
+ * visitor switches apps with the tab alive. Draining the battery to render a
+ * machine nobody is watching is the kind of cost that never shows up in a
+ * profile because the profiler is, by definition, in the foreground.
+ */
+function useVisible() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const sync = () => setVisible(document.visibilityState === 'visible');
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
+
+  return visible;
+}
+
 export default function MachineCanvas() {
   const profile = useQualityProfile();
   const webglFailed = useMachine((s) => s.webglFailed);
+  const visible = useVisible();
 
   if (webglFailed) return null;
 
@@ -60,6 +83,10 @@ export default function MachineCanvas() {
       <Canvas
         className="no-print"
         dpr={profile.dpr}
+        // 'never' halts the loop outright; the scene resumes from its current
+        // state — which lives in the frame singleton, not in the loop — the
+        // moment the tab is foregrounded again.
+        frameloop={visible ? 'always' : 'never'}
         gl={{
           antialias: false, // bloom + additive particles hide aliasing; MSAA is not worth the fill cost
           alpha: false,

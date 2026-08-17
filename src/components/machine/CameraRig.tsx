@@ -4,7 +4,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { frame, useMachine } from '@/store/machine';
-import { sections } from '@/lib/data/sections';
+import { sections, stationT } from '@/lib/data/sections';
 import { MONITOR_POS, MONITOR_ROT_Y } from './lib/blueprint';
 
 /**
@@ -116,23 +116,35 @@ function applyComposition(pos: THREE.Vector3, target: THREE.Vector3, amount: num
   target.addScaledVector(_right, -amount);
 }
 
-/** Blends between the two stations bracketing the current scroll position. */
+/**
+ * Blends between the two stations bracketing the current scroll position.
+ *
+ * Brackets against `stationT` — the settle points measured from the live DOM —
+ * rather than the layout-derived `t` on each section. The two agree on a wide
+ * viewport; on a compact one, where sections are not pinned and take their
+ * natural height, only the measured values describe where a section actually
+ * is. See measureStations in lib/data/sections.
+ */
 function bracket(t: number) {
-  let lower = sections[0];
-  let upper = sections[sections.length - 1];
+  const last = sections.length - 1;
+  let lo = 0;
+  let hi = last;
 
-  for (let i = 0; i < sections.length - 1; i++) {
-    if (t >= sections[i].t && t <= sections[i + 1].t) {
-      lower = sections[i];
-      upper = sections[i + 1];
+  for (let i = 0; i < last; i++) {
+    if (t >= stationT[i] && t <= stationT[i + 1]) {
+      lo = i;
+      hi = i + 1;
       break;
     }
   }
-  if (t < sections[0].t) { lower = upper = sections[0]; }
-  if (t > sections[sections.length - 1].t) { lower = upper = sections[sections.length - 1]; }
+  if (t < stationT[0]) { lo = hi = 0; }
+  if (t > stationT[last]) { lo = hi = last; }
 
-  const span = upper.t - lower.t;
-  const raw = span > 0 ? (t - lower.t) / span : 0;
+  const lower = sections[lo];
+  const upper = sections[hi];
+
+  const span = stationT[hi] - stationT[lo];
+  const raw = span > 0 ? (t - stationT[lo]) / span : 0;
   // Smoothstep the blend so stations feel like they settle rather than glide
   // linearly past — this is what makes modules read as "locking into position".
   const k = THREE.MathUtils.clamp(raw, 0, 1);

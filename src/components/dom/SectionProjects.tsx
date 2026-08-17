@@ -3,7 +3,9 @@
 import { useEffect, useRef } from 'react';
 import { useMachine } from '@/store/machine';
 import { useRafScroll } from '@/hooks/useRafScroll';
+import { useIsCompact } from '@/hooks/useViewport';
 import { projects, type Project } from '@/lib/data/projects';
+import { ProjectVisual } from './ProjectVisual';
 import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
 
 /**
@@ -27,10 +29,25 @@ import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
  * scrolling; only the case-study text in the middle, whose length genuinely
  * varies project to project, scrolls internally when it has to.
  */
-function ModuleDetail({ project }: { project: Project }) {
+function ModuleDetail({ project, bounded = true }: { project: Project; bounded?: boolean }) {
+  /*
+   * `bounded` is the pinned-layout constraint, and it only makes sense while
+   * the layout is actually pinned.
+   *
+   * On a phone `calc(100vh - 31rem)` resolves to about 350px, and the case
+   * study — five readouts of real prose, the best writing on this site — was
+   * being folded into a ~120px masked scroll box below the title and chips.
+   * In practice that rendered as a blank gap: the content was technically
+   * scrollable and effectively invisible. Unbounded, the panel is simply as
+   * tall as its content and the page scrolls, which is what a phone does
+   * anyway.
+   */
+  const cap = bounded ? 'max-h-[calc(100dvh-31rem)]' : '';
+  const scroll = bounded ? 'panel-scroll' : '';
+
   if (project.status === 'empty') {
     return (
-      <div className="panel flex max-h-[calc(100vh-31rem)] flex-col p-7">
+      <div className={`panel flex flex-col p-6 sm:p-7 ${cap}`}>
         <Status state="idle">Bay {project.slot} — Empty</Status>
         <h3 className="t-mono mt-4 text-xl text-[color:var(--color-ash-dim)]">SLOT AVAILABLE</h3>
         <p className="t-body mt-4 max-w-[52ch] text-sm">
@@ -48,8 +65,8 @@ function ModuleDetail({ project }: { project: Project }) {
   }
 
   return (
-    <article className="panel flex max-h-[calc(100vh-31rem)] flex-col p-7">
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-4">
+    <article className={`panel flex flex-col p-6 sm:p-7 ${cap}`}>
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Status state="online">Bay {project.slot} — Online</Status>
         <span className="t-label">{project.period}</span>
       </div>
@@ -68,10 +85,26 @@ function ModuleDetail({ project }: { project: Project }) {
         ))}
       </ul>
 
+      {/*
+        The bay's signature visual.
+
+        Rendered only where the panel is unbounded — which in practice means
+        the compact layout, the one that previously had no visual evidence of
+        any project at all. In the pinned wide layout the panel is capped at
+        one viewport and the case study is already competing for that space;
+        adding a diagram there would push the prose further into its scroll
+        box rather than adding anything.
+      */}
+      {!bounded && (
+        <div className="shrink-0 mt-6">
+          <ProjectVisual slot={project.slot} />
+        </div>
+      )}
+
       {/* One word per label — "Technical challenge" was the only two-word
           label here and it wrapped, dragging its own row out of alignment
           with the four above it. */}
-      <dl className="panel-scroll mt-7 min-h-0 flex-1 m-0 pr-2">
+      <dl className={`mt-7 min-h-0 flex-1 m-0 ${scroll} ${bounded ? 'pr-2' : ''}`}>
         <Readout k="Problem" v={project.problem} />
         <Readout k="Solution" v={project.solution} />
         <Readout k="Architecture" v={project.architecture} />
@@ -80,6 +113,7 @@ function ModuleDetail({ project }: { project: Project }) {
       </dl>
 
       <div className="shrink-0 mt-7 flex flex-wrap gap-3">
+
         {project.github && (
           <a href={project.github} className="btn" target="_blank" rel="noopener noreferrer">
             Source ↗
@@ -117,7 +151,9 @@ export function SectionProjects() {
   const projectEmerged = useMachine((s) => s.projectEmerged);
   const webglFailed = useMachine((s) => s.webglFailed);
   const railRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const lastManualSelectAt = useRef(0);
+  const compact = useIsCompact();
 
   const select = (index: number) => {
     lastManualSelectAt.current = performance.now();
@@ -185,9 +221,50 @@ export function SectionProjects() {
     btn?.focus();
   };
 
+  /*
+   * Compact layout: the bay whose card is centred in the viewport is the
+   * active one.
+   *
+   * The rack/detail split does not exist here — every bay is rendered in full
+   * (see below) — but the 3D machine still lights one bay at a time, and it
+   * should be the one being read. An IntersectionObserver keyed to a band
+   * across the middle of the screen answers that directly, and unlike the
+   * scroll-fraction maths below it does not care how tall any card turned out
+   * to be.
+   */
+  useEffect(() => {
+    if (!compact) return;
+    const root = listRef.current;
+    if (!root) return;
+
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-bay]'));
+    if (cards.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const i = Number((entry.target as HTMLElement).dataset.bay);
+          if (Number.isInteger(i)) useMachine.getState().setActiveProject(i);
+        }
+      },
+      // A narrow band across the middle: a card is "the one being read" only
+      // while it crosses the centre of the screen, so two adjacent cards can
+      // never both claim it.
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+
+    cards.forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, [compact]);
+
   /* Advance the rack as the section scrolls — modules lock into position.
      Coalesced to one read per animation frame; see useRafScroll. */
   useRafScroll(() => {
+    // The rack only exists on a wide viewport; on a compact one the observer
+    // above owns the selection and this would fight it every frame.
+    if (compact) return;
+
     const el = document.getElementById('section-projects');
     if (!el) return;
 
@@ -220,7 +297,7 @@ export function SectionProjects() {
     if (index !== useMachine.getState().activeProject) {
       useMachine.getState().setActiveProject(index);
     }
-  });
+  }, [compact]);
 
   const current = projects[activeProject] ?? projects[0];
 
@@ -233,11 +310,35 @@ export function SectionProjects() {
             three lines of vertical space on a phone and pushed the rack
             itself, the actual content, below the fold. */}
         <Lead>
-          Shipped and in-progress work, installed as rack modules. Scroll to advance the rack, or
-          select a bay to open it.
+          {compact
+            ? 'Shipped and in-progress work. Every bay below is open — the problem it solves, how it is built, and what came of it.'
+            : 'Shipped and in-progress work, installed as rack modules. Scroll to advance the rack, or select a bay to open it.'}
         </Lead>
       </Reveal>
 
+      {/*
+        COMPACT: every bay, open.
+
+        The rack-and-detail pairing is a two-column idea — a list you steer
+        with on the left, the case study it controls on the right. Collapsed
+        into one column it becomes a list of three titles followed by the
+        contents of exactly one of them, where selecting a different bay
+        scrolls the thing you were reading off the screen. Rendering all three
+        in full removes the indirection entirely: the case studies are the
+        content, and on a phone there is no reason to make someone operate a
+        control surface to reach them.
+      */}
+      {compact ? (
+        <div ref={listRef} className="mt-9 space-y-5">
+          {projects.map((p, i) => (
+            <Reveal key={p.slot} delay={Math.min(i, 2) * 70}>
+              <div data-bay={i}>
+                <ModuleDetail project={p} bounded={false} />
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      ) : (
       <div className="mt-11 grid gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
         {/* ---------- Rack ---------- */}
         <Reveal delay={80}>
@@ -247,7 +348,7 @@ export function SectionProjects() {
             aria-label="Project rack"
             aria-orientation="vertical"
             onKeyDown={onKeyDown}
-            className="panel-scroll max-h-[calc(100vh-31rem)] space-y-2 pr-1"
+            className="panel-scroll max-h-[calc(100dvh-31rem)] space-y-2 pr-1"
           >
             {projects.map((p, i) => {
               const isActive = i === activeProject;
@@ -350,6 +451,7 @@ export function SectionProjects() {
           </div>
         </Reveal>
       </div>
+      )}
     </Section>
   );
 }

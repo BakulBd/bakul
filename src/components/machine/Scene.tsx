@@ -14,7 +14,7 @@ import { CircuitPanel } from './parts/CircuitPanel';
 import { MorphField } from './parts/MorphField';
 import { Monitor } from './parts/Monitor';
 import { BOOT_STAGES } from './lib/blueprint';
-import { MORPH_START, MORPH_END } from '@/lib/data/sections';
+import { timeline } from '@/lib/data/sections';
 
 /**
  * SYSTEM DRIVER
@@ -71,7 +71,7 @@ function Driver() {
     // line — a pure background flourish now, no dedicated section to justify
     // it narratively, but the same visual spectacle the machine always had.
     const morphBefore = frame.morph;
-    frame.morph = THREE.MathUtils.smoothstep(frame.t, MORPH_START, MORPH_END);
+    frame.morph = THREE.MathUtils.smoothstep(frame.t, timeline.morphStart, timeline.morphEnd);
 
     // The transformation is the site's signature moment, so it gets its own
     // voice — a long filter sweep that runs alongside the machine coming

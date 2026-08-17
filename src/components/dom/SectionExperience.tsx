@@ -5,6 +5,7 @@ import { GraduationCap, Code2, Cpu, Wrench, Rocket, Sparkles, type LucideIcon } 
 import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
 import { useRafScroll } from '@/hooks/useRafScroll';
+import { useIsCompact } from '@/hooks/useViewport';
 import { milestones, stageOrder, type Stage } from '@/lib/data/experience';
 import { Heading, Lead, Reveal, Section, Panel, Status } from './Primitives';
 
@@ -30,6 +31,7 @@ export function SectionExperience() {
   const [headTop, setHeadTop] = useState<number | null>(null);
   const audioEnabled = useMachine((s) => s.audioEnabled);
   const trackRef = useRef<HTMLDivElement>(null);
+  const compact = useIsCompact();
 
   const select = (i: number) => {
     setActive(i);
@@ -53,6 +55,11 @@ export function SectionExperience() {
   /* Advance the line as the section scrolls. Coalesced to one read per
      animation frame; see useRafScroll. */
   useRafScroll(() => {
+    // The reader-head line only exists on a wide viewport — the compact
+    // layout prints every milestone in full instead, so there is no single
+    // "active" one for the scroll position to choose.
+    if (compact) return;
+
     const el = document.getElementById('section-experience');
     if (!el) return;
 
@@ -61,12 +68,44 @@ export function SectionExperience() {
     if (total <= 0) return;
     const p = Math.min(1, Math.max(0, -rect.top / total));
     setActive(Math.min(milestones.length - 1, Math.floor(p * milestones.length * 0.999)));
-  });
+  }, [compact]);
+
+  /*
+   * Compact layout: the milestone crossing the middle of the screen is the
+   * active one, which is what keeps the stage strip above (and the machine
+   * behind) reporting where in the progression the reader currently is.
+   * Same band-across-the-centre approach as the project bays.
+   */
+  useEffect(() => {
+    if (!compact) return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-milestone]'));
+    if (cards.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const i = Number((entry.target as HTMLElement).dataset.milestone);
+          if (Number.isInteger(i)) setActive(i);
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+
+    cards.forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, [compact]);
 
   /* Keep the reader head aligned to the active row's measured centre. */
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
+    // No reader head in the compact layout; the query below would match the
+    // milestone cards and misplace a dot that isn't rendered.
+    if (compact) return;
 
     const align = () => {
       const rows = track.querySelectorAll<HTMLButtonElement>('[role="option"]');
@@ -81,7 +120,7 @@ export function SectionExperience() {
     const ro = new ResizeObserver(align);
     ro.observe(track);
     return () => ro.disconnect();
-  }, [active]);
+  }, [active, compact]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -100,8 +139,9 @@ export function SectionExperience() {
       <Reveal>
         <Heading id="experience">Assembly Line</Heading>
         <Lead>
-          Progression from student to builder, in order. Each milestone passes through the reader —
-          scroll to advance the line, or select any stage directly.
+          {compact
+            ? 'Progression from student to builder, in order — every milestone in full, oldest first.'
+            : 'Progression from student to builder, in order. Each milestone passes through the reader — scroll to advance the line, or select any stage directly.'}
         </Lead>
       </Reveal>
 
@@ -171,6 +211,75 @@ export function SectionExperience() {
         </div>
       </Reveal>
 
+      {/*
+        COMPACT: the whole line, printed.
+
+        The wide layout is a reader head travelling a track, with the locked
+        milestone's detail in the panel beside it. In one column that becomes
+        a list of ten dates above the details of exactly one of them — and
+        since the same scroll that advances the line also scrolls the panel,
+        a reader on a phone watches the text they are reading get replaced
+        underneath them. A timeline is already the natural shape for this on a
+        phone, so it is rendered as one: every milestone, in order, complete.
+      */}
+      {compact ? (
+        <div
+          ref={trackRef}
+          className="relative mt-9 space-y-4 border-l border-[#24272f] pl-4"
+        >
+          {milestones.map((m, i) => {
+            const Icon = STAGE_ICON[m.stage];
+            return (
+              <Reveal key={m.id} delay={Math.min(i, 3) * 60}>
+                <article data-milestone={i} className="relative">
+                  {/* Node on the spine, aligned to the card's header row. */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -left-[calc(1rem+5px)] top-6 h-2.5 w-2.5 rounded-full"
+                    style={{
+                      background: m.projected ? '#2a2e37' : 'var(--color-amber)',
+                      boxShadow: m.projected ? 'none' : '0 0 12px var(--color-amber)',
+                    }}
+                  />
+                  <Panel className="p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                      <Status state={m.projected ? 'idle' : m.ongoing ? 'online' : 'amber'}>
+                        {m.projected ? 'Projected' : m.ongoing ? 'Active' : 'Complete'}
+                      </Status>
+                      <span className="t-label inline-flex items-center gap-1.5">
+                        <Icon aria-hidden="true" className="h-3 w-3" />
+                        {m.stage}
+                      </span>
+                    </div>
+
+                    <h3 className="t-display mt-3 text-[1.15rem] leading-tight">{m.title}</h3>
+                    {m.org && <p className="t-mono mt-1.5 text-xs emissive-cyan">{m.org}</p>}
+                    <p className="t-label mt-1.5">{m.period}</p>
+
+                    <ul className="mt-4 list-none space-y-2.5 p-0">
+                      {m.points.map((point, pi) => (
+                        <li key={pi} className="t-body flex gap-2.5 text-sm">
+                          <span
+                            className="mt-2 h-px w-3 shrink-0 bg-[color:var(--color-amber-dim)]"
+                            aria-hidden="true"
+                          />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {m.projected && (
+                      <p className="t-label mt-4 border-t border-[#24272f] pt-3 normal-case tracking-normal text-[color:var(--color-ash-dim)]">
+                        A stated intention, not a completed milestone.
+                      </p>
+                    )}
+                  </Panel>
+                </article>
+              </Reveal>
+            );
+          })}
+        </div>
+      ) : (
       <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         {/* ---------- The line ---------- */}
         <Reveal delay={100}>
@@ -267,6 +376,7 @@ export function SectionExperience() {
           </div>
         </Reveal>
       </div>
+      )}
     </Section>
   );
 }
