@@ -32,8 +32,35 @@ const CERAMIC = '#f0f2f5';
 const AMBER = '#ff8c00';
 const CYAN = '#00e5ff';
 
-const MONO = '600 21px "Fira Code", ui-monospace, monospace';
-const MONO_SM = '500 17px "Fira Code", ui-monospace, monospace';
+/**
+ * The monospace family, read from the same CSS variable the DOM uses.
+ *
+ * `ctx.font` takes a plain CSS font shorthand and resolves the family against
+ * the faces the document actually has, so it needs the real (hashed) family
+ * name that `next/font` puts in `--font-jetbrains` — it cannot see a face by
+ * the human name of the family. The literal `"Fira Code"` that used to sit here
+ * therefore matched nothing and fell through to the platform default, which
+ * meant the monitor rendered in DejaVu on Linux, SF Mono on macOS and Consolas
+ * on Windows while the rack beside it was in a webfont.
+ *
+ * Cached: the variable cannot change after first paint. Falls back to
+ * `ui-monospace` if the variable is missing, which keeps this honest rather
+ * than silently blank.
+ */
+let cachedFamily: string | null = null;
+
+function monoFamily(): string {
+  if (cachedFamily) return cachedFamily;
+  const declared =
+    typeof document === 'undefined'
+      ? ''
+      : getComputedStyle(document.documentElement).getPropertyValue('--font-jetbrains').trim();
+  cachedFamily = declared ? `${declared}, ui-monospace, monospace` : 'ui-monospace, monospace';
+  return cachedFamily;
+}
+
+/** Font shorthand at the two sizes this screen uses. */
+const mono = (weight: number, px: number) => `${weight} ${px}px ${monoFamily()}`;
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -56,6 +83,8 @@ function roundRect(
 export function drawOsScreen(ctx: CanvasRenderingContext2D, state: OsScreenState) {
   const W = OS_CANVAS_W;
   const H = OS_CANVAS_H;
+  const MONO = mono(600, 21);
+  const MONO_SM = mono(500, 17);
 
   ctx.clearRect(0, 0, W, H);
 

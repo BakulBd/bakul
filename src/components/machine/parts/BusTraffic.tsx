@@ -71,9 +71,9 @@ function Packet({ lane }: { lane: number }) {
     }
     mesh.visible = true;
 
-    const { lab, debug, debugSpeed, reducedMotion } = useMachine.getState();
+    const { debug, debugSpeed, reducedMotion } = useMachine.getState();
     if (!reducedMotion) {
-      const simSpeed = lab.speed * (debug ? debugSpeed : 1);
+      const simSpeed = debug ? debugSpeed : 1;
       // Travel speed tracks scroll energy on top of the sim clock — an idle
       // machine still ticks over, a working one visibly moves data faster.
       const runsPerSecond = (0.14 + frame.velocity * 1.7) * simSpeed;

@@ -38,10 +38,28 @@ export function SectionCore() {
   };
 
   return (
-    <Section id="core" label="Core" index="01">
+    <Section id="core" label="Core">
       <Reveal>
         <Heading id="core">The Core</Heading>
-        <Lead>{profile.summary}</Lead>
+        {/*
+          A lead written for this section, not `profile.summary`.
+
+          `profile.summary` is the CV's own paragraph and it belongs in the
+          reveal, where it is the first thing anyone reads — and it is also the
+          site's meta description, its JSON-LD description and its manifest
+          description, so it has to stay general. Printing it again here meant
+          the same 300 characters appeared twice in the visible page about one
+          screen apart, which is the single largest piece of repetition the page
+          had left.
+
+          Every other section's lead says what that section is and what to do in
+          it (see Projects, Experience, Contact). This one now does the same, so
+          the reader arrives already knowing the panel below is interactive.
+        */}
+        <Lead>
+          The stack I build with, grouped as subsystems — select one to inspect what it holds.
+          Beneath it, the formal record: degree, coursework, and credentials.
+        </Lead>
       </Reveal>
 
       <div className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -92,7 +110,7 @@ export function SectionCore() {
                         {sub.items.map((item) => (
                           <span
                             key={item}
-                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-fira)] text-[0.62rem] leading-none normal-case tracking-normal text-[color:var(--color-ash)]"
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.62rem] leading-none normal-case tracking-normal text-[color:var(--color-ash)]"
                           >
                             {item}
                           </span>
@@ -137,12 +155,27 @@ export function SectionCore() {
 
         {/* ---------- Detail readout ---------- */}
         <Reveal delay={160}>
-          <div aria-live="polite">
+          {/*
+            The live region moved *inward*, onto the readout itself.
+
+            It used to sit on this wrapper, which also contains the education
+            block below — so a region announcing "the subsystem you just
+            selected" was scoped to include a static block that has nothing to
+            do with the selection.
+
+            It is kept rather than removed, unlike the equivalent wrappers in
+            Projects and Experience, and the difference is what drives the
+            change: `activeSubsystem` moves only when someone presses one of the
+            buttons above. That is a user-initiated change to a region on the
+            other side of a two-column layout, which is the one case a polite
+            live region is actually for. Nothing here is advanced by scrolling.
+          */}
+          <div>
             {/* Only in two columns. In one, this is the disclosure rendered
                 inline under the selected subsystem above. */}
             {!compact && (
               <Panel className="p-6">
-                <div id="subsystem-detail">
+                <div id="subsystem-detail" aria-live="polite">
                   {active ? (
                     <>
                       <p className="t-label emissive-cyan m-0">{active.category}</p>
@@ -152,7 +185,7 @@ export function SectionCore() {
                         {active.items.map((item) => (
                           <li
                             key={item}
-                            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-fira)] text-xs text-[color:var(--color-ceramic)]"
+                            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-code)] text-xs text-[color:var(--color-ceramic)]"
                           >
                             {item}
                           </li>
@@ -171,7 +204,13 @@ export function SectionCore() {
               </Panel>
             )}
 
-            {/* ---------- Education ---------- */}
+            {/*
+              ---------- Education ----------
+
+              No CGPA row. The figure is the hero's lead statistic and an
+              animated counter in Impact; a third, quieter printing here added
+              nothing except the impression of a longer page.
+            */}
             <Panel className={`p-6 ${compact ? '' : 'mt-4'}`}>
               <p className="t-label emissive-amber m-0">Education</p>
               <h3 className="t-mono mt-2 text-base">{profile.education.institution}</h3>
@@ -181,7 +220,6 @@ export function SectionCore() {
                   k="Period"
                   v={`${profile.education.start} — ${profile.education.end}`}
                 />
-                <Readout k="CGPA" v={profile.education.cgpa} />
                 <Readout k="Coursework" v={profile.education.coursework.join(', ')} />
                 <Readout k="Location" v={profile.education.location} />
               </dl>

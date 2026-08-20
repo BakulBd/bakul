@@ -4,7 +4,6 @@ import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { frame, useMachine, useQualityProfile } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 import { CameraRig } from './CameraRig';
 import { Chassis } from './parts/Chassis';
 import { Turbines } from './parts/Turbines';
@@ -13,7 +12,6 @@ import { Starfield } from './parts/Starfield';
 import { CircuitPanel } from './parts/CircuitPanel';
 import { MorphField } from './parts/MorphField';
 import { Monitor } from './parts/Monitor';
-import { BOOT_STAGES } from './lib/blueprint';
 import { timeline } from '@/lib/data/sections';
 
 /**
@@ -22,16 +20,23 @@ import { timeline } from '@/lib/data/sections';
  * Converts discrete state and raw scroll into the continuous values the scene
  * renders from. This is the single place where "what the visitor did" becomes
  * "what the machine does" — every part downstream just reads `frame`.
+ *
+ * Deliberately silent. Sound used to be driven from here — the pad's scroll
+ * load, the boot relay clicks, and the morph sweep all fired inside this
+ * `useFrame` — which quietly made the audio engine a passenger in a renderer
+ * that is optional by design: deferred until power-on on a phone, halted when
+ * the tab is hidden, and absent entirely when WebGL fails. The score is now
+ * owned by SoundBridge, which drives it from the same `frame` singleton on its
+ * own loop and therefore sounds identical with or without this canvas. See the
+ * "continuous score" block there for the full reasoning.
  */
 function Driver() {
   const { gl } = useThree();
   const powerState = useMachine((s) => s.powerState);
   const completeActivation = useMachine((s) => s.completeActivation);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
   const reducedMotion = useMachine((s) => s.reducedMotion);
 
   const fpsAccum = useRef({ frames: 0, last: performance.now() });
-  const relayFired = useRef(new Set<number>());
 
   useFrame((_, dt) => {
     const clamped = Math.min(dt, 0.05);
@@ -42,25 +47,6 @@ function Driver() {
       const rate = reducedMotion ? 4 : 0.34;
       frame.power = Math.min(1, frame.power + clamped * rate);
 
-      // A relay clicks as each subsystem comes online. Read from BOOT_STAGES —
-      // the same list the POST screen prints its rows from and the same
-      // POWER_WINDOW starts the 3D subsystems illuminate at — so the sound,
-      // the light, and the "OK" all land on one frame instead of a beat
-      // apart. Copies of these numbers in three files is precisely how a boot
-      // drifts out of sync.
-      //
-      // Thresholds are tracked as crossed regardless of whether sound is on —
-      // only the playback is gated. If tracking were gated too, a visitor who
-      // boots muted and then enables sound partway through (or after boot
-      // finishes) would hear every threshold they'd already silently crossed
-      // fire at once, a burst of clicks with nothing on screen to match them.
-      for (const stage of BOOT_STAGES) {
-        if (frame.power >= stage.at && !relayFired.current.has(stage.at)) {
-          relayFired.current.add(stage.at);
-          if (audioEnabled && !reducedMotion) audio.play('tick');
-        }
-      }
-
       if (frame.power >= 0.999 && powerState === 'ACTIVATING') {
         completeActivation();
       }
@@ -70,17 +56,7 @@ function Driver() {
     // Mapped to the scroll span between the project rack and the assembly
     // line — a pure background flourish now, no dedicated section to justify
     // it narratively, but the same visual spectacle the machine always had.
-    const morphBefore = frame.morph;
     frame.morph = THREE.MathUtils.smoothstep(frame.t, timeline.morphStart, timeline.morphEnd);
-
-    // The transformation is the site's signature moment, so it gets its own
-    // voice — a long filter sweep that runs alongside the machine coming
-    // apart. Fired once, on the way in only: scrolling back up should not
-    // retrigger a two-and-a-half-second sweep, and scrubbing across the
-    // threshold would otherwise stack them.
-    if (audioEnabled && !reducedMotion && morphBefore < 0.02 && frame.morph >= 0.02) {
-      audio.play('morph');
-    }
 
     /* ---- Activation pulse decay ---- */
     if (frame.pulse > 0) {
@@ -102,9 +78,6 @@ function Driver() {
       frame.emerge += (wantEmerge - frame.emerge) * (1 - Math.exp(-rate * clamped * 3));
       if (Math.abs(wantEmerge - frame.emerge) < 0.001) frame.emerge = wantEmerge;
     }
-
-    /* ---- Audio load ---- */
-    if (audioEnabled) audio.setLoad(frame.velocity);
 
     /* ---- Telemetry (real values, read from the renderer) ---- */
     const acc = fpsAccum.current;
@@ -180,9 +153,9 @@ function Lights() {
   useFrame(() => {
     const p = frame.power;
     const mechanical = 1 - frame.morph;
-    // The lab's LIGHT slider scales the whole rig, so the control visibly
-    // changes the environment rather than one isolated lamp.
-    const gain = useMachine.getState().lab.light;
+    // The debug console's LIGHT RIG GAIN scales all four lamps at once, so the
+    // control visibly changes the environment rather than one isolated bulb.
+    const gain = useMachine.getState().lightGain;
 
     /*
      * Narrative tone, shared with the DOM.

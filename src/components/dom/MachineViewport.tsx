@@ -30,13 +30,28 @@ import { frame, useMachine } from '@/store/machine';
  * that means. Written straight to the root element's style rather than
  * through React state so a scroll-linked value never re-renders the tree.
  */
+/**
+ * `index` is deliberately absent.
+ *
+ * Every numbered section on this page derives its ordinal from the section
+ * registry (see `sectionIndex`), and this screen is not in that registry — it
+ * is an interstitial that exists only on a compact viewport, inserted between
+ * the project rack and the assembly line. It used to print a hard-coded "03",
+ * which was correct only for the nine-section layout it was written for; once
+ * the numbers became derived, that literal collided with the assembly line's
+ * own 03 and a phone showed the same ordinal twice.
+ *
+ * Rather than invent a number for something that has no position in the
+ * sequence — 02.5 is not a section, and renumbering the real sections around
+ * an interlude would be worse — this screen carries its label alone. The rule
+ * and the label keep it in the same visual family as its neighbours without
+ * claiming to be one of them.
+ */
 export function MachineViewport({
-  index,
   label,
   title,
   caption,
 }: {
-  index: string;
   label: string;
   title: string;
   caption: string;
@@ -101,8 +116,7 @@ export function MachineViewport({
     >
       <div>
         <div className="mb-6 flex items-center gap-3">
-          <span className="t-label emissive-amber">{index}</span>
-          <span className="h-px w-8 bg-[#33373f]" aria-hidden="true" />
+          <span className="h-px w-8 bg-[color:var(--color-amber-dim)]" aria-hidden="true" />
           <span className="t-label">{label}</span>
         </div>
         <h2
@@ -111,7 +125,8 @@ export function MachineViewport({
           style={{
             opacity: visible || reducedMotion ? 1 : 0,
             transform: visible || reducedMotion ? 'translateY(0)' : 'translateY(14px)',
-            transition: 'opacity 0.9s ease-out, transform 0.9s cubic-bezier(0.16,1,0.3,1)',
+            transition:
+              'opacity var(--dur-5) var(--ease-standard), transform var(--dur-5) var(--ease-out-quart)',
           }}
         >
           {title}

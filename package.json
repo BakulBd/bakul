@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "clean": "bash scripts/clean.sh",
+    "dev:clean": "bash scripts/clean.sh && next dev",
+    "build:clean": "bash scripts/clean.sh && next build"
   },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",

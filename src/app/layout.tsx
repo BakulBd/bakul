@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { JetBrains_Mono, Inter, Fira_Code, Space_Grotesk } from 'next/font/google';
+import { JetBrains_Mono, Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { profile } from '@/lib/data/profile';
 import { SITE_URL, IS_PRODUCTION_DEPLOY, GOOGLE_SITE_VERIFICATION } from '@/lib/site';
@@ -52,12 +52,21 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['700'],
 });
 
-const fira = Fira_Code({
-  subsets: ['latin'],
-  variable: '--font-fira',
-  display: 'swap',
-  weight: ['400'],
-});
+/*
+ * Fira Code used to be loaded here as a fourth family, mapped to `--font-code`
+ * for inputs, code and tabular readouts.
+ *
+ * It was a redundant download. JetBrains Mono was already carrying every piece
+ * of monospaced chrome on the site — labels, buttons, readouts — and the two
+ * faces were doing the same job at the same sizes: both are programming
+ * monospaces of near-identical width and x-height, so the distinction was
+ * invisible to a reader and cost a whole extra face on first load.
+ *
+ * Three families, one job each: Space Grotesk displays, Inter reads, JetBrains
+ * Mono instruments. `--font-code` still exists and still means "monospace for
+ * data" — it now resolves to JetBrains Mono, so nothing had to change at the
+ * call sites.
+ */
 
 /*
  * Two descriptions, because the two surfaces have different limits and
@@ -129,6 +138,16 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: profile.name, url: SITE_URL }],
   creator: profile.name,
+  /*
+   * iOS Safari autolinks anything that looks like a phone number, an address or
+   * an email, and it restyles what it linkifies with its own blue — inside a
+   * design that has exactly two accent colours and sets its contact details as
+   * deliberate typography. The real contact affordances are explicit anchors in
+   * the Transmission section, so nothing is lost by switching the guessing off;
+   * what is gained is that a CGPA, a phone-shaped project stat and a date
+   * range stop being turned into links on one platform only.
+   */
+  formatDetection: { telephone: false, address: false, email: false },
   publisher: profile.name,
   category: 'technology',
   /*
@@ -205,13 +224,27 @@ export const viewport: Viewport = {
   // Paint into the display cutout on notched phones; the safe-area insets in
   // globals.css keep controls out from under the notch and home indicator.
   viewportFit: 'cover',
+  /*
+   * When the on-screen keyboard opens, resize the visual viewport rather than
+   * the layout viewport.
+   *
+   * This matters here more than on a typical page: the entire scene is sized in
+   * `vh` and the scroll engine derives its progress from `scrollHeight`. Under
+   * the default `resizes-content`, opening the keyboard in the contact form or
+   * the compiler's expression input would shrink the layout viewport, re-run
+   * every `vh` calculation, change the document height and therefore jump the
+   * camera — mid-typing, on phones only. `resizes-visual` leaves the layout
+   * alone and merely pans what is visible, which is the behaviour every fixed
+   * layer on this site already assumes.
+   */
+  interactiveWidget: 'resizes-visual',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${jetbrains.variable} ${inter.variable} ${fira.variable} ${spaceGrotesk.variable}`}
+      className={`${jetbrains.variable} ${inter.variable} ${spaceGrotesk.variable}`}
     >
       <head>
         {/*
@@ -223,8 +256,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="me" href={profile.contact.github} />
         <link rel="me" href={profile.contact.linkedin} />
         <link rel="me" href={`mailto:${profile.contact.email}`} />
-        {/* Warm up the font origins before the CSS that needs them is parsed. */}
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/*
+          No font preconnect here, deliberately.
+
+          There used to be a `preconnect` to fonts.gstatic.com, which is the
+          correct tag for a site that loads Google Fonts over the network. This
+          one does not: `next/font/google` downloads all three faces at build
+          time and serves them from this origin, so the browser never contacts
+          Google at runtime. The tag was costing a DNS lookup plus a TLS
+          handshake to a host that is never asked for anything — worst on the
+          cold, high-latency mobile connections it looks like it should help,
+          because it competes for the first few connections in the pool with the
+          requests that are actually on the critical path.
+        */}
       </head>
       <body>
         <script

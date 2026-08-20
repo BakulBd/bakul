@@ -2,7 +2,7 @@
 
 import { Power, Cpu, Boxes, Route, BarChart3, Send, type LucideIcon } from 'lucide-react';
 import { useMachine } from '@/store/machine';
-import { sections } from '@/lib/data/sections';
+import { sections, sectionIndex } from '@/lib/data/sections';
 import { scrollToSection } from '@/hooks/useScrollEngine';
 
 /**
@@ -11,6 +11,12 @@ import { scrollToSection } from '@/hooks/useScrollEngine';
  * A recruiter must reach any section in one click, at any time, including
  * during standby. This is a real <nav> with real links, so it also works with
  * JavaScript disabled and reads correctly in a screen reader.
+ *
+ * It carries two signals, not one: *where you are* (the lit tick) and *how far
+ * through you are* (the continuous fill behind them). Six ticks alone answer
+ * the first question and leave the second — whether there is anything below
+ * this screen at all — entirely unanswered on desktop. See the DESKTOP RAIL
+ * block in globals.css for why the fill costs nothing to draw.
  */
 export function ProgressRail() {
   const activeSection = useMachine((s) => s.activeSection);
@@ -20,11 +26,19 @@ export function ProgressRail() {
       aria-label="Section navigation"
       className="no-print fixed left-0 top-0 z-40 hidden h-full w-[var(--rail-w)] flex-col items-center justify-center gap-1 border-r border-[#16181f] bg-[rgba(9,10,15,0.72)] backdrop-blur-md lg:flex"
     >
-      <ol className="m-0 flex list-none flex-col items-center gap-1 p-0">
-        {sections.map((s, i) => {
+      {/* Document position. `aria-hidden` because it states nothing the ticks
+          and their `aria-current` do not already say to a screen reader — and
+          a progressbar role here would announce a percentage on every scroll
+          tick, which is noise, not information. */}
+      <span aria-hidden="true" className="rail__track">
+        <span className="rail__fill" />
+      </span>
+
+      <ol className="relative m-0 flex list-none flex-col items-center gap-1 p-0">
+        {sections.map((s) => {
           const isActive = s.id === activeSection;
           return (
-            <li key={s.id} className="group relative">
+            <li key={s.id} className="rail__item group relative">
               <a
                 href={`#section-${s.id}`}
                 onClick={(e) => {
@@ -35,15 +49,13 @@ export function ProgressRail() {
                 className="flex h-9 w-9 items-center justify-center"
               >
                 <span className="sr-only">{s.label}</span>
+                {/* State moved out of inline styles and into `.rail__tick`, so
+                    the tick can also respond to hovering its own link — a
+                    `:hover` rule cannot be written in a style attribute, which
+                    is why this was the one inert target on the page. */}
                 <span
                   aria-hidden="true"
-                  className="block transition-all duration-300"
-                  style={{
-                    width: isActive ? '2px' : '1px',
-                    height: isActive ? '22px' : '12px',
-                    background: isActive ? 'var(--color-amber)' : '#3a3f4a',
-                    boxShadow: isActive ? '0 0 10px var(--color-amber)' : 'none',
-                  }}
+                  className={`rail__tick${isActive ? ' is-active' : ''}`}
                 />
               </a>
 
@@ -52,8 +64,11 @@ export function ProgressRail() {
                 aria-hidden="true"
                 className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 -translate-y-1/2 translate-x-[-4px] whitespace-nowrap rounded-md border border-[#24272f] bg-[rgba(13,15,22,0.96)] px-2.5 py-1 opacity-0 shadow-[0_12px_28px_-14px_rgba(0,0,0,0.8)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
               >
+                {/* The number comes from the registry, not from this map's
+                    index — see `sectionIndex` for the second copy that used to
+                    live here and the offset that made it agree by luck. */}
                 <span className="t-label" style={{ color: 'var(--color-ceramic)' }}>
-                  {String(i).padStart(2, '0')} {s.label}
+                  {sectionIndex(s.id)} {s.label}
                 </span>
               </span>
             </li>

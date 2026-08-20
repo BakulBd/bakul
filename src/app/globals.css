@@ -18,12 +18,44 @@
   --color-cyan-dim: #007a8a;
   --color-ceramic: #f0f2f5;
   --color-ash: #8b909c;
-  --color-ash-dim: #5b6070;
+  /*
+   * The quiet text tier — and it has to stay *text*, which is what the old
+   * value forgot.
+   *
+   * #5b6070 measured 3.16:1 against --color-carbon and 2.72:1 against
+   * --color-titanium. WCAG 1.4.3 AA asks 4.5:1 for body copy, and this token
+   * is not a decorative one: it colours captions, footnotes, the projected-
+   * milestone disclaimers, the empty-bay placeholders and most of the Lab's
+   * secondary readouts — around sixty sites between this file and the
+   * components. So the site failed AA on text almost everywhere it spoke
+   * quietly, which is the majority of what it says.
+   *
+   * Retuned rather than replaced, deliberately. The alternative was editing
+   * every call site to --color-ash, which would have flattened a two-tier
+   * hierarchy into one and lost the distinction the design is making. #808693
+   * keeps the hue and the intent and measures:
+   *
+   *   5.41:1 on --color-carbon    (#090a0f)
+   *   4.66:1 on --color-titanium  (#1a1c23)
+   *   5.08:1 on the composited panel fill (~#111319)
+   *
+   * — all above 4.5:1, while sitting ~15% below --color-ash in relative
+   * luminance, which is still a step the eye reads as dimmer. A quiet tier is
+   * allowed to be quiet. It is not allowed to be unreadable.
+   *
+   * If this value is ever darkened again, check it against #1a1c23 and not
+   * against the near-black background: titanium is the brightest thing this
+   * token is ever printed on, so it is the one that decides.
+   */
+  --color-ash-dim: #808693;
   --color-alert: #ff3b30;
 
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
   --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-code: var(--font-fira), ui-monospace, monospace;
+  /* Monospace for data, inputs and code. Same family as --font-mono since
+     Fira Code was dropped (see layout.tsx); kept as a separate token
+     because the roles are distinct even when the face is shared. */
+  --font-code: var(--font-jetbrains), ui-monospace, monospace;
   /* Headings and the hero only — see the note in layout.tsx. Falls back
      through the body sans so a failed font load degrades to the old
      treatment rather than to a system default. */
@@ -39,7 +71,103 @@
   --nav-h: 3.5rem;
   /* Set by the boot sequence so DOM chrome can fade in with the machine. */
   --power: 0;
+  /* Narrative tone, [0,1]: 0 = mechanical (amber), 1 = computational (cyan).
+     Written by the scroll engine from the same `toneAt` scalar the 3D light
+     rig reads, so the wash and the lighting cross-fade together. */
+  --tone: 0;
+  /* Smoothed scroll speed, [0,1] — `frame.velocity`, published by the scroll
+     engine. The substrate scales its flow rate by this, so the ground plane
+     streams past at the speed the visitor is actually travelling instead of a
+     rate fixed at design time. Defaults to 0 (at rest), which is the correct
+     value before the first scroll event and on a page that never scrolls. */
+  --flow: 0;
+  /* Absolute position through the document, [0,1] — `frame.t`. Drives slow
+     parallax on the atmosphere, so the room registers having been moved
+     through rather than only having been animated. */
+  --scroll: 0;
+
+  /* ---- Derived once, read in several places ----
+     Both of the above are consumed as eased//scaled quantities rather than
+     raw, and the arithmetic was otherwise repeated at each site — where it
+     would inevitably drift. Declared here so "how fast does the floor run"
+     and "how far does the room travel" each have exactly one answer.
+
+     `--flow-rate` is the substrate's animation-duration multiplier: 1 at rest
+     (the idle drift) falling towards ~0.22 at full speed, i.e. the grid runs
+     up to about 4.5x faster. Expressed as a duration scale rather than a
+     speed so it can multiply a duration directly in calc(). */
+  --flow-rate: calc(1 - var(--flow) * 0.78);
+
+  /* ==================================================================
+     MOTION SYSTEM
+     One vocabulary of easings and durations, because the alternative is
+     what this file had before: 0.15s / 0.18s / 0.22s / 0.25s / 0.3s /
+     0.42s / 0.7s / 1s chosen ad hoc at each call site, plus
+     cubic-bezier(0.16, 1, 0.3, 1) written out by hand in the CSS and in
+     the inline styles of four components. Nothing was wrong individually;
+     collectively it meant the page had no motion signature, and a jury
+     reads that as a page assembled rather than designed.
+
+     Two easings, because two is what the material needs:
+
+     --ease-out-quart  the machine's own curve. Decisive start, long
+                       settle, no overshoot. Used for anything that
+                       *arrives* — reveals, headline masks, rack
+                       selection, panel lift.
+     --ease-standard   symmetric and short. Used for property fades that
+                       have no spatial story: colour, border, opacity.
+
+     No spring, no bounce. This is milled aluminium and servo travel, and
+     neither of those things wobbles when it stops.
+     ================================================================== */
+  --ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Durations climb roughly 1.4x per step, which is about the smallest
+     ratio the eye still reads as a deliberate difference rather than as
+     jitter. Named by rank, not by milliseconds, so retuning the scale
+     does not require renaming its consumers.
+
+     1  tactile      press, LED, tick        instant, sub-frame-budget
+     2  state        hover, colour, border   the default for chrome
+     3  material     panel lift, marker      something physical moved
+     4  transit      rack travel, dissolve   crossing a distance
+     5  arrival      reveal, counter         content entering the page
+     6  cinematic    headline mask           once per section, at most */
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 300ms;
+  --dur-4: 420ms;
+  --dur-5: 700ms;
+  --dur-6: 1000ms;
+
+  /* Stagger between siblings in a reveal group. Small on purpose: at
+     120ms x 4 items the last one lands 360ms after the first, which
+     still reads as one gesture. Past ~150ms it reads as a queue. */
+  --stagger: 90ms;
+
+  /* ---- Radius scale ----
+     Was: 999px / 14px / 10px / 9px / 8px / 7px / 6px / 4px / 3px / 2px,
+     which is ten values for what is really four decisions. Tightened
+     one notch overall — the panel's old 14px was the softest thing on a
+     page whose subject is machined metal, and it made the chrome look
+     like a web app rather than an instrument. */
+  --r-1: 3px;   /* focus rings, hairline chips, progress bars */
+  --r-2: 6px;   /* inputs, buttons, tabs — anything you touch */
+  --r-3: 10px;  /* panels, modules, cards */
+  --r-pill: 999px;
+
+  /* ---- Elevation ----
+     Shadows are near-black and very wide rather than dark and tight, so
+     they read as a lit room rather than as a drop shadow. Each level
+     keeps the inset rim light, which is what actually sells the metal;
+     the ambient blur is what sells the height. */
+  --shadow-1: 0 2px 8px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  --shadow-2: 0 24px 60px -32px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-3: 0 36px 80px -36px rgba(0, 0, 0, 0.85), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
 }
+
+
 
 * {
   box-sizing: border-box;
@@ -60,6 +188,15 @@ html {
      scrolling box in every case — verified a bare `window.scrollTo(x, 0)`
      could still shift the page horizontally without this. */
   overflow-x: clip;
+  /* Reserve the scrollbar's gutter permanently.
+     Two things on this page temporarily remove the vertical scrollbar: a modal
+     locking the root's overflow (see setScrollLocked), and the boot sequence
+     before the document has grown past one viewport. Without a stable gutter
+     each of those widens the layout by the scrollbar's width and back again —
+     every clamp() on the page recomputes and the whole interface jumps
+     sideways. A no-op on overlay-scrollbar platforms (macOS, iOS, Android),
+     which is where it would already have been free. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -86,7 +223,7 @@ html.lenis, html.lenis body { height: auto; }
 :focus-visible {
   outline: 2px solid var(--color-cyan);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: var(--r-1);
 }
 :focus:not(:focus-visible) { outline: none; }
 
@@ -169,7 +306,7 @@ html.lenis, html.lenis body { height: auto; }
      to 1 — fully protective — so any path that never sets it, including a
      wide viewport where no viewport section renders, is unaffected. */
   opacity: var(--scrim, 1);
-  transition: opacity 0.45s ease-out;
+  transition: opacity var(--dur-4) var(--ease-standard);
 }
 
 @media (min-width: 1024px) {
@@ -188,7 +325,7 @@ html.lenis, html.lenis body { height: auto; }
 .panel {
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--r-3);
   background:
     linear-gradient(180deg, rgba(38, 41, 50, 0.92) 0%, rgba(15, 17, 23, 0.95) 100%);
   border: 1px solid rgba(130, 138, 155, 0.18);
@@ -196,10 +333,11 @@ html.lenis, html.lenis body { height: auto; }
   -webkit-backdrop-filter: blur(16px) saturate(1.15);
   /* Ambient lift + a faint inner rim light — the difference between a panel
      that floats above the scene and one pasted flat onto it. */
-  box-shadow:
-    0 24px 60px -32px rgba(0, 0, 0, 0.75),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-2);
+  transition:
+    border-color var(--dur-3) var(--ease-standard),
+    box-shadow var(--dur-3) var(--ease-standard),
+    transform var(--dur-3) var(--ease-out-quart);
 }
 
 /* Micro-scratch grain — a repeating gradient, no texture download. */
@@ -236,9 +374,41 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 .panel-flat {
-  border-radius: 10px;
+  border-radius: var(--r-3);
   background: rgba(13, 15, 22, 0.82);
   border: 1px solid rgba(120, 128, 145, 0.14);
+}
+
+/* ---------- FAQ disclosure ---------- */
+/* Styling only. The element is a native <details>, so the open/close
+   behaviour, the keyboard handling and the ARIA semantics are the browser's,
+   not ours — all that is left to do is remove the default triangle (which no
+   two engines draw the same) and rotate our own marker. */
+.faq-item {
+  transition: border-color var(--dur-2) var(--ease-standard);
+}
+.faq-item:hover { border-color: rgba(160, 168, 185, 0.3); }
+.faq-item[open] { border-color: rgba(0, 229, 255, 0.28); }
+
+/* Both are required: `display: none` on the pseudo-element covers WebKit,
+   `list-style: none` on the summary itself covers Firefox and Chromium. */
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary { list-style: none; }
+
+.faq-item summary:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 4px;
+  border-radius: var(--r-1);
+}
+
+.faq-item__marker {
+  transition: transform var(--dur-3) var(--ease-out-quart), color var(--dur-2) var(--ease-standard);
+}
+.faq-item[open] .faq-item__marker {
+  /* 45° rather than 90°: the "+" becomes a "×", which reads as "close this"
+     rather than as the same plus sign standing on its corner. */
+  transform: rotate(45deg);
+  color: var(--color-cyan);
 }
 
 /* Hover lift for panels that are themselves interactive (rack modules, tabs,
@@ -265,7 +435,7 @@ html.lenis, html.lenis body { height: auto; }
   border-radius: 50%;
   flex: none;
   background: var(--color-ash-dim);
-  transition: background 0.3s, box-shadow 0.3s;
+  transition: background var(--dur-3) var(--ease-standard), box-shadow var(--dur-3) var(--ease-standard);
 }
 .led-on { background: var(--color-cyan); box-shadow: 0 0 10px var(--color-cyan); }
 .led-amber { background: var(--color-amber); box-shadow: 0 0 10px var(--color-amber); }
@@ -277,7 +447,13 @@ html.lenis, html.lenis body { height: auto; }
   align-items: center;
   gap: 0.55rem;
   padding: 0.75rem 1.25rem;
-  border-radius: 9px;
+  /* 44px floor. The padding above plus a 12px mono cap height came to 41px,
+     which is under every published minimum for a touch target and applied to
+     every action on the site, including the one on the first screen. Stated as
+     a min-height rather than more padding so the wider buttons keep their
+     proportions and only the ones that were short grow. */
+  min-height: 2.75rem;
+  border-radius: var(--r-2);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
@@ -287,7 +463,12 @@ html.lenis, html.lenis body { height: auto; }
   border: 1px solid rgba(130, 138, 155, 0.26);
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: border-color 0.22s, color 0.22s, background 0.22s, box-shadow 0.22s, transform 0.15s;
+  transition:
+    border-color var(--dur-2) var(--ease-standard),
+    color var(--dur-2) var(--ease-standard),
+    background var(--dur-2) var(--ease-standard),
+    box-shadow var(--dur-2) var(--ease-standard),
+    transform var(--dur-1) var(--ease-out-quart);
 }
 .btn svg { width: 15px; height: 15px; flex: none; }
 .btn:hover {
@@ -329,16 +510,71 @@ html.lenis, html.lenis body { height: auto; }
   box-shadow: 0 18px 40px -14px rgba(255, 140, 0, 0.7);
 }
 
+/* Tertiary — the third tier the hero was missing.
+   The reveal offered View Projects, Download CV and GitHub as one filled
+   button and two identical outlined ones, which is two tiers pretending to be
+   three: the eye had to read all three labels to work out which mattered.
+   Only one of them is the ask. Stripping the chrome off the last one leaves a
+   ranked set — filled, outlined, bare — so the order is legible before a
+   single word is.
+
+   Built by subtraction from `.btn` rather than as a new component: same
+   metrics, same 44px target, same motion, so it still lines up on the shared
+   baseline instead of floating next to the others. The surviving bottom border
+   is what keeps it reading as an action; a bare mono label at this size would
+   be indistinguishable from the status text above it. */
+.btn-quiet {
+  padding-inline: 0.35rem;
+  border-radius: 0;
+  border-color: transparent;
+  border-bottom-color: rgba(130, 138, 155, 0.34);
+  background: none;
+  box-shadow: none;
+  color: var(--color-ash);
+}
+.btn-quiet:hover {
+  border-color: transparent;
+  border-bottom-color: var(--color-cyan);
+  background: none;
+  box-shadow: none;
+  color: var(--color-cyan);
+}
+
+/* ---------- Inline links ----------
+   One treatment, everywhere prose contains a link.
+
+   There were three: Tailwind's `underline decoration-[#33373f]` in two places
+   in the contact section, and bare colour changes elsewhere. Three ways of
+   drawing the same idea is how a design system stops being one — and none of
+   them was tokenised, so a change to the hover colour meant hunting class
+   strings. The offset and thickness matter at this size: an underline sitting
+   on the baseline cuts the descenders of a mono face and makes small type look
+   damaged. */
+.link {
+  color: var(--color-ceramic);
+  text-decoration-line: underline;
+  text-decoration-color: rgba(130, 138, 155, 0.42);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition:
+    color var(--dur-2) var(--ease-standard),
+    text-decoration-color var(--dur-2) var(--ease-standard);
+}
+.link:hover {
+  color: var(--color-cyan);
+  text-decoration-color: var(--color-cyan);
+}
+
 .field {
   width: 100%;
   padding: 0.85rem 1rem;
-  border-radius: 9px;
+  border-radius: var(--r-2);
   font-family: var(--font-code);
   font-size: 0.875rem;
   color: var(--color-ceramic);
   background: rgba(9, 10, 15, 0.85);
   border: 1px solid rgba(130, 138, 155, 0.22);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--dur-2) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
 }
 .field::placeholder { color: var(--color-ash-dim); }
 .field:focus {
@@ -354,7 +590,22 @@ html.lenis, html.lenis body { height: auto; }
    run everywhere and gives every section a distinct identity instead of one
    flat carbon field for nine screens in a row. Tone follows the site's own
    narrative (amber = mechanical, cyan = computational) rather than being
-   decorative, per the motion principle: colour reports what state you're in. */
+   decorative, per the motion principle: colour reports what state you're in.
+
+   ── Why this interpolates rather than switching ──────────────────────────
+   These used to be two fixed pairs of gradients selected by a `data-tone`
+   attribute of 'amber' or 'cyan'. That made the wash a step function: it
+   changed the instant a section's phase changed, while the 3D lighting rig
+   — reading the *same* narrative tone as a smooth scalar — was still part-way
+   through its own cross-fade. For a few hundred pixels of scroll the
+   background and the foreground were reporting different states, which is the
+   precise seam that separates "a site with a 3D background" from one machine.
+
+   Now both layers read one number. `--tone` is published by the scroll engine
+   from `toneAt`, the identical function the light rig samples, so the hand-off
+   happens at the same scroll position and over the same interval in both.
+   `color-mix()` does the interpolation in the browser, so there is no second
+   element to fade and nothing to keep in step by hand. */
 .section-glow {
   position: absolute;
   inset: 0;
@@ -370,22 +621,31 @@ html.lenis, html.lenis body { height: auto; }
   height: min(60vw, 900px);
   border-radius: 50%;
   filter: blur(2px);
+  /* The mixed hue for this corner, and the alpha it peaks at. Cyan reads
+     brighter than amber at equal alpha, so the two ends carry slightly
+     different opacities — mixed on the same curve so the transition never
+     dips or spikes in perceived intensity mid-way. */
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--glow-warm) calc((1 - var(--tone)) * 100%), var(--glow-cool)) 0%,
+    transparent 68%
+  );
 }
-.section-glow[data-tone='amber']::before {
-  top: -18%; right: -12%;
-  background: radial-gradient(circle, rgba(255, 140, 0, 0.16) 0%, rgba(255, 140, 0, 0) 68%);
+
+/* Top-right: the key-light corner. Amber #ff8c00 → cyan #00e5ff. */
+.section-glow::before {
+  top: -18%;
+  right: -12%;
+  --glow-warm: rgba(255, 140, 0, 0.16);
+  --glow-cool: rgba(0, 229, 255, 0.13);
 }
-.section-glow[data-tone='amber']::after {
-  bottom: -22%; left: -14%;
-  background: radial-gradient(circle, rgba(138, 76, 0, 0.14) 0%, rgba(138, 76, 0, 0) 68%);
-}
-.section-glow[data-tone='cyan']::before {
-  top: -18%; right: -12%;
-  background: radial-gradient(circle, rgba(0, 229, 255, 0.13) 0%, rgba(0, 229, 255, 0) 68%);
-}
-.section-glow[data-tone='cyan']::after {
-  bottom: -22%; left: -14%;
-  background: radial-gradient(circle, rgba(0, 122, 138, 0.13) 0%, rgba(0, 122, 138, 0) 68%);
+
+/* Bottom-left: the cooler bounce, a darker mix of the same two hues. */
+.section-glow::after {
+  bottom: -22%;
+  left: -14%;
+  --glow-warm: rgba(138, 76, 0, 0.14);
+  --glow-cool: rgba(0, 122, 138, 0.13);
 }
 
 /* ---------- Panel scroll: bounded, internally-scrolling content -----------
@@ -421,17 +681,257 @@ html.lenis, html.lenis body { height: auto; }
 .panel-scroll::-webkit-scrollbar-track { background: transparent; }
 .panel-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 140, 0, 0.35);
-  border-radius: 3px;
+  border-radius: var(--r-1);
 }
 .panel-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 140, 0, 0.55); }
+
+/* ==================================================================
+   THE ATMOSPHERE — the volume the machine sits inside
+   See components/dom/Atmosphere.tsx for what it is and why.
+
+   The substrate below gives the scene a *floor*. What it could not give it
+   is air: a floor plus a flat carbon field reads as an object on a shelf,
+   and every gradient on this page was previously anchored to a section box,
+   so the background restarted at every section boundary and the site had no
+   continuous space running through it.
+
+   This layer is that space, built from the three things that actually make a
+   rendered volume read as deep — none of which is a picture:
+
+     1. PARALLAX. Three masses at three scales moving at three rates. Depth
+        perception is differential motion long before it is anything else,
+        which is why this does more with three elements than a static nebula
+        image does with 300 kB.
+     2. ATMOSPHERIC PERSPECTIVE. Distant things lose contrast and drift
+        toward the light. The horizon bloom and the fog band do to the grid
+        what haze does to a mountain range.
+     3. PARTICULATE. Air is only visibly air when something is suspended in
+        it. The dust is four tiled gradients at coprime sizes, which breaks
+        the lattice a single tile would betray.
+
+   ── Cost ────────────────────────────────────────────────────────────────
+   Nothing here uses `filter: blur()`, which is the expensive way to get a
+   soft mass — the softness is in each gradient's own colour stops, resolved
+   once at paint and never per frame. Every animation touches `transform` or
+   `background-position` only, so the layer is a few composited textures the
+   GPU slides around: no layout, no restyle, no repaint after the first.
+   `contain: strict` states that formally, so the engine never considers this
+   subtree when anything else on the page changes size.
+
+   Colour is mixed from `--tone` — the same scalar the 3D light rig and the
+   section wash read — so the air the machine hangs in changes temperature
+   with the narrative instead of being decoration laid over it.
+   ================================================================== */
+.atmos {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+  /* Arrives with the machine, like every other emissive surface. */
+  opacity: calc(var(--power) * 0.92);
+  transition: opacity 1.4s ease-out;
+  contain: strict;
+}
+
+/* ---- Aurora masses ----
+   `closest-side` rather than `farthest-corner`: it makes the falloff track
+   the element's own radius, so each mass has a defined edge that dissolves
+   instead of being hard-cropped at its box. */
+.atmos__aurora {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--a-warm) calc((1 - var(--tone)) * 100%), var(--a-cool)) 0%,
+    transparent 100%
+  );
+  will-change: transform;
+}
+
+/* The key mass — largest, slowest, furthest back. */
+.atmos__aurora--1 {
+  top: -30vh;
+  right: -20vw;
+  width: 105vw;
+  height: 105vh;
+  --a-warm: rgba(255, 140, 0, 0.15);
+  --a-cool: rgba(0, 229, 255, 0.13);
+  /* Furthest back, so it travels least. See the note above --par below. */
+  --par: calc(var(--scroll) * -5vh);
+  animation: atmos-drift-1 47s ease-in-out infinite;
+}
+
+/* The bounce — cooler, mid-depth, travelling the opposite way so the two
+   never appear locked together. */
+.atmos__aurora--2 {
+  bottom: -38vh;
+  left: -24vw;
+  width: 92vw;
+  height: 92vh;
+  --a-warm: rgba(138, 76, 0, 0.15);
+  --a-cool: rgba(0, 122, 138, 0.15);
+  --par: calc(var(--scroll) * -11vh);
+  animation: atmos-drift-2 61s ease-in-out infinite;
+}
+
+/* The near accent — smallest and fastest, which is what sells the other two
+   as being further away. */
+.atmos__aurora--3 {
+  top: 22vh;
+  left: 28vw;
+  width: 52vw;
+  height: 52vh;
+  --a-warm: rgba(255, 176, 64, 0.09);
+  --a-cool: rgba(120, 240, 255, 0.08);
+  /* Nearest, so it travels furthest — the ordering is the whole effect. */
+  --par: calc(var(--scroll) * -19vh);
+  animation: atmos-drift-3 38s ease-in-out infinite;
+}
+
+/*
+ * Every keyframe set is a closed loop back to its own origin, so there is no
+ * jump at the wrap, and each mixes translate with a small scale — a mass that
+ * only slides reads as a decal, while one that also swells reads as something
+ * with volume turning over. The three periods (47s / 61s / 38s) share no
+ * useful common factor, so the composite never visibly repeats.
+ *
+ * ── --par: the drift is a loop, the parallax is a position ────────────────
+ * Every Y term carries `var(--par, 0px)`, a per-mass offset derived from
+ * `--scroll` — absolute progress through the document, published by the scroll
+ * engine from `frame.t`. Nearer masses are given larger offsets, so scrolling
+ * separates the three by depth: the room is *moved through* rather than merely
+ * animated in place, which is the one thing the drift alone cannot say.
+ *
+ * It has to live inside the keyframes rather than on a wrapper: an element can
+ * hold exactly one `transform`, and the animation owns it. Composing the two
+ * here keeps the whole layer at one element per mass, and because `--scroll`
+ * is quantised to twenty steps and the property is only read by an already-
+ * composited transform, a scroll costs a transform update and nothing else.
+ * The fallback keeps the set correct if it is ever used without an offset.
+ */
+@keyframes atmos-drift-1 {
+  0%, 100% { transform: translate3d(0, var(--par, 0px), 0) scale(1); }
+  33%      { transform: translate3d(-7vw, calc(5vh + var(--par, 0px)), 0) scale(1.11); }
+  66%      { transform: translate3d(4vw, calc(-4vh + var(--par, 0px)), 0) scale(0.95); }
+}
+@keyframes atmos-drift-2 {
+  0%, 100% { transform: translate3d(0, var(--par, 0px), 0) scale(1); }
+  40%      { transform: translate3d(9vw, calc(-6vh + var(--par, 0px)), 0) scale(1.08); }
+  70%      { transform: translate3d(-3vw, calc(3vh + var(--par, 0px)), 0) scale(0.94); }
+}
+@keyframes atmos-drift-3 {
+  0%, 100% { transform: translate3d(0, var(--par, 0px), 0) scale(1); }
+  50%      { transform: translate3d(-11vw, calc(-8vh + var(--par, 0px)), 0) scale(1.2); }
+}
+
+/* ---- Suspended particulate ----
+   Four tiled gradients at coprime tile sizes. One tile at any size reads
+   immediately as a lattice; four that only re-align every 137 × 211 × 89 ×
+   313 pixels do not — a starfield's presence with none of its bytes.
+
+   Animated by panning the *pattern*, never the element: transforming a fixed
+   full-viewport box moves its geometry outside `inset: 0` and inflates
+   document.scrollWidth, which is the exact bug the film-grain comment further
+   down this file documents. */
+.atmos__dust {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 26%, rgba(240, 242, 245, 0.5), transparent 100%),
+    radial-gradient(1.1px 1.1px at 72% 61%, rgba(0, 229, 255, 0.42), transparent 100%),
+    radial-gradient(1.6px 1.6px at 41% 83%, rgba(255, 176, 64, 0.32), transparent 100%),
+    radial-gradient(1px 1px at 88% 12%, rgba(240, 242, 245, 0.36), transparent 100%);
+  background-size: 137px 137px, 211px 211px, 89px 89px, 313px 313px;
+  animation: atmos-dust 120s linear infinite;
+  opacity: 0.7;
+}
+
+@keyframes atmos-dust {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  /* Whole multiples of each tile, so all four wrap seamlessly at the same
+     instant despite travelling different distances — which is what gives the
+     field depth rather than sliding as one sheet. */
+  to   { background-position: 0 -274px, 0 -422px, 0 -178px, 0 -626px; }
+}
+
+/* ---- Horizon bloom ----
+   Light pooling where the ground plane meets the vanishing point. This is the
+   single element doing the most work here: it is what makes the grid below
+   read as receding into distance rather than as a pattern that simply stops. */
+.atmos__bloom {
+  position: absolute;
+  left: 50%;
+  bottom: 55vh;
+  width: 150vw;
+  height: 46vh;
+  margin-left: -75vw;
+  /* Sits between aurora 2 and 3 in the depth ordering — it belongs to the
+     horizon, which is further away than the near accent but nearer than the
+     key mass behind it. */
+  transform: translateY(calc(-38% + var(--scroll) * -7vh));
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 100%,
+    color-mix(in oklab, rgba(255, 140, 0, 0.14) calc((1 - var(--tone)) * 100%), rgba(0, 229, 255, 0.15)) 0%,
+    transparent 72%
+  );
+}
+
+/* ---- Depth fog ----
+   A band sitting on the horizon that lifts the floor's far edge towards the
+   background's own value. Atmospheric perspective, stated literally. */
+.atmos__fog {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 62vh;
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    rgba(9, 10, 15, 0.22) 62%,
+    rgba(13, 16, 26, 0.4) 92%,
+    rgba(13, 16, 26, 0.46) 100%
+  );
+}
+
+/* On a phone the reading column is full-width, so all of this sits directly
+   behind body text rather than beside it. The near accent goes entirely — its
+   job (selling the parallax of the other two) is the least legible on a small
+   screen — and the rest is pulled back. */
+@media (max-width: 767px) {
+  .atmos { opacity: calc(var(--power) * 0.62); }
+  .atmos__aurora--3 { display: none; }
+  .atmos__dust { opacity: 0.4; }
+  .atmos__bloom { bottom: 38vh; height: 32vh; }
+}
+
+/*
+ * Reduced motion: the masses hold at their opening position rather than
+ * vanishing.
+ *
+ * The blanket rule at the foot of this file collapses every animation to
+ * 0.001ms, which lands each aurora on its `0%` keyframe — and every set's 0%
+ * is deliberately the untransformed identity, so the still frame is the
+ * composition as designed rather than whatever mid-cycle keyframe happened to
+ * be next. The layer keeps all of its depth and simply stops breathing, which
+ * is what the setting actually asks for.
+ *
+ * The dust is switched off outright instead: a field of small high-contrast
+ * points frozen mid-drift is visual noise with no remaining purpose, and this
+ * is the audience least served by it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .atmos__dust { display: none; }
+}
 
 /* ==================================================================
    THE SUBSTRATE — perspective ground plane
    See components/dom/Backdrop.tsx for what it is and why.
 
    Layer order, bottom to top: WebGL canvas (0) → readability scrim (5) →
-   substrate (6) → film grain (7) → content (10). The substrate must be above
-   the scrim: a 0.9-opacity dark wash over it would erase it entirely.
+   atmosphere (6) → substrate (6, later in the DOM) → film grain (7) →
+   content (10). Both decorative layers must be above the scrim: a
+   0.9-opacity dark wash over either would erase it entirely.
    ================================================================== */
 .substrate {
   position: fixed;
@@ -446,6 +946,40 @@ html.lenis, html.lenis body { height: auto; }
   /* Fades in with the machine — see --power, set by the boot sequence. */
   opacity: calc(var(--power) * 0.85);
   transition: opacity 0.8s ease-out;
+  /* Nothing in here can affect the size, layout or paint of anything outside
+     it, and it is the one subtree on the page animating continuously — saying
+     so explicitly keeps it out of every unrelated style invalidation. */
+  contain: strict;
+
+  /* ---- The floor's dimensions, declared once ----
+     Plane depth, minor cell and major block were previously three magic
+     numbers repeated across four rules, which is why the phone override had
+     to restate each of them and would silently desynchronise the moment one
+     changed. They are now one set of tokens: the horizon line, the contact
+     glow and the flow distance are all derived from them, so a breakpoint
+     re-tunes the floor by editing three values in one place. */
+  --sub-h: 55vh;
+  --sub-cell: 72px;
+  /* Five minor cells to a major. `substrate-flow` travels exactly one major
+     block, which is a whole number of both — so the loop is seamless for
+     the fine lattice and the heavy rails at the same time. */
+  --sub-block: 360px;
+  /* Time to traverse one block at rest — 360px / 30s is the same 12px-per-
+     second crawl the old single-cell loop ran at, so the floor's idle speed is
+     unchanged and only its response to scrolling is new. */
+  --sub-dur: 30s;
+
+
+  /* ---- The floor's colour ----
+     One opaque tone-blended ink, mixed from the same `--tone` scalar the 3D
+     light rig and the section wash read; every line below takes its own alpha
+     out of it with a second srgb mix against `transparent`.
+
+     This is the fix for the substrate's one real inconsistency: the grid and
+     the horizon were hardcoded cyan, so the floor stated "computational" for
+     the whole scroll while the lighting, the air and the section washes were
+     cross-fading from amber. The floor now travels with them. */
+  --sub-ink: color-mix(in oklab, #ff8c00 calc((1 - var(--tone)) * 100%), #00e5ff);
 }
 
 .substrate__plane {
@@ -454,7 +988,8 @@ html.lenis, html.lenis body { height: auto; }
   bottom: 0;
   width: 320vw;
   margin-left: -160vw;
-  height: 55vh;
+  height: var(--sub-h);
+
   transform-origin: 50% 100%;
   /* Laid nearly flat, tilted just enough to see across. */
   transform: rotateX(76deg);
@@ -466,36 +1001,164 @@ html.lenis, html.lenis body { height: auto; }
   mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 78%);
 }
 
+/*
+ * The lattice — minor cells inside major blocks.
+ *
+ * Four gradient layers on one element, not two elements: minor and major must
+ * stay in perfect registration, and the only way to guarantee that is for both
+ * to be carried by the same transform. Two layers travelling under two
+ * animations drift apart the moment either one's timing is touched, and a
+ * drafting grid whose heavy rules no longer land on the fine ones looks
+ * broken in a way that is hard to name but impossible to unsee.
+ *
+ * Layer order is paint order — majors are declared first so they win at every
+ * intersection instead of being cut by the minor line crossing them.
+ *
+ * Why subdivide at all: a single flat lattice gives the eye one scale to judge
+ * distance by, and the convergence does all the work. Adding a fifth-cell
+ * subdivision gives it two, so the floor reads as *measured* — it is the
+ * difference between graph paper and a survey grid, and it is the single
+ * cheapest detail available here: three more gradient stops, no new element,
+ * no new animation, no new frame cost.
+ */
 .substrate__grid {
   position: absolute;
   /* Twice the plane's height, so there is always material above to travel
      down into view. */
   inset: -100% 0 0 0;
   background-image:
-    linear-gradient(to right, rgba(0, 229, 255, 0.13) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 229, 255, 0.09) 1px, transparent 1px);
-  background-size: 72px 72px;
-  animation: substrate-flow 6s linear infinite;
+    /* Major rails — every fifth line, at roughly 2.5x the minor alpha. */
+    linear-gradient(to right, color-mix(in srgb, var(--sub-ink) 30%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--sub-ink) 22%, transparent) 1px, transparent 1px),
+    /* Minor lattice. Held deliberately faint: it is texture, and at this
+       perspective the far half of it collapses into a wash anyway. */
+    linear-gradient(to right, color-mix(in srgb, var(--sub-ink) 11%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--sub-ink) 8%, transparent) 1px, transparent 1px);
+  background-size:
+    var(--sub-block) var(--sub-block),
+    var(--sub-block) var(--sub-block),
+    var(--sub-cell) var(--sub-cell),
+    var(--sub-cell) var(--sub-cell);
+  /*
+   * Speed is the visitor's speed.
+   *
+   * `--flow-rate` is derived from `--flow`, which is `frame.velocity` — the
+   * same smoothed scalar the 3D scene reads. So the floor crawls while the
+   * page is at rest and streams while it is being scrolled, which is the one
+   * thing a ground plane can say that a decorative pattern cannot: that the
+   * space is being moved through rather than merely displayed.
+   *
+   * `--flow` is quantised to 20 steps by the scroll engine, so this duration
+   * is only ever recomputed twenty times across the whole velocity range
+   * rather than on every frame — and the loop distance is one major block, so
+   * the phase shift a duration change causes is bounded by one block and
+   * resolves itself at the next wrap.
+   */
+  animation: substrate-flow calc(var(--sub-dur) * var(--flow-rate)) linear infinite;
   will-change: transform;
 }
 
-/* Exactly one cell, so the loop point is invisible. */
+/* Exactly one major block — a whole number of minor cells too, so both scales
+   wrap at the same instant and the loop point is invisible at either. */
 @keyframes substrate-flow {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(0, 72px, 0); }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, var(--sub-block), 0); }
 }
 
+/*
+ * Raking light travelling across the floor.
+ *
+ * Laid inside the plane so it is foreshortened by the same rotateX as the
+ * grid — a band that ignored the perspective would read as a bar drawn on the
+ * screen rather than as light falling on the floor. It is a single wide
+ * gradient panned by `background-position`, so it costs the same as the grain
+ * drift: no element transform, no layout, nothing for the compositor to do
+ * but slide a texture it has already painted.
+ *
+ * Its period is deliberately coprime with the grid's idle period, so the two
+ * never fall into a visible beat.
+ */
+.substrate__sweep {
+  position: absolute;
+  inset: -100% 0 0 0;
+  background-image: linear-gradient(
+    104deg,
+    transparent 0%,
+    color-mix(in srgb, var(--sub-ink) 9%, transparent) 48%,
+    color-mix(in srgb, var(--sub-ink) 13%, transparent) 52%,
+    transparent 100%
+  );
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  /* 0% parks the band off the left edge, which is what the reduced-motion
+     freeze lands on: the floor simply has no light crossing it. */
+  background-position: -25% 0;
+  animation: substrate-sweep 21s linear infinite;
+}
+
+@keyframes substrate-sweep {
+  0%   { background-position: -25% 0; }
+  100% { background-position: 125% 0; }
+}
+
+/*
+ * Contact glow — where the floor meets the light it vanishes into.
+ *
+ * Physically this is the one thing the old three-element substrate was
+ * missing: a surface that recedes to a lit horizon pools light at the contact
+ * line. Without it the grid simply stopped being drawn, and the hairline had
+ * to carry the whole idea of a horizon on its own.
+ *
+ * Swells with `--power`, so powering the machine on lights the floor rather
+ * than only revealing it, and breathes on a slow scaleY about its own base —
+ * a transform, so the swell is composited and not a re-paint of the gradient.
+ */
+.substrate__contact {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sub-h);
+  width: 170vw;
+  margin-left: -85vw;
+  height: 13vh;
+  background: radial-gradient(
+    ellipse 40% 100% at 50% 100%,
+    color-mix(in srgb, var(--sub-ink) 17%, transparent) 0%,
+    color-mix(in srgb, var(--sub-ink) 6%, transparent) 45%,
+    transparent 72%
+  );
+  opacity: calc(0.3 + var(--power) * 0.7);
+  transition: opacity 1.2s ease-out;
+  transform-origin: 50% 100%;
+  animation: substrate-breathe 17s ease-in-out infinite;
+}
+
+/* 0% is the identity, so the reduced-motion still frame is the glow at its
+   designed size rather than mid-swell. */
+@keyframes substrate-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(1.18); }
+}
+
+/*
+ * The horizon hairline.
+ *
+ * Mixed from `--sub-ink` like everything else on the floor, with a hotter core
+ * at the vanishing point — a line of even brightness across its whole width
+ * reads as a border, whereas one that concentrates where the perspective
+ * converges reads as the far edge of a lit surface.
+ */
 .substrate__horizon {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 55vh;
+  bottom: var(--sub-h);
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(0, 229, 255, 0.28) 34%,
-    rgba(255, 140, 0, 0.22) 66%,
+    color-mix(in srgb, var(--sub-ink) 22%, transparent) 26%,
+    color-mix(in srgb, var(--sub-ink) 62%, #f0f2f5) 50%,
+    color-mix(in srgb, var(--sub-ink) 22%, transparent) 74%,
     transparent 100%
   );
 }
@@ -512,12 +1175,30 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* On a phone the reading column is full-width, so the floor would sit directly
-   under body text rather than beside it. Pulled shallower and dimmer there. */
+   under body text rather than beside it. Pulled shallower and dimmer there —
+   and because every dimension is now a token on `.substrate`, that is four
+   values rather than a rule per element, with no way for the horizon line and
+   the plane it terminates to disagree about where the floor ends.
+
+   The cell shrinks with the plane so the floor keeps roughly the same number
+   of lines across a much shorter run; the block follows at five cells, and the
+   duration follows so the crawl stays the same speed on the ground. */
 @media (max-width: 767px) {
-  .substrate { opacity: calc(var(--power) * 0.5); }
-  .substrate__plane { height: 38vh; }
-  .substrate__horizon { bottom: 38vh; }
+  .substrate {
+    opacity: calc(var(--power) * 0.5);
+    --sub-h: 38vh;
+    --sub-cell: 56px;
+    --sub-block: 280px;
+    --sub-dur: 24s;
+  }
+
+  /* The raking light is the least legible element here and the only one that
+     is pure decoration — a phone spends that budget on the grid instead. */
+  .substrate__sweep { display: none; }
+
+  .substrate__contact { height: 9vh; width: 130vw; margin-left: -65vw; }
 }
+
 
 /* ---------- Machined corner brackets ----------
    Four short rules inset from each corner of a panel, drawn as background
@@ -560,7 +1241,7 @@ html.lenis, html.lenis body { height: auto; }
   -webkit-appearance: none;
   appearance: none;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: linear-gradient(90deg, var(--color-cyan) 0%, rgba(0, 229, 255, 0.22) 100%);
   cursor: pointer;
 }
@@ -585,7 +1266,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 .volume-slider::-moz-range-track {
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: rgba(0, 229, 255, 0.22);
 }
 
@@ -605,6 +1286,71 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ==================================================================
+   DESKTOP RAIL
+   ------------------------------------------------------------------
+   The rail knew which section you were in and nothing about how far
+   through the document you were. Six ticks with one lit is a selector;
+   what a visitor on a first screen actually wants to know is whether
+   there is anything under it. That is the desktop half of a question
+   the phone answers with the scroll cue — and the reason the cue can
+   stay `lg:hidden` rather than being duplicated here.
+
+   The fill reads `--scroll`, which `useScrollEngine` already publishes
+   to the root element, quantised to 5% steps, for the atmosphere. So
+   this costs one more consumer of a variable that is already being
+   written: no listener, no state, no re-render. `scaleY` rather than
+   `height`, so it animates on the compositor and a value landing
+   mid-frame cannot trigger layout.
+   ================================================================== */
+.rail__track {
+  position: absolute;
+  left: calc(50% - 0.5px);
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: rgba(130, 138, 155, 0.14);
+  overflow: hidden;
+}
+.rail__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 140, 0, 0.18), var(--color-amber));
+  transform: scaleY(var(--scroll, 0));
+  transform-origin: top center;
+}
+
+/* The ticks sit concentric with the track and are opaque, so each simply
+   occludes the millimetre of line behind it — no mask needed, and the result
+   reads as one scale with graduations rather than as ticks floating beside a
+   line. */
+.rail__tick {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 12px;
+  background: #3a3f4a;
+  transition:
+    width var(--dur-3) var(--ease-out-quart),
+    height var(--dur-3) var(--ease-out-quart),
+    background var(--dur-2) var(--ease-standard),
+    box-shadow var(--dur-2) var(--ease-standard);
+}
+/* Hovering a rail item fed the tooltip and left the target itself inert, so
+   the one element actually under the cursor was the only thing that did not
+   react. Half a step toward the active state: enough to confirm the hit, not
+   enough to be mistaken for it. */
+.rail__item:hover .rail__tick {
+  height: 18px;
+  background: var(--color-ceramic);
+}
+.rail__tick.is-active {
+  width: 2px;
+  height: 22px;
+  background: var(--color-amber);
+  box-shadow: 0 0 10px var(--color-amber);
+}
+
+/* ==================================================================
    MOBILE BOTTOM NAVIGATION
    Six fixed cells. See MobileNav in dom/ProgressRail.tsx for why this is a
    grid and not a scroller.
@@ -616,7 +1362,7 @@ html.lenis, html.lenis body { height: auto; }
   z-index: 40;
   width: 100%;
   border-top: 1px solid #1b1e26;
-  border-radius: 14px 14px 0 0;
+  border-radius: var(--r-3) var(--r-3) 0 0;
   background: rgba(9, 10, 15, 0.96);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
@@ -635,7 +1381,7 @@ html.lenis, html.lenis body { height: auto; }
   height: 2px;
   background: var(--color-amber);
   box-shadow: 0 0 12px var(--color-amber);
-  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--dur-4) var(--ease-out-quart);
   pointer-events: none;
 }
 
@@ -650,7 +1396,7 @@ html.lenis, html.lenis body { height: auto; }
   min-height: var(--nav-h);
   padding: 0.5rem 0.125rem;
   text-align: center;
-  transition: color 0.25s;
+  transition: color var(--dur-2) var(--ease-standard);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -679,7 +1425,7 @@ html.lenis, html.lenis body { height: auto; }
 .pv__stage {
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--r-3);
   border: 1px solid rgba(120, 128, 145, 0.16);
   background:
     radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0, 229, 255, 0.05), transparent 70%),
@@ -716,7 +1462,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ---- Shared schematic vocabulary ---- */
 .pv-text {
-  font-family: var(--font-fira), ui-monospace, monospace;
+  font-family: var(--font-code);
   font-size: 7.5px;
   letter-spacing: 0.09em;
   fill: var(--color-ash);
@@ -886,7 +1632,266 @@ html.lenis, html.lenis body { height: auto; }
   100% { transform: translateY(340%); opacity: 0; }
 }
 
+/* ==================================================================
+   THE RATING PLATE — proof, in the first screen
+
+   The audit's sharpest finding was that the strongest evidence this site
+   has (a 3.96/4.00 CGPA, an award conferred six semesters running, three
+   shipped projects) was not reachable until the visitor had scrolled
+   past the boot. A recruiter who leaves in five seconds left with a name
+   and a job title, which is what every portfolio has.
+
+   The fix had to fit the concept rather than be bolted onto it, and the
+   machine supplied it: every real instrument carries a plate stamped on
+   its chassis, and the plate is the *only* thing legible while the
+   machine is switched off. So the proof is a rating plate — etched, not
+   lit, during standby; the same three figures energised once the system
+   is online.
+
+   Deliberately not three cards. Cards would read as a SaaS feature row
+   and would give equal visual weight to a container that carries no
+   information. This is a hairline-ruled plate: the figures are the only
+   loud thing on it, which is the whole hierarchy stated in one element.
+   ================================================================== */
+.plate {
+  display: grid;
+  /*
+   * Phone: one column of engraved rows — figure left, legend right, the way a
+   * rating plate is actually stamped.
+   *
+   * `auto-fit` with a 8.5rem floor was the wrong tool at exactly the widths
+   * that matter most. It collapses to one column at 320px, which is correct,
+   * but from 375px to 414px it fits precisely *two* — leaving a three-figure
+   * plate as two cells and an orphan on the most common phone sizes there are.
+   * A grid that reflows into an unbalanced remainder is worse than one that
+   * commits, so the narrow layout stops pretending to be columnar and the
+   * three-across form waits until there is room for all three.
+   *
+   * Stacking as rows is also cheaper vertically: three baseline rows instead of
+   * three two-line cells saves roughly 40px on the one screen that has to earn
+   * the scroll.
+   */
+  grid-template-columns: 1fr;
+  border-top: 1px solid rgba(130, 138, 155, 0.22);
+  border-bottom: 1px solid rgba(130, 138, 155, 0.12);
+  padding-block: 0.35rem;
+}
+
+/* Hairlines *between* rows, never around them. The block already carries its
+   own top and bottom rule; boxing each row would turn one plate into three
+   cards, which is the exact thing this exists instead of. */
+.plate__cell + .plate__cell {
+  border-top: 1px solid rgba(130, 138, 155, 0.09);
+}
+
+.plate__cell {
+  display: flex;
+  /* Narrow default: figure and legend on one baseline, pushed apart. The wide
+     layout in the media query below re-stacks them into a column. */
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+  /* Fixed three-up, not auto-fit: the count is known here, and being explicit
+     is what rules out the 2 + orphan reflow described above. */
+  .plate {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.15rem 1.75rem;
+    padding-block: 0.9rem;
+  }
+  .plate__cell {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.3rem;
+    padding-block: 0.35rem;
+  }
+  .plate__cell + .plate__cell { border-top: 0; }
+}
+
+/*
+ * The figure. `tabular-nums` because these sit in a row and are meant to
+ * be compared down the column on a phone, where the plate stacks — and
+ * proportional digits in a 4-figure column look like a typo.
+ */
+.plate__fig {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: clamp(1.35rem, 3.4vw, 1.85rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  /* Etched: the plate is stamped metal while the machine is dark, so the
+     figures are ceramic-on-titanium with no emission. */
+  color: var(--color-ceramic);
+  transition: color var(--dur-4) var(--ease-standard), text-shadow var(--dur-4) var(--ease-standard);
+}
+
+/* Energised. Cross-fades on the same curve as every other surface that
+   comes up with the machine, so the plate joins the power-on rather than
+   switching separately from it. */
+.plate.is-live .plate__fig {
+  color: var(--color-amber);
+  text-shadow: 0 0 22px rgba(255, 140, 0, 0.35);
+}
+
+.plate__unit {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ash);
+  /* Sits on the figure's own baseline rather than beside it as a second
+     figure — "/ 4.00" is a denominator, not a value. */
+  margin-left: 0.15rem;
+}
+
+.plate__key {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+  text-wrap: balance;
+}
+
+/* ---------- POST log ---------- */
+
+/* The device table on the boot screen: one row per subsystem, resolving to OK
+   as the machine brings it up.
+   ── WHY THIS IS CSS AND NOT A GRID OF INLINE STYLES ─────────────────────
+   It was built in the component as `grid-cols-[4.2rem_1fr_auto]` with three
+   inline `style` objects per row, switched on whether the row had resolved. The
+   boot samples the power ramp every 90ms, so React rebuilt twenty-four style
+   objects eleven times a second for the length of the boot, and none of the
+   values in them ever varied per row — they were two fixed palettes selected by
+   a boolean. That is a class, so it is a class now: the row carries `.is-done`
+   and the cascade picks the palette.
+   ── WHY THE COLUMNS INVERT ON A PHONE ───────────────────────────────────
+   The detail column used to `truncate`, and on every phone in the matrix it
+   did. At 320px the section's `px-6` leaves 272px, the panel's `p-5` leaves
+   232px inside, and a fixed 4.2rem device column plus two 12px gaps plus the
+   ~30px state column leaves about 111px — thirteen characters — for the detail.
+   "mainboard + power rails" is twenty-three, "8 DIMM slots populated" is
+   twenty-two, "4 fans x 3 blades" is seventeen; all three were cut off mid-word
+   behind an ellipsis. At 390px it is about 22 characters, which still clips most
+   of the eight. The POST screen exists so a visitor learns what the machine is
+   made of while they wait for it — a truncated manifest is the one thing it must
+   not be.
+   So below 40rem the row breaks in two: device and status share the first line,
+   and the detail takes a full-width second line where it wraps instead of being
+   cut. Above 40rem there is room for the single-line table and it returns to
+   one, via `grid-template-areas` rather than source order — which is why the
+   markup can keep device and state adjacent for the stacked case. */
+.post-log {
+  list-style: none;
+  /* The top gap lives here rather than as an `mt-4` utility on the element.
+     Both would be setting margin on the same box, and which one won would
+     depend on whether this rule sits inside `@layer components` or unlayered —
+     an unlayered `margin: 0` beats every layered utility and would silently
+     collapse the gap. Owning the property outright removes the question. */
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.post-log__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'device state'
+    'detail detail';
+  gap: 0.1rem 0.75rem;
+  align-items: baseline;
+  color: var(--color-ash-dim);
+}
+
+.post-log__device {
+  grid-area: device;
+  letter-spacing: 0.08em;
+}
+
+.post-log__state {
+  grid-area: state;
+  white-space: nowrap;
+  /* Every row is its own grid, so an `auto` column is measured per row and the
+     eight states would each sit at a different x — `OK` is about 14px of mono
+     and the four-dot placeholder is about 29px, so the column would visibly
+     shuffle as rows resolved one after another. A floor wide enough for the
+     widest content pins all eight to a common left edge and lets the caret trail
+     past it, which is the terminal convention anyway: the cursor sits after the
+     text, not inside the column. */
+  min-width: 3.25rem;
+}
+
+.post-log__detail {
+  grid-area: detail;
+  /* `balance` rather than `pretty`: these are two-line strings at most, where
+     the failure mode is a single orphaned word, not a ragged paragraph. */
+  text-wrap: balance;
+}
+
+/* A subsystem that has reported in. The device brightens to full ceramic and
+   the status goes cyan — the page's computational colour — so the log fills
+   with cyan from the top while the progress bar beneath the header is still
+   amber. That contrast is the handover in miniature: the machine is mechanical
+   while it is coming up and computational once it has. */
+.post-log__row.is-done {
+  color: var(--color-ash);
+}
+.post-log__row.is-done .post-log__device {
+  color: var(--color-ceramic);
+}
+.post-log__row.is-done .post-log__state {
+  color: var(--color-cyan);
+}
+
+@media (min-width: 40rem) {
+  .post-log__row {
+    grid-template-columns: 4.2rem minmax(0, 1fr) auto;
+    grid-template-areas: 'device detail state';
+    gap: 0 0.75rem;
+  }
+}
+
+/* ---------- Boot handover ---------- */
+
+/* The one entrance on the first screen, and it marks the one moment worth
+   marking: the POST readout is replaced by the summary and the calls to action,
+   which is the machine handing over control.
+   Everything else on this screen now persists across the three states — the
+   name, the plate, the status line — so this is not a general-purpose reveal
+   standing in for a missing composition. It is the payoff arriving.
+   Rank 5, "arrival — content entering the page", per the scale's own legend.
+   The block this replaces declared rank 6, which the legend reserves for a
+   headline mask once per section — and the headline no longer animates at all,
+   because it is now mounted from the first frame.
+   The global `prefers-reduced-motion` rule zeroes the duration, so the reduced
+   case resolves to the finished state on the first frame without needing a
+   second declaration here. */
+@keyframes boot-handoff {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.boot-handoff {
+  animation: boot-handoff var(--dur-5) var(--ease-out-quart) both;
+}
+
 /* ---------- Skip link ---------- */
+
 .skip-link {
   position: fixed;
   top: -100px;
@@ -899,7 +1904,7 @@ html.lenis, html.lenis body { height: auto; }
   font-size: 0.75rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  transition: top 0.2s;
+  transition: top var(--dur-2) var(--ease-out-quart);
 }
 .skip-link:focus { top: 1rem; }
 
@@ -1069,6 +2074,2402 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ==================================================================
+   THE LAB — /lab
+
+   The instrument panel. Shares the site's whole material vocabulary
+   (.panel, .btn, .field, --color-*, --font-*) and adds only what a
+   bench needs that the reading column does not: a bar chart, a token
+   stream, a tree, and two data tables.
+
+   Layout rule for the whole section: one column on a phone, two on a
+   wide viewport, and a bay marked --wide spans both. That is the
+   entire responsive strategy — the bays themselves are written to be
+   width-agnostic, so nothing here needs a breakpoint of its own.
+   ================================================================== */
+
+.lab-route {
+  position: relative;
+  min-height: 100dvh;
+  /* Above the atmosphere layers this route mounts, which sit at z-index 6. */
+  z-index: 0;
+}
+
+.lab-route__main {
+  position: relative;
+  z-index: 10;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1240px;
+  padding: clamp(2.5rem, 7vh, 5rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+}
+
+.lab-route__head {
+  max-width: 62ch;
+}
+
+.lab-route__title {
+  margin-top: 0.6rem;
+  font-size: clamp(2.2rem, 7vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.lab-route__lead {
+  margin-top: 1.1rem;
+  font-size: clamp(0.98rem, 2.4vw, 1.12rem);
+  line-height: 1.65;
+  color: var(--color-ash);
+}
+
+.lab-route__foot {
+  margin-top: 3.5rem;
+  border-top: 1px solid rgba(120, 128, 145, 0.16);
+  padding-top: 1.6rem;
+  max-width: 74ch;
+}
+
+.lab-route__foot-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+  margin-bottom: 0.7rem;
+}
+
+.lab-route__foot code,
+.lab-route__foot-title + p code {
+  font-family: var(--font-code);
+  font-size: 0.9em;
+  color: var(--color-cyan);
+}
+
+/* ---------- Shell ---------- */
+
+.lab {
+  margin-top: clamp(1.8rem, 5vh, 3rem);
+}
+
+/* ---------- The masthead: the way out ----------
+   Sticky rather than fixed. Fixed would take the bar out of flow and mean
+   reserving its height by hand on the one route that has it — and getting that
+   number wrong shows up as either a gap above the heading or a heading sliding
+   under the bar. Sticky leaves the bar in the document, so the space it occupies
+   is the space it occupies.
+
+   It sits above `.lab-route__main` (z-index 10) and above the atmosphere layers
+   (z-index 6) so a bench scrolling past goes under it rather than through it. */
+.lab-masthead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  /* Nearly opaque, not translucent: the substrate crawls behind this bar, and a
+     see-through strip would put a moving grid directly under 11px mono text. */
+  background: rgba(9, 10, 15, 0.92);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border-bottom: 1px solid rgba(120, 128, 145, 0.14);
+}
+
+.lab-masthead__inner {
+  margin-inline: auto;
+  width: 100%;
+  /* Both values match `.lab-route__main` exactly, so the trail's first letter
+     sits on the same optical line as the h1 below it rather than near it. */
+  max-width: 1240px;
+  padding-inline: clamp(1.1rem, 4vw, 2.5rem);
+  /* `--nav-h` is the site's bar height, already the clearance the desktop rail
+     reserves at the top — see `.lab-rail`'s sticky offset, which was written
+     against a bar that did not exist yet. */
+  min-height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  /* The way back on the leading edge, the way onward on the trailing one. The
+     bar used to hold the trail alone, which left roughly 1000px of empty
+     titanium on a desktop beside the only control on the route. */
+  justify-content: space-between;
+  gap: 0.75rem;
+  /* Last resort at 320px. `.lab-trail` wraps internally first, so this only
+     engages if a longer name ever makes even the wrapped trail too wide — and
+     when it does, the two groups stack instead of the trailing one being
+     pushed off the edge, which is the failure that stays usable. */
+  flex-wrap: wrap;
+  /* Clears the notch when the page is opened in a PWA on a notched phone;
+     `viewport-fit: cover` in the layout is what makes the inset non-zero. */
+  padding-top: env(safe-area-inset-top);
+}
+
+.lab-trail {
+  display: flex;
+  align-items: center;
+  /* Wraps rather than overflows. Two short rungs will not, but a longer name in
+     the first rung on a 320px screen would, and wrapping is the failure that
+     stays readable. */
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lab-trail__rung {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The separator is generated, not typed: it is decoration between rungs, and a
+   literal `›` in the markup would be read out by a screen reader walking the
+   list. `::before` on all but the first keeps it out of the leading edge. */
+.lab-trail__rung + .lab-trail__rung::before {
+  content: '›';
+  color: var(--color-ash-dim);
+  /* The glyph is punctuation here, not a letter, so it is exempt from the
+     tracking the trail sets — spaced quotes read as two marks, not one. */
+  letter-spacing: 0;
+}
+
+/* ── WHICH RUNG IS BRIGHT ─────────────────────────────────────────────────
+   The link, not the position. This was the other way round — `__here` in
+   ceramic, `__link` in ash — on the reasonable-sounding grounds that where you
+   are should read as the most definite thing in the trail.
+
+   On this page it isn't reasonable, because the position is already stated
+   twice: `THE LAB` in 11.5px mono here, and `The Lab` in up to 4rem of display
+   type about 40px below it. So the bar spent its only bright colour repeating
+   the headline, and rendered the one element on the entire route that *does*
+   something in the same muted grey as the `›` between them. A visitor looking
+   for the way out was looking straight at it and reading it as a label.
+
+   Inverted, the bar reads the way it behaves: one thing to press, in ceramic,
+   with an arrow on it — and the path it sits in as quiet context, matching the
+   separator it shares a line with. `--color-ash-dim` is ~15% below `--color-ash`
+   in relative luminance and still clears 4.5:1 (see the token's own note), so
+   the current rung is de-emphasised without becoming decoration. */
+.lab-trail__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ceramic);
+  transition: color 0.2s ease;
+  /* 44px of vertical target inside a 56px bar — the touch minimum, met without
+     making the bar taller than the site's other chrome. */
+  padding-block: 0.7rem;
+}
+.lab-trail__link svg { width: 14px; height: 14px; flex-shrink: 0; }
+.lab-trail__link:hover { color: var(--color-cyan); }
+
+.lab-trail__here {
+  color: var(--color-ash-dim);
+}
+
+/* ── THE WAY ONWARD ───────────────────────────────────────────────────────
+   The trail leads back to the top of the machine, and for a long time that was
+   the entire set of destinations reachable from this route. It is the wrong
+   one for the visitor this page is for: someone who came to the lab to
+   evaluate an engineer, and has made up their mind, wants `/#section-contact` —
+   which from here was a route load, a boot sequence in standby, and four
+   screens of scrolling, with the first two invisible enough that a page
+   arriving dark reads as broken rather than as waiting.
+
+   None of that needed building. `useHashLanding` in the scroll engine already
+   lands an inbound `#section-…`, powers the machine on the way in, and names
+   "the lab's way back" as the case it exists for. This is the first surface to
+   take it up on the offer.
+
+   Ash rather than ceramic, and a separate class rather than a third rung: the
+   trail is the primary exit and this is the shortcut past it. Two elements at
+   the same weight would be two competing answers to one question. */
+.lab-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ash);
+  transition: color 0.2s ease;
+  /* Matched to the trail's target height, so the two ends of the bar are one
+     44px row rather than two differently-sized hit areas on the same line. */
+  padding-block: 0.7rem;
+}
+.lab-exit svg { width: 13px; height: 13px; flex-shrink: 0; }
+.lab-exit:hover { color: var(--color-cyan); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-trail__link,
+  .lab-exit { transition: none; }
+}
+
+@media (forced-colors: active) {
+  /* The blur and the near-black wash are both dropped in forced colours, so the
+     bar needs a real edge or it merges into the page behind it. */
+  .lab-masthead {
+    background: Canvas;
+    border-bottom: 1px solid CanvasText;
+  }
+}
+
+
+/* ── THE RACK ────────────────────────────────────────────────────────────
+   A rail of benches beside the bench that is open.
+
+   Mobile first, and the two layouts are genuinely different rather than one
+   squeezed: on a phone the rail is a horizontal scroll strip above the bench,
+   because a vertical rail would eat a third of the width of the only thing
+   worth looking at. From 1024px up it becomes a column, which is the layout
+   that actually scales — a rack of eight benches reads as a list of eight
+   labels, where eight horizontal tabs read as a scrolling problem. */
+.lab-rack {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.2rem;
+  grid-template-columns: 1fr;
+}
+
+.lab-rail {
+  display: flex;
+  gap: 0.35rem;
+  /* The strip scrolls rather than wraps, and snaps, so a swipe lands on a
+     bench instead of halfway between two. `-webkit-overflow-scrolling` is
+     omitted deliberately: it has been the default on iOS for years and the
+     property is non-standard. */
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(120, 128, 145, 0.16);
+  /* Firefox and the standard property. The strip is a navigation control the
+     visitor is already touching — a scrollbar under it adds nothing. */
+  scrollbar-width: none;
+}
+.lab-rail::-webkit-scrollbar { display: none; }
+
+.lab-rail__group {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* The rack name. Hidden on a phone: with the groups laid out in a line, four
+   headings interleaved with the tabs they label is more words than the strip
+   can carry, and the grouping stops being legible anyway once it is one row.
+   It stays in the DOM because every tab's `aria-describedby` points at it. */
+.lab-rail__label {
+  display: none;
+  color: var(--color-ash-dim);
+  font-size: 0.6rem;
+}
+
+.lab-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-ash-dim);
+  /* The active marker is a border on the element itself rather than a sliding
+     pseudo-element. Benches mount and unmount, so a marker that animated
+     between positions would be moving while the panel underneath it changed —
+     two motions competing to explain one action. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  scroll-snap-align: center;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.lab-tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+.lab-tab:hover { color: var(--color-ceramic); }
+.lab-tab.is-on {
+  color: var(--color-cyan);
+  border-bottom-color: var(--color-cyan);
+}
+
+/* The shortcut digit. Sits at the far end of the tab, quiet enough to be
+   ignored and present enough to be found. Hidden below the breakpoint where
+   a physical keyboard is plausible — a digit badge on a touch device
+   advertises a shortcut that device cannot press. */
+.lab-tab__key {
+  display: none;
+  font-size: 0.62rem;
+  color: var(--color-ash-dim);
+  opacity: 0.55;
+}
+
+@media (min-width: 1024px) {
+  .lab-rack {
+    grid-template-columns: minmax(0, 12.5rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 2rem;
+  }
+
+  .lab-rail {
+    flex-direction: column;
+    gap: 1.4rem;
+    overflow-x: visible;
+    padding-bottom: 0;
+    border-bottom: none;
+    /* The rail follows the visitor down a long bench rather than scrolling
+       away from them. `--nav-h` keeps it clear of anything fixed at the top. */
+    position: sticky;
+    top: calc(var(--nav-h) + 1.5rem);
+  }
+
+  .lab-rail__group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+  }
+
+  .lab-rail__label {
+    display: block;
+    margin-bottom: 0.35rem;
+    padding-left: 0.75rem;
+  }
+
+  .lab-tab {
+    justify-content: flex-start;
+    padding: 0.55rem 0.75rem;
+    /* Vertical rail: the marker moves to the leading edge, which is where a
+       column's selection indicator belongs. */
+    border-bottom: none;
+    border-left: 2px solid transparent;
+    margin-bottom: 0;
+    border-radius: 0 2px 2px 0;
+  }
+  .lab-tab:hover { background-color: rgba(120, 128, 145, 0.07); }
+  .lab-tab.is-on {
+    border-bottom-color: transparent;
+    border-left-color: var(--color-cyan);
+    background-color: rgba(0, 229, 255, 0.06);
+  }
+
+  .lab-tab__label { flex: 1; }
+  .lab-tab__key { display: inline; }
+}
+
+/* ── PANEL HEADER ────────────────────────────────────────────────────────
+   What this bench is, which course it is evidence for, and where its engine
+   lives. The course line is the join back to the CV: the education section
+   lists thirteen subjects, and this is one of them with its working shown. */
+.lab-panel__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(120, 128, 145, 0.12);
+}
+
+.lab-panel__course { font-size: 0.62rem; }
+
+.lab-panel__source {
+  font-size: 0.66rem;
+  color: var(--color-ash-dim);
+  opacity: 0.7;
+}
+
+.lab-blurb {
+  max-width: 74ch;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--color-ash);
+}
+
+/* Reserved space for a bench whose chunk is still in flight. A fixed height
+   rather than a collapsing box, so the footer does not jump when the bench
+   arrives — the layout shift would land at the exact moment the visitor
+   clicked something, which reads as the page misbehaving. */
+.lab-bench-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28rem;
+  margin-top: 1.5rem;
+}
+
+.lab-bench-loading__label {
+  font-size: 0.7rem;
+  color: var(--color-ash-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* A tabpanel with tabindex=-1 takes focus programmatically; it must never draw
+   a ring for that, only for real keyboard focus. */
+.lab-panel:focus { outline: none; }
+
+.lab-bench {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+/* ── WHICH BAYS ARE NARROW ────────────────────────────────────────────────
+   Spanning is the default and narrow is the opt-in. It used to be the other way
+   round — a bay took the 320px track unless it declared `.lab-bay--wide` — and
+   inverting it is what closes a hole that was open on every bench in the rack.
+
+   The two tracks below are only ever filled by *two* bays sitting side by side,
+   and only two benches have such a pair. Every other bay is alone on its row.
+   Under the old default a bay that declared nothing landed in the narrow track
+   whether or not anything was going to appear beside it, so:
+
+     · Structures laid out `01 Keys | 02 View`, then `03 Compare` alone in the
+       narrow track — a table comparing three collision strategies rendered at
+       320px with ~592px of nothing beside it.
+     · Compiler laid out `01 Source | 02 Scan`, then `03 Parse` alone. The syntax
+       tree, at 320px, next to the same void.
+
+   Both span now, because spanning is what a bay does unless it says otherwise.
+   Neither bay lost anything: the pairs in row one are unchanged, and the two
+   strays gained the 608px they were being denied.
+
+   ── What is still open, and why it is not papered over ──────────────────
+   The four benches whose only narrow bay is their control panel — sorting,
+   complexity, pathfinding, scheduler — still leave the second cell of row one
+   empty. It cannot be closed by moving the chart into that cell: at the 1240px
+   container cap the cell measures 592px against the 928px a spanning bay gets,
+   and those bays span *precisely* because a narrower column makes their charts
+   and tables scroll sideways. Trading a void for horizontal scrolling on the
+   one thing the page exists to show is not a fix.
+
+   The real answer is a full-width control strip above the chart, and it needs
+   three things settled against a real browser rather than guessed at here: a
+   note that annotates one specific control has to stay with it once the body
+   wraps, `.lab-seed`'s top border stops reading as a divider the moment it is
+   not at the foot of a vertical stack, and the scheduler's four-column process
+   table has a real minimum width that decides how many controls fit on a line. */
+@media (min-width: 1024px) {
+  .lab-bench {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .lab-bay {
+    grid-column: 1 / -1;
+  }
+
+  /* Auto-placement rather than an explicit track number: two consecutive narrow
+     bays drop into the two columns in source order, and a narrow bay following a
+     spanning one starts a fresh row instead of being pinned to a column that is
+     already behind it. */
+  .lab-bay--narrow {
+    grid-column: auto;
+  }
+}
+
+/* ---------- Bays ---------- */
+
+.lab-bay {
+  padding: 1.1rem 1.15rem 1.25rem;
+}
+
+.lab-bay__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.lab-bay__n {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--color-amber);
+  letter-spacing: 0.1em;
+}
+
+.lab-bay__title {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ceramic);
+}
+
+.lab-bay__note {
+  margin-top: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--color-ash-dim);
+}
+
+.lab-bay__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 1.1rem;
+}
+
+/* ---------- Fields ---------- */
+
+.lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lab-field__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+
+.lab-field__value {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-cyan);
+}
+
+.lab-field__hint {
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--color-ash-dim);
+}
+
+.lab-note {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-ash);
+}
+.lab-note code {
+  font-family: var(--font-code);
+  font-size: 0.9em;
+  color: var(--color-cyan);
+}
+.lab-note strong { color: var(--color-ceramic); }
+
+.lab-empty {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-ash-dim);
+  padding: 1rem 0;
+}
+
+/* ---------- Segmented control ---------- */
+
+.lab-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: rgba(9, 10, 15, 0.72);
+  border: 1px solid rgba(120, 128, 145, 0.18);
+  border-radius: var(--r-2);
+}
+
+/* A caller passing `columns` overrides grid-template-columns inline, which only
+   takes effect if the auto-flow is not forcing a single row. */
+.lab-seg[style*='grid-template-columns'] {
+  grid-auto-flow: row;
+}
+
+.lab-seg__opt {
+  padding: 0.5rem 0.4rem;
+  border-radius: var(--r-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--color-ash);
+  transition: background 0.18s ease, color 0.18s ease;
+  min-height: 2.15rem;
+}
+.lab-seg__opt:hover { color: var(--color-ceramic); }
+.lab-seg__opt.is-on {
+  background: linear-gradient(180deg, var(--color-titanium-2) 0%, var(--color-titanium) 100%);
+  color: var(--color-cyan);
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.22);
+}
+
+/* ---------- Range inputs ---------- */
+
+.lab-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.lab-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: rgba(120, 128, 145, 0.28);
+  border-radius: 2px;
+}
+.lab-range::-moz-range-track {
+  height: 3px;
+  background: rgba(120, 128, 145, 0.28);
+  border-radius: 2px;
+}
+.lab-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--color-cyan);
+  box-shadow: 0 0 9px rgba(0, 229, 255, 0.5);
+}
+.lab-range::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-cyan);
+  box-shadow: 0 0 9px rgba(0, 229, 255, 0.5);
+}
+/* The scrubber is the playhead, so it reads amber — the machine's colour for
+   "this is a position in time" rather than cyan's "this is a value". */
+.lab-range--scrub::-webkit-slider-thumb {
+  background: var(--color-amber);
+  box-shadow: 0 0 9px rgba(255, 140, 0, 0.5);
+}
+.lab-range--scrub::-moz-range-thumb {
+  background: var(--color-amber);
+  box-shadow: 0 0 9px rgba(255, 140, 0, 0.5);
+}
+
+/* ---------- Transport ---------- */
+
+.lab-transport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lab-transport__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lab-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 40px square: the WCAG 2.5.8 minimum target is 24px and the practical floor
+     for a thumb is around 40, which is what these are sized to rather than to
+     the icon they contain. */
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--r-2);
+  border: 1px solid rgba(120, 128, 145, 0.2);
+  background: linear-gradient(180deg, var(--color-titanium) 0%, #14161c 100%);
+  color: var(--color-ash);
+  transition: color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+}
+.lab-icon-btn svg { width: 16px; height: 16px; }
+.lab-icon-btn:hover:not(:disabled) {
+  color: var(--color-ceramic);
+  border-color: rgba(120, 128, 145, 0.38);
+}
+.lab-icon-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+.lab-icon-btn.is-primary {
+  color: var(--color-amber);
+  border-color: rgba(255, 140, 0, 0.32);
+}
+.lab-icon-btn.is-primary:hover:not(:disabled) {
+  color: var(--color-amber);
+  border-color: rgba(255, 140, 0, 0.6);
+}
+
+.lab-transport__pos {
+  margin-left: auto;
+  font-family: var(--font-code);
+  font-size: 0.76rem;
+  color: var(--color-ash-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Bars ---------- */
+
+.lab-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: clamp(150px, 30vh, 260px);
+  padding: 0.5rem;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0) 60%),
+    rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+}
+
+.lab-bar {
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 1px 1px 0 0;
+  background: var(--color-titanium-3);
+  /* Only height and background transition, and only briefly: at 8x the
+     playhead advances several steps per frame, so a long transition would
+     smear the state rather than show it. */
+  transition: height 90ms linear, background-color 90ms linear;
+}
+/* Finished positions go cool and stay lit — the sort's progress is legible as
+   the amount of cyan, without needing to read the counters. */
+.lab-bar.is-settled { background: var(--color-cyan-dim); }
+.lab-bar.is-compare { background: var(--color-ceramic); }
+.lab-bar.is-swap { background: var(--color-amber); }
+.lab-bar.is-overwrite { background: var(--color-amber-dim); }
+.lab-bar.is-settle { background: var(--color-cyan); }
+.lab-bar.is-pivot {
+  background: var(--color-alert);
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.5);
+}
+
+.lab-step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  min-height: 1.4rem;
+}
+
+.lab-step__kind {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+.lab-step__kind.is-compare { color: var(--color-ceramic); }
+.lab-step__kind.is-swap { color: var(--color-amber); }
+.lab-step__kind.is-overwrite { color: var(--color-amber-dim); }
+.lab-step__kind.is-settle { color: var(--color-cyan); }
+.lab-step__kind.is-pivot { color: var(--color-alert); }
+/* Pathfinding kinds, coloured to match the cells they describe: settling is
+   cyan like a settled cell, discovering is amber like the frontier, and the two
+   endings — reaching the goal and walking the route back — are the brightest
+   thing in the readout because they are what the search was for. */
+.lab-step__kind.is-expand { color: var(--color-cyan); }
+.lab-step__kind.is-discover { color: var(--color-amber-dim); }
+.lab-step__kind.is-improve { color: var(--color-amber); }
+.lab-step__kind.is-reach { color: var(--color-ceramic); }
+.lab-step__kind.is-route { color: var(--color-ceramic); }
+/* Scheduler kinds. `is-run` is cyan to match the bars in the Gantt chart, and
+   `is-idle` is the dimmest thing in the readout because an idle tick is the one
+   step where the scheduler did nothing — it should read as absence, not event.
+   Preemption gets the alert colour: it is the only step that takes something
+   away from a process that had not finished with it. */
+.lab-step__kind.is-arrive { color: var(--color-amber-dim); }
+.lab-step__kind.is-dispatch { color: var(--color-amber); }
+.lab-step__kind.is-run { color: var(--color-cyan); }
+.lab-step__kind.is-preempt { color: var(--color-alert); }
+.lab-step__kind.is-complete { color: var(--color-ceramic); }
+.lab-step__kind.is-idle { color: var(--color-ash-dim); }
+/* Structures kinds, matching the figures below them. `is-compare` is already
+   declared above by the sorting bench and deliberately reused: a tree walk and
+   an insertion sort are asking the same question of two keys, and giving that
+   word two colours in one lab would imply a distinction that does not exist.
+   `is-rotate` and `is-collide` take the alert colour on the same grounds as
+   `is-preempt` — each is the moment the structure has to undo an assumption a
+   previous step had already settled on, which is the cost the bench is about. */
+.lab-step__kind.is-attach { color: var(--color-cyan); }
+.lab-step__kind.is-retrace { color: var(--color-amber-dim); }
+.lab-step__kind.is-rotate { color: var(--color-alert); }
+.lab-step__kind.is-settled { color: var(--color-ceramic); }
+.lab-step__kind.is-hash { color: var(--color-amber-dim); }
+.lab-step__kind.is-collide { color: var(--color-alert); }
+.lab-step__kind.is-place { color: var(--color-cyan); }
+/* The table refused the key. The dimmest entry in the readout for the same
+   reason `is-idle` is: it is the one step where nothing was placed. */
+.lab-step__kind.is-give-up { color: var(--color-ash-dim); }
+
+
+.lab-step__idx {
+  color: var(--color-ash);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Stats ---------- */
+
+.lab-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+}
+
+.lab-stat__k {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+
+.lab-stat__v {
+  margin-top: 0.25rem;
+  font-family: var(--font-code);
+  font-size: 1.05rem;
+  color: var(--color-ceramic);
+  font-variant-numeric: tabular-nums;
+}
+.lab-stat__v.is-cyan { color: var(--color-cyan); }
+.lab-stat__v.is-amber { color: var(--color-amber); }
+
+/* ---------- Tables ---------- */
+
+/* The wrapper scrolls, not the table: a table that is itself the scroll
+   container loses its sticky header, and on a phone the IR listing is wider
+   than any viewport. */
+.lab-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+}
+
+.lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.lab-table th,
+.lab-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(120, 128, 145, 0.1);
+}
+
+.lab-table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+  background: rgba(9, 10, 15, 0.6);
+}
+
+.lab-table tbody th {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  color: var(--color-ceramic);
+}
+
+.lab-table tbody tr:last-child th,
+.lab-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lab-table tbody tr.is-current {
+  background: rgba(0, 229, 255, 0.05);
+}
+.lab-table tbody tr.is-current th {
+  box-shadow: inset 2px 0 0 var(--color-cyan);
+}
+
+.lab-table .is-mono {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ash);
+}
+.lab-table .is-cyan { color: var(--color-cyan); }
+.lab-table .is-amber { color: var(--color-amber); }
+
+.lab-ir__n { color: var(--color-ash-dim) !important; }
+.lab-ir__code { color: var(--color-ceramic) !important; }
+
+/* ---------- Sorting bench extras ---------- */
+
+.lab-shuffle {
+  align-self: flex-start;
+}
+
+/*
+ * The seed block: the number, the two actions, and the note.
+ *
+ * Grouped in one container rather than dropped straight into the bay so the
+ * three read as one idea — "this run has a name, here is how to change it and
+ * how to send it". The top rule is the only separator; a full border would make
+ * a second card inside a card.
+ */
+.lab-seed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-titanium-2);
+}
+
+.lab-seed__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.lab-seed__key {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+
+/*
+ * `tabular-nums` so re-rolling from 7 to 4821 does not shove the label around,
+ * and `font-code` because this is a value meant to be retyped, not read.
+ */
+.lab-seed__val {
+  font-family: var(--font-code);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-cyan);
+}
+
+.lab-seed__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The button sizes itself in `.lab-seed__acts`; the standalone rule above is
+   for bays that use it without the seed block. */
+.lab-seed__acts .lab-shuffle {
+  align-self: auto;
+}
+
+/* ---------- Pathfinding grid ---------- */
+/*
+ * Up to 900 cells, re-rendered on every frame of the playhead.
+ *
+ * ── Why the column count arrives as a custom property ──────────────────
+ * `--lab-cols` is set inline by the bench and read here, so the grid template
+ * lives in the stylesheet instead of being reassembled as a style string in
+ * React on every width change. It also means the one dynamic number is the only
+ * inline style on the element.
+ *
+ * ── Why the cells carry no text and no focus ───────────────────────────
+ * `role="img"` on the container with a written label, and inert `<span>`s
+ * inside. Making each cell focusable would put 900 stops in the tab order to
+ * communicate something a screen reader cannot usefully assemble anyway — the
+ * interesting content is the *shape* of the exploration, which is why the
+ * container's label describes it in a sentence and the counters below state the
+ * numbers exactly.
+ *
+ * ── Why terrain is a texture and state is a colour ─────────────────────
+ * Rough ground keeps a striped `background-image` while every search state sets
+ * only `background-color`. Two consequences, both wanted: a settled rough cell
+ * still visibly reads as rough, so the reason Dijkstra swerved around it stays
+ * on screen; and the terrain distinction is not carried by hue alone, which is
+ * the one distinction here a colour-blind visitor most needs to keep.
+ */
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--lab-cols, 21), 1fr);
+  gap: 1px;
+  /* Capped and centred rather than filling the bay: at 11 columns an unbounded
+     grid would render cells the size of buttons, which invites clicking things
+     that do nothing. */
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+  padding: 3px;
+  background: rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+  /* Hundreds of children whose colours change every frame; `contain` keeps that
+     work from invalidating layout for the rest of the panel. */
+  contain: layout paint;
+}
+
+.lab-cell {
+  /* Square cells with no explicit height: the row count follows from the column
+     count, so the grid stays honest about the map's proportions at any width. */
+  aspect-ratio: 1;
+  min-height: 4px;
+  border-radius: 1px;
+  background-color: var(--color-titanium-3);
+  /* Same 90ms as the sorting bars, and for the same reason: at 8× the playhead
+     advances several steps per frame, so a slower transition would smear the
+     frontier instead of showing it. */
+  transition: background-color 90ms linear;
+}
+
+/* Terrain. Declared before the search states so a settled cell takes the
+   state's colour, while the stripes — an image, not a colour — survive it. */
+.lab-cell.is-rough {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.38) 0 2px,
+    rgba(0, 0, 0, 0) 2px 4px
+  );
+}
+.lab-cell.is-wall {
+  background-color: var(--color-carbon-2);
+  background-image: none;
+}
+
+/* Search state, in the order it happens: discovered, settled, then on the
+   route. Source order is the tie-breaker, since every one of these is a single
+   class on the same element. */
+.lab-cell.is-frontier { background-color: var(--color-amber-dim); }
+.lab-cell.is-settled { background-color: var(--color-cyan-dim); }
+.lab-cell.is-route { background-color: var(--color-amber); }
+
+/*
+ * Endpoints and the cell being expanded, as inset rings rather than fills.
+ *
+ * A ring leaves the cell's state colour showing through, which matters at the
+ * end of a run: the goal has to be identifiable *and* visibly on the route at
+ * the same time. A fill would hide whichever of the two was declared first.
+ */
+.lab-cell.is-start { box-shadow: inset 0 0 0 2px var(--color-cyan); }
+.lab-cell.is-goal { box-shadow: inset 0 0 0 2px var(--color-ceramic); }
+.lab-cell.is-head {
+  background-color: var(--color-ceramic);
+  box-shadow: 0 0 6px rgba(226, 232, 240, 0.55);
+}
+
+@media (max-width: 767px) {
+  /* The grid is the widest fixed-aspect thing in the lab; on a narrow screen it
+     gets the full column and the padding comes off. */
+  .lab-grid {
+    max-width: 100%;
+    padding: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Cells still change colour — that is the data, not decoration — they just
+     change immediately instead of easing. */
+  .lab-cell {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  /*
+   * `forced-color-adjust: none`, on the same grounds as the status LEDs: which
+   * cells a search touched is the entire content of this element, and forced
+   * colours would flatten explored, unexplored and wall into one another.
+   */
+  .lab-cell {
+    forced-color-adjust: none;
+  }
+  .lab-cell.is-head,
+  .lab-cell.is-route {
+    background-color: Highlight;
+  }
+}
+
+/* ==================================================================
+   SCHEDULER — process identity, Gantt chart, ready queue
+   ================================================================== */
+
+/* ---------- Process identity ----------
+ *
+ * Eight hues, assigned by process id and used by four things at once: the chip
+ * in the process table, the row header in the chart, the bars in the chart, and
+ * the pills in the ready queue. One custom property per class rather than one
+ * rule per (class × element), so a process's colour is defined once and every
+ * surface that needs it reads `--p`.
+ *
+ * ── Why the hues are not evenly spaced around the wheel ────────────────
+ * They are spaced to stay distinguishable *from each other* on this background,
+ * which is not the same thing. An even spread puts two of eight in the muddy
+ * greens that sit closest to the panel's own value, and those two processes
+ * become the pair nobody can tell apart. The first two are the machine's own
+ * cyan and amber, so a three-process workload — the common case — is drawn
+ * entirely in the site's existing palette.
+ *
+ * ── Why colour is never the only signal ───────────────────────────────
+ * Every bar sits in a labelled row, and every cell carries a screen-reader-only
+ * word saying what it is. The hue tells you *which* process at a glance; the row
+ * header and the text tell you regardless of whether you can see hue at all.
+ * Eight distinguishable colours is not a promise that can be kept for every
+ * visitor, so nothing depends on it.
+ */
+.lab-chip,
+.lab-gantt__cell.is-run,
+.lab-queue__item {
+  --p: var(--color-ash);
+}
+.is-p0 { --p: #00e5ff; }
+.is-p1 { --p: #ff8c00; }
+.is-p2 { --p: #7dd87d; }
+.is-p3 { --p: #c792ea; }
+.is-p4 { --p: #ffd866; }
+.is-p5 { --p: #ff6b8a; }
+.is-p6 { --p: #6fa8ff; }
+.is-p7 { --p: #4dd6c1; }
+
+/* The dot beside a process name. Inline-block with a fixed size rather than a
+   pseudo-element so it can sit inside a table header cell without fighting the
+   cell's own text baseline. */
+.lab-chip {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.45rem;
+  border-radius: 2px;
+  background: var(--p);
+  vertical-align: baseline;
+}
+
+/* ---------- Gantt chart ----------
+ *
+ * A real `<table>`: rows are processes, columns are ticks, and the bars are cell
+ * backgrounds. See the note at the top of SchedulerBench.tsx for why this is not
+ * a stack of positioned divs.
+ *
+ * ── Why the wrapper scrolls and the table does not ────────────────────
+ * Same reason as `.lab-table-wrap`: a table that is its own scroll container
+ * loses sticky positioning on its row headers, and the row header is the one
+ * thing that must stay on screen while the ticks scroll past. A 112-tick run at
+ * a legible cell width is wider than any phone.
+ */
+.lab-gantt-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem;
+  background: rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+  /* Dozens of cells changing colour as the playhead advances; `contain` keeps
+     that off the rest of the panel's layout. */
+  contain: layout paint;
+}
+
+.lab-gantt {
+  border-collapse: separate;
+  border-spacing: 2px;
+  /* `auto` with a fixed minimum width per cell is what lets a short run fill
+     the bay and a long one scroll, instead of a 112-tick chart squeezing every
+     cell down to a hairline. A `fixed` table would divide the available width
+     by the tick count and do exactly that. */
+  table-layout: auto;
+}
+
+.lab-gantt__corner,
+.lab-gantt__who {
+  /* Pinned, so the process a bar belongs to is readable at any scroll offset.
+     The background is opaque: the cells scrolling underneath it would otherwise
+     show through, which reads as a rendering fault rather than as a header. */
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-carbon);
+  padding-right: 0.6rem;
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-ceramic);
+}
+
+.lab-gantt__tick {
+  padding: 0 0 0.3rem;
+  font-family: var(--font-code);
+  font-size: 0.58rem;
+  font-weight: 400;
+  text-align: center;
+  color: var(--color-ash-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-gantt__cell {
+  /* Wide enough to read as a block rather than a line, narrow enough that a
+     full-length run is a reasonable scroll. */
+  min-width: 15px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  /* An arrived-but-not-running process. Faint rather than absent: the whole
+     point of the chart is that waiting is visible. */
+  background: var(--color-titanium);
+  transition: background-color 90ms linear;
+}
+
+/* Held the CPU this tick. The process's own hue at full strength — this is the
+   only thing in the chart that is meant to be loud. */
+.lab-gantt__cell.is-run {
+  background: var(--p);
+}
+
+/* Arrived and waiting. A touch above the not-yet-arrived cells, so the moment a
+   process enters the system is visible as a change in the row. */
+.lab-gantt__cell.is-waiting {
+  background: var(--color-titanium-2);
+}
+
+/*
+ * Not simulated yet — the region ahead of the playhead.
+ *
+ * Deliberately different from both idle and waiting: a half-scrubbed chart and
+ * a finished chart with a gap in it are different facts, and drawing them the
+ * same way would make the scrubber look like it was inventing idle time.
+ * Transparent, so it reads as absence rather than as a state.
+ */
+.lab-gantt__cell.is-pending {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(120, 128, 145, 0.1);
+}
+
+/* The CPU had nothing to run. Striped rather than coloured, so "idle" is
+   distinguishable from every process hue without competing for one. */
+.lab-gantt__cell.is-idle {
+  background-color: var(--color-carbon-2);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(120, 128, 145, 0.22) 0 2px,
+    rgba(0, 0, 0, 0) 2px 5px
+  );
+}
+
+/* The tick the playhead is on, marked as a ring so the cell's own state shows
+   through — the current tick is usually the most interesting one on the chart
+   and hiding its colour to point at it would be self-defeating. */
+.lab-gantt__cell.is-now {
+  box-shadow: inset 0 0 0 1px var(--color-ceramic);
+}
+
+/* The CPU's own row, separated by a rule: it is a summary of the rows above
+   rather than another process. */
+.lab-gantt__cpu > * {
+  border-top: 1px solid rgba(120, 128, 145, 0.18);
+  padding-top: 0.35rem;
+}
+.lab-gantt__cpu .lab-gantt__who {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--color-ash-dim);
+}
+
+/* ---------- Ready queue ---------- */
+/* The queue in the policy's own order, front first. A row of pills rather than a
+   comma-joined string, so each process keeps its colour and its remaining time
+   travels with it. */
+.lab-queue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+}
+
+.lab-queue__key {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+  margin-right: 0.15rem;
+}
+
+.lab-queue__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--p) 45%, transparent);
+  background: color-mix(in srgb, var(--p) 10%, transparent);
+  color: var(--p);
+  font-family: var(--font-code);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+/* Burst still owed. Dimmer than the name: it is the reason the process is in
+   the queue, not its identity. */
+.lab-queue__left {
+  font-size: 0.62rem;
+  color: var(--color-ash);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An empty queue is a real and interesting state — it is the only condition
+   under which the CPU is allowed to idle — so it is stated rather than left
+   blank. */
+.lab-queue__empty {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--color-ash-dim);
+}
+
+/* A table sitting inside a bay beside other controls rather than being the
+   bay's whole content. Tighter rows and smaller type so it reads as a readout
+   instead of as a second panel. */
+.lab-table--tight {
+  font-size: 0.74rem;
+}
+.lab-table--tight th,
+.lab-table--tight td {
+  padding: 0.4rem 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Cells still change colour — that is the data — they just stop easing. */
+  .lab-gantt__cell { transition: none; }
+}
+
+@media (forced-colors: active) {
+  /*
+   * `forced-color-adjust: none` on the same grounds as the LEDs and the
+   * pathfinding cells: which process held the CPU at which tick is the entire
+   * content of this element, and eight hues flattened into one system colour
+   * would leave a chart with no information in it.
+   */
+  .lab-gantt__cell,
+  .lab-chip {
+    forced-color-adjust: none;
+  }
+  .lab-gantt__cell.is-now {
+    box-shadow: inset 0 0 0 2px Highlight;
+  }
+  .lab-gantt-wrap { border: 1px solid CanvasText; }
+}
+
+/* ---------- Compiler probe block ---------- */
+/* The differential-test readout: which values the three interpreters were given,
+   the badge saying whether they agreed, and why those values were chosen. Set
+   apart with a rule and a tint because it is evidence about the panel above it
+   rather than more output from the same pass. */
+.lab-probe {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-titanium-2);
+}
+
+.lab-probe__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.lab-probe__env {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Each binding is a chip rather than one comma-joined string, so a long
+   expression's variables wrap per name instead of breaking mid-assignment. */
+.lab-probe__bind {
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--color-titanium-2);
+  border-radius: 3px;
+  background: var(--color-carbon-2);
+  color: var(--color-cyan);
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+
+/* ---------- Self-check badge ---------- */
+/* A pass and a failure are the same layout in two colours, driven off one
+   variable. Two separate rule sets would drift: the failure state is seen far
+   less often, so it is the one that would quietly lose a padding change. */
+
+.lab-verify {
+  --verify: var(--color-cyan);
+  padding: 0.7rem 0.85rem 0.75rem;
+  border-radius: var(--r-2);
+  border: 1px solid color-mix(in srgb, var(--verify) 30%, transparent);
+  background: color-mix(in srgb, var(--verify) 6%, transparent);
+}
+.lab-verify.is-fail { --verify: var(--color-alert); }
+
+.lab-verify__head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--verify);
+}
+.lab-verify__head svg { width: 13px; height: 13px; flex: none; }
+
+/* Pushed to the far end so the count sits under the eye's second stop, after
+   the label — "self-check … 2 of 2 passed" reads as a sentence. */
+.lab-verify__score {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ash);
+  letter-spacing: 0.08em;
+}
+
+.lab-verify__list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lab-verify__item {
+  display: grid;
+  /* The mark is a fixed column so every claim's text starts on the same
+     vertical line — a ✓ and a ✗ do not have the same advance width in every
+     font, and letting them set the indent makes the list look ragged. */
+  grid-template-columns: 0.9rem minmax(0, 1fr);
+  gap: 0 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--color-ash);
+}
+
+.lab-verify__mark {
+  font-family: var(--font-mono);
+  color: var(--verify);
+}
+.lab-verify__item.is-fail .lab-verify__mark { color: var(--color-alert); }
+
+.lab-verify__text { color: var(--color-ceramic); }
+
+/* The measurement behind the claim: "48 of 48 in order". Second column so it
+   aligns under the claim rather than under the mark. */
+.lab-verify__detail {
+  grid-column: 2;
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ash-dim);
+}
+.lab-verify__item.is-fail .lab-verify__detail { color: var(--color-alert); }
+
+/* Forced colours drops both the tint and the border wash, which is what
+   distinguishes a pass from a failure here. The mark stays, so the state is
+   still legible — but the frame has to come back as a system border or the
+   badge dissolves into the panel behind it. */
+@media (forced-colors: active) {
+  .lab-verify { border: 1px solid CanvasText; }
+  .lab-verify.is-fail { border-color: LinkText; }
+}
+
+/* ---------- Copy to clipboard ---------- */
+
+.lab-copy {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+/* Smaller than a page-level `.btn`: this is a utility beside a value, not a
+   call to action, and at full size it would outweigh the thing it copies. */
+.lab-copy__btn {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+}
+
+.lab-copy__said {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  line-height: 1.4;
+  color: var(--color-ash-dim);
+}
+.lab-copy__said.is-fail { color: var(--color-alert); }
+
+/* An empty live region must not reserve a line — the layout would shift the
+   moment it filled, and an empty box with a margin looks like a rendering bug
+   in a panel this dense. */
+.lab-copy__said:empty { display: none; }
+
+/* ---------- Compiler: source ---------- */
+
+.lab-src {
+  font-family: var(--font-code);
+  font-size: 0.95rem;
+  /* 16px minimum on iOS, or Safari zooms the page on focus. clamp keeps it at
+     the design size on a desktop and lifts it to 16px on a phone. */
+  letter-spacing: 0;
+}
+
+@media (max-width: 767px) {
+  .lab-src { font-size: 16px; }
+}
+
+/* Sits directly under the input in the same face and size, so the caret column
+   lines up with the character it is pointing at. */
+.lab-caret {
+  font-family: var(--font-code);
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--color-alert);
+  /* Matches the .field horizontal padding so column 0 starts where the text
+     does rather than at the border. */
+  padding-left: 0.75rem;
+  margin-top: 0.2rem;
+  white-space: pre;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .lab-caret { font-size: 16px; }
+}
+
+.lab-error,
+.lab-ok,
+.lab-warn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.lab-error { color: var(--color-alert); }
+.lab-ok { color: var(--color-cyan-dim); }
+.lab-warn {
+  color: var(--color-amber);
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 140, 0, 0.07);
+  border-left: 2px solid var(--color-amber);
+  border-radius: 0 6px 6px 0;
+  display: block;
+}
+
+.lab-error__stage {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---------- Compiler: examples ---------- */
+
+.lab-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lab-example {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  border: 1px solid rgba(120, 128, 145, 0.16);
+  border-radius: var(--r-2);
+  background: rgba(9, 10, 15, 0.4);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.lab-example:hover { border-color: rgba(120, 128, 145, 0.4); }
+.lab-example.is-on {
+  border-color: rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.lab-example__src {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: var(--color-cyan);
+}
+
+.lab-example__shows {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-ash-dim);
+  white-space: normal;
+}
+
+/* ---------- Compiler: tokens ---------- */
+
+.lab-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.lab-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--r-2);
+  background: rgba(9, 10, 15, 0.55);
+  border: 1px solid rgba(120, 128, 145, 0.16);
+}
+
+.lab-token__text {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  color: var(--color-ceramic);
+}
+
+.lab-token__kind {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+
+/* Coloured by role: values cyan, operators amber, structure neutral. */
+.lab-token.is-ident .lab-token__text { color: var(--color-cyan); }
+.lab-token.is-number .lab-token__text { color: var(--color-ceramic); }
+.lab-token.is-op .lab-token__text { color: var(--color-amber); }
+.lab-token.is-punct .lab-token__text { color: var(--color-ash); }
+
+/* ---------- Compiler: AST ---------- */
+
+.lab-ast__target {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.lab-ast__target code {
+  font-family: var(--font-code);
+  font-size: 0.9rem;
+  color: var(--color-cyan);
+}
+
+.lab-ast,
+.lab-ast__ul {
+  list-style: none;
+}
+
+/* Nested lists indent and draw their own connectors, so the visual tree is the
+   semantic tree — see the note in CompilerBench.tsx. */
+.lab-ast__ul {
+  margin-left: 0.85rem;
+  padding-left: 0.9rem;
+  border-left: 1px solid rgba(120, 128, 145, 0.22);
+}
+
+.lab-ast__li {
+  position: relative;
+  padding-top: 0.3rem;
+}
+
+/* The elbow from the parent's spine to this node. */
+.lab-ast__ul > .lab-ast__li::before {
+  content: '';
+  position: absolute;
+  left: -0.9rem;
+  top: 1rem;
+  width: 0.75rem;
+  height: 1px;
+  background: rgba(120, 128, 145, 0.22);
+}
+
+.lab-ast__node {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: var(--r-2);
+  background: rgba(26, 28, 35, 0.85);
+  border: 1px solid rgba(120, 128, 145, 0.16);
+}
+
+.lab-ast__text {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  color: var(--color-ceramic);
+}
+
+.lab-ast__type {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ash-dim);
+}
+
+.lab-ast__node.is-binary .lab-ast__text,
+.lab-ast__node.is-unary .lab-ast__text {
+  color: var(--color-amber);
+}
+.lab-ast__node.is-var .lab-ast__text { color: var(--color-cyan); }
+
+/* ---------- Structures: the key strip ---------- */
+/* The insertion order, stated once at the top of the bench. Both structures are
+   built from this exact sequence, so it belongs to neither of them. */
+.lab-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-height: 1.6rem;
+}
+
+.lab-keys__k {
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid rgba(120, 128, 145, 0.18);
+  background: rgba(9, 10, 15, 0.5);
+  color: var(--color-ash);
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Structures: the tree ----------
+ *
+ * A CSS grid of nodes with one SVG underneath for the edges. See the note above
+ * `TreeFigure` for why the labels are DOM text and only the wires are SVG.
+ *
+ * ── Why every track is a flat length, not a fraction of the content ────
+ * `TreeFigure` computes each line end as `((x + 0.5) / columns) * 100` inside a
+ * 0–100 viewBox, which is only the centre of cell `x` while every column is the
+ * same width — and the same for rows. So the templates are `1fr` columns and a
+ * fixed row height, both of which are provably uniform. An `auto` or
+ * `minmax(_, auto)` track would let one row grow around a taller node and slide
+ * every wire below it off its target.
+ *
+ * ── Why the wires are inset by the padding, not by zero ───────────────
+ * The SVG's containing block is the padding box; the grid tracks live in the
+ * content box. Insetting the overlay by the same `--lab-tree-pad` the container
+ * pads by makes the two boxes identical, which is the whole basis of the
+ * alignment above. The padding itself is there so a node in the first or last
+ * column has room to sit in without touching the border.
+ */
+
+.lab-tree {
+  --lab-tree-pad: 0.55rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--lab-tree-cols, 1), 1fr);
+  grid-template-rows: repeat(var(--lab-tree-rows, 1), 1.9rem);
+  place-items: center;
+  padding: var(--lab-tree-pad);
+  background: rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+}
+
+.lab-tree__wires {
+  position: absolute;
+  inset: var(--lab-tree-pad);
+  pointer-events: none;
+}
+
+.lab-tree__wires line {
+  stroke: rgba(120, 128, 145, 0.3);
+  stroke-width: 1;
+}
+
+/* The walk taken to place the current key. Amber for the same reason the
+   pathfinding route is amber: it is the answer to "how did it get here?". */
+.lab-tree__wires line.is-path {
+  stroke: var(--color-amber);
+  stroke-width: 1.5;
+}
+
+/*
+ * A node. Sized by its own text rather than by its cell, and allowed to spill:
+ * a 14-key tree fills 14 of ~140 cells, so neighbours in a row are far apart and
+ * a two-digit key on a narrow screen would rather overflow a 22px cell than be
+ * truncated inside it.
+ */
+.lab-node {
+  position: relative;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 128, 145, 0.28);
+  background: var(--color-titanium);
+  color: var(--color-ash);
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  white-space: nowrap;
+  /* Same 90ms as the sorting bars and the pathfinding cells: at 8× the playhead
+     advances several steps a frame, and anything slower smears the walk instead
+     of showing it. */
+  transition: background-color 90ms linear, border-color 90ms linear, color 90ms linear;
+}
+
+/* Declared in the order the insert happens — compared along a path, then links
+   rewritten, then the new key settles — so a node that is two of these at once
+   shows the later one. Source order is the whole tie-break: each of these is a
+   single class on the same element. */
+.lab-node.is-path {
+  border-color: rgba(255, 140, 0, 0.5);
+  color: var(--color-ceramic);
+}
+
+/* Rotated this step. The alert colour, and the only place in the bench that uses
+   it: a rotation is the one thing that rewrites links a previous insert had
+   already settled, which is exactly what AVL is paying for. */
+.lab-node.is-touched {
+  border-color: var(--color-alert);
+  background: color-mix(in srgb, var(--color-alert) 18%, var(--color-titanium));
+  color: var(--color-ceramic);
+}
+
+.lab-node.is-new {
+  border-color: var(--color-cyan);
+  background: color-mix(in srgb, var(--color-cyan) 16%, var(--color-titanium));
+  color: var(--color-ceramic);
+}
+
+/* ---------- Structures: the hash table ----------
+ *
+ * ── Why one scrolling row and not a wrapping grid ─────────────────────
+ * `auto-fit` would wrap 31 slots onto two lines and fit any screen, but the
+ * argument this figure exists to make is about *clustering* — linear probing
+ * grows one long run, double hashing does not — and a run that straddles a wrap
+ * reads as two short ones. So the row stays a row, and `minmax(2rem, 1fr)`
+ * decides what that costs: 11 slots divide the bay, 31 hit the floor and the
+ * list scrolls. Same bargain as `.lab-gantt`'s `table-layout: auto`.
+ */
+
+.lab-slots {
+  display: grid;
+  grid-template-columns: repeat(var(--lab-slots, 13), minmax(2rem, 1fr));
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+}
+
+.lab-slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.1rem;
+  border-radius: 4px;
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  background: var(--color-carbon-2);
+  transition: background-color 90ms linear, border-color 90ms linear;
+}
+
+/* The slot's index in the array. Always shown, including on empty slots: the
+   probe ordinals only mean something if the arithmetic that produced them can be
+   checked against the index it landed on. */
+.lab-slot__i {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ash-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-slot__k {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--color-ceramic);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Where this slot fell in the current key's probe sequence. Set apart in the
+   corner rather than in the stack, because it belongs to the key being placed
+   and not to the slot — it changes on the next insert while the slot's contents
+   do not. */
+.lab-slot__n {
+  position: absolute;
+  top: -1px;
+  right: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--color-amber);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An empty slot prints a middle dot rather than nothing, so a run of occupied
+   slots has a visible edge and the clustering above is legible at a glance. */
+.lab-slot.is-empty .lab-slot__k { color: var(--color-ash-dim); }
+.lab-slot.is-full {
+  background: var(--color-titanium);
+  border-color: rgba(120, 128, 145, 0.3);
+}
+
+/* Visited while placing the current key — occupied or not, since a probe that
+   finds an empty slot is how the search ends. */
+.lab-slot.is-probed { border-color: rgba(255, 140, 0, 0.55); }
+
+/* Where the key actually went. Cyan, matching `is-place` in the readout and the
+   settled colour everywhere else in the lab. */
+.lab-slot.is-at {
+  border-color: var(--color-cyan);
+  background: color-mix(in srgb, var(--color-cyan) 16%, var(--color-titanium));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Nodes and slots still change colour — that is the data — they just stop
+     easing, as with the sorting bars and the pathfinding cells. */
+  .lab-node,
+  .lab-slot { transition: none; }
+}
+
+@media (forced-colors: active) {
+  /*
+   * These two figures need no `forced-color-adjust: none`, and that is worth
+   * stating rather than leaving as an omission.
+   *
+   * The pathfinding grid and the Gantt chart have to override the mode because
+   * their content *is* colour: a cell carries no text, so flattening the hues
+   * empties the element. Here every fact is already a character — the key in
+   * each node, the key or `·` in each slot, and the probe ordinal on each
+   * visited slot — so occupancy, contents and probe order all survive the mode
+   * intact, and the step line states the current step in words besides.
+   *
+   * What the mode does flatten is the two "you are here" marks, which are
+   * carried by border colour alone. Those come back as `Highlight` rings, the
+   * one accent the mode guarantees.
+   */
+  .lab-node.is-touched,
+  .lab-slot.is-at {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .lab-tree,
+  .lab-slots { border: 1px solid CanvasText; }
+}
+
+/* ---------- Growth plot ----------
+ *
+ * A log-log chart of measured cost against array size. Both axes are already
+ * logarithmic in the component — `xAt` and `yAt` take log2 before scaling — so
+ * everything here is plain linear geometry in the viewBox's user units.
+ *
+ * ── Why an inline SVG and not a canvas ────────────────────────────────
+ * The chart is a pure function of the sweep, redrawn only when the shape, the
+ * metric or the seed changes. There is no animation to schedule and no frame
+ * loop to own, so a canvas would buy nothing and cost the DOM: with real
+ * elements the eight sizes and five series stay inspectable, themeable from
+ * this stylesheet, and legible to the forced-colours rules at the end.
+ *
+ * ── Why colour is load-bearing here, unlike the other lab figures ─────
+ * The tree and hash figures encode their facts as *characters*, so they lose
+ * nothing when a high-contrast mode flattens their palette. Five overlapping
+ * trend lines are different: strip the hue and they become five identical
+ * strokes, and the figure stops saying anything at all. That is why the series
+ * get `forced-color-adjust: none` below, and why the table in bay 03 carries
+ * every integer this plot draws — the numbers are reachable without the
+ * picture, which is what makes leaning on colour defensible in the picture.
+ */
+.lab-plot {
+  /* Matches `.lab-tree`: the lab's figures share one recessed-panel look. */
+  padding: 0.55rem;
+  background: rgba(9, 10, 15, 0.5);
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+}
+
+/* `height: auto` against the viewBox's own aspect ratio. Without it the SVG
+   takes its default 150px height and the plot squashes on a wide screen. */
+.lab-plot__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Gridlines and the baseline. `crispEdges` because these are axis-aligned
+   1-unit strokes being scaled up by the viewBox — left to antialias they
+   render as two grey rows instead of one line. */
+.lab-plot__grid {
+  stroke: rgba(120, 128, 145, 0.12);
+  stroke-width: 0.5;
+  shape-rendering: crispEdges;
+}
+.lab-plot__axis {
+  stroke: rgba(120, 128, 145, 0.3);
+  stroke-width: 0.6;
+  shape-rendering: crispEdges;
+}
+
+/* SVG text takes `fill`, not `color`. Tabular figures so the y-axis powers of
+   two and the x-axis sizes line up as columns rather than drifting. */
+.lab-plot__tick {
+  fill: var(--color-ash-dim);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  /* The y ticks sit to the left of the axis and are right-aligned into it. */
+  text-anchor: end;
+}
+/* The x ticks sit under their own gridline, so they centre instead. */
+.lab-plot__tick.is-x {
+  text-anchor: middle;
+}
+
+/*
+ * The three reference gradients.
+ *
+ * Dashed, and all in the same dim ash: they are not measurements, and colouring
+ * them would put them in competition with the five lines that are. They are
+ * told apart by dash pattern in the plot and by name in the legend — the legend
+ * swatch deliberately does not try to reproduce three patterns in 12px, because
+ * the label beside it already says which curve it is.
+ */
+.lab-plot__ref {
+  stroke: var(--color-ash-dim);
+  stroke-width: 0.7;
+  fill: none;
+}
+.lab-plot__ref.is-linear { stroke-dasharray: 5 3; }
+.lab-plot__ref.is-linearithmic { stroke-dasharray: 2 2.5; }
+.lab-plot__ref.is-quadratic { stroke-dasharray: 8 3 2 3; }
+
+/*
+ * The measured series.
+ *
+ * One `--s` per series, set on the group and inherited by the polyline and its
+ * dots, so a series' colour is stated once. The five hues are the first five of
+ * the scheduler's process palette — chosen there for being distinguishable from
+ * each other *on this background*, which is the same requirement here, so they
+ * are reused rather than re-picked.
+ */
+.lab-plot__series {
+  --s: var(--color-ash);
+  transition: opacity 0.2s ease;
+}
+.lab-plot__series.is-bubble { --s: #00e5ff; }
+.lab-plot__series.is-insertion { --s: #ff8c00; }
+.lab-plot__series.is-selection { --s: #7dd87d; }
+.lab-plot__series.is-merge { --s: #c792ea; }
+.lab-plot__series.is-quick { --s: #ffd866; }
+
+/* `fill: none` is not optional — a `<polyline>` fills by default, and eight
+   points of a rising curve would flood the plot with a solid black wedge. */
+.lab-plot__line {
+  fill: none;
+  stroke: var(--s);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A dot per swept size, so the eight measurements stay visible as measurements
+   rather than reading as a continuous function that was sampled everywhere. */
+.lab-plot__dot {
+  fill: var(--s);
+}
+
+/* Isolation. Faded rather than hidden: the point of isolating one series is to
+   read it *against* the others, so the rest stay as context. */
+.lab-plot__series.is-dim {
+  opacity: 0.12;
+}
+
+/* ---------- Growth plot: the legend ----------
+   Doubles as the series filter, so the measured gradient sits in the legend
+   next to the name — the one number that says what the line does. */
+.lab-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* No global button reset in this sheet, so the toggles undo the UA styles
+   themselves. `.is-ref` entries are plain spans and share the layout only. */
+.lab-legend__item {
+  --s: var(--color-ash);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  background: none;
+  border: 1px solid rgba(120, 128, 145, 0.14);
+  border-radius: var(--r-2);
+  transition: border-color var(--dur-2) var(--ease-standard), background-color var(--dur-2) var(--ease-standard);
+}
+.lab-legend__item:not(.is-ref) {
+  cursor: pointer;
+}
+.lab-legend__item.is-on {
+  border-color: var(--s);
+  background: color-mix(in srgb, var(--s) 10%, transparent);
+}
+
+/* Series colours again, on the same names. The swatch is the only part that
+   reads `--s`, so isolating the variable is enough. */
+.lab-legend__item.is-bubble { --s: #00e5ff; }
+.lab-legend__item.is-insertion { --s: #ff8c00; }
+.lab-legend__item.is-selection { --s: #7dd87d; }
+.lab-legend__item.is-merge { --s: #c792ea; }
+.lab-legend__item.is-quick { --s: #ffd866; }
+
+/* A line sample rather than a filled square, because the thing it stands for
+   is a line: zero height, and the border *is* the mark. */
+.lab-legend__swatch {
+  flex: none;
+  width: 12px;
+  height: 0;
+  border-top: 2px solid var(--s);
+}
+/* The references keep the dim ash and go dashed, matching the plot. */
+.lab-legend__item.is-ref {
+  --s: var(--color-ash-dim);
+  border-style: dashed;
+}
+.lab-legend__item.is-ref .lab-legend__swatch {
+  border-top-style: dashed;
+}
+
+.lab-legend__label {
+  color: var(--color-ceramic);
+}
+.lab-legend__item.is-ref .lab-legend__label {
+  color: var(--color-ash);
+}
+
+/* The measured gradient. Tabular so the two-decimal figures form a column down
+   the legend and can be compared by eye. */
+.lab-legend__slope {
+  color: var(--color-ash-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Growth plot: stacked table cells ----------
+   A count with its growth factor beneath it. Two blocks in one cell rather
+   than two tables, so a size column is read as one fact — see the note in the
+   bench. Not named `.lab-cell__*`: that would claim kinship with the
+   pathfinding grid's `.lab-cell`, which this has nothing to do with. */
+.lab-count {
+  display: block;
+}
+.lab-ratio {
+  display: block;
+  font-size: 0.66rem;
+  /* Dimmer than the count above it: the ratio is derived from two counts, so it
+     should not compete with the measurements it was computed from. */
+  color: var(--color-ash-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Series still fade in and out — that is the isolation control reporting what
+     it did, not decoration — the change is just immediate. Same reasoning as
+     the sorting bars and the pathfinding cells. */
+  .lab-plot__series,
+  .lab-legend__item { transition: none; }
+}
+
+@media (forced-colors: active) {
+  /*
+   * `forced-color-adjust: none` here, unlike on the tree and hash figures, and
+   * for the reason set out at the top of this section: these five strokes are
+   * distinguished by hue alone, so flattening them would leave five identical
+   * lines and a chart that says nothing. The same override goes on the legend
+   * swatches, since a legend that cannot show the colours it is naming is
+   * worse than no legend.
+   *
+   * The references are exempt on purpose — they are told apart by dash pattern,
+   * which the mode preserves, so they can take the forced palette and still be
+   * read correctly.
+   */
+  .lab-plot__series,
+  .lab-legend__swatch {
+    forced-color-adjust: none;
+  }
+  .lab-plot {
+    border: 1px solid CanvasText;
+  }
+  /* Ticks and gridlines are drawn from rgba values the mode does not touch, so
+     they are restated in system colours to survive it. */
+  .lab-plot__tick {
+    fill: CanvasText;
+  }
+  .lab-plot__grid,
+  .lab-plot__axis {
+    stroke: CanvasText;
+  }
+}
+
+/* ---------- Lab: compact ---------- */
+
+
+
+@media (max-width: 767px) {
+  .lab-bars { gap: 1px; }
+  /* A degenerate BST is 14 rows deep; on a phone that is most of the viewport,
+     so the rows tighten. The row height staying a single flat length is what
+     matters here, not what the length is — see the note on `.lab-tree`. */
+  .lab-tree { grid-template-rows: repeat(var(--lab-tree-rows, 1), 1.6rem); }
+  .lab-node { font-size: 0.64rem; padding-inline: 0.22rem; }
+  /* 2rem slots at 31 slots is a 62rem row: already scrolling on any phone, so
+     the floor comes down to buy back a few slots of context per swipe. */
+  .lab-slots { grid-template-columns: repeat(var(--lab-slots, 13), minmax(1.7rem, 1fr)); }
+
+  /* The plot is a scaled viewBox, so its 7px labels are 7 *user units* — at a
+     340-unit chart on a 340px-wide phone they land at roughly 7 device pixels
+     and at a narrower one, below. Raising the size in user units keeps the
+     labels the same apparent size as on a desktop rather than letting them
+     shrink with the figure. The x labels have ~42 units of spacing each and the
+     longest is four characters, so there is room for this without collision. */
+  .lab-plot__tick { font-size: 8.5px; }
+
+  /* Eight legend entries wrap to three or four rows on a phone; the gap comes
+     in so the block stays a caption for the plot rather than becoming a second
+     panel between the figure and its table. */
+  .lab-legend { gap: 0.3rem; }
+  .lab-legend__item { padding: 0.28rem 0.45rem; }
+
+
+  /* Taller targets in the strip. Deliberately *not* `flex: 1`: the rail is a
+     scroll container here, and stretching its children to fill the width
+     would force every bench past the first two off-screen with no way to
+     reach them by dragging a tab that is already as wide as the viewport. */
+  .lab-tab { padding: 0.8rem 0.9rem; }
+  .lab-table th,
+  .lab-table td { padding: 0.5rem 0.6rem; }
+}
+
+/* ==================================================================
+   LANDSCAPE PHONE — the composition, not just the cost
+
+   A rotated phone is around 850x390: wider than the 768px `max-width` rule
+   above, so it was receiving the *full desktop* atmosphere and substrate —
+   three aurora masses and a horizon sitting 55% of the way up a viewport only
+   390px tall. That is both the wrong composition and the heaviest one, on the
+   weakest hardware, in the orientation where the reading column has the least
+   room to begin with.
+
+   Keyed on height and orientation rather than width, because that is the
+   actual constraint: a short viewport cannot hold a deep floor, whatever its
+   width. Tablets in landscape are taller than 540px and keep the full
+   treatment.
+   ================================================================== */
+@media (max-height: 540px) and (orientation: landscape) {
+  /* The floor is the first thing to give way: at this height a 55vh plane and
+     the content occupy the same pixels, and the grid wins on contrast. */
+  .substrate {
+    opacity: calc(var(--power) * 0.34);
+    --sub-h: 30vh;
+    --sub-cell: 48px;
+    --sub-block: 240px;
+    --sub-dur: 22s;
+  }
+  .substrate__sweep { display: none; }
+  .substrate__contact { height: 7vh; }
+
+  /* Vertical parallax has almost no room to read in a 390px-tall viewport, and
+     the near mass is the one whose excursion would push furthest off-screen. */
+  .atmos { opacity: calc(var(--power) * 0.5); }
+  .atmos__aurora--3 { display: none; }
+  .atmos__dust { opacity: 0.3; }
+  .atmos__bloom { bottom: 30vh; height: 26vh; }
+  .atmos__fog { height: 40vh; }
+}
+
+/* ==================================================================
+   FORCED COLORS — Windows High Contrast and friends
+
+   The mode replaces every author colour with a small system palette and drops
+   most backgrounds and shadows outright. Two consequences worth answering:
+
+   1. Every status light on this page is a `box-shadow` glow on a 6px dot, and
+      box-shadow is not painted here — so the LEDs disappear entirely, taking
+      the on/off state they encode with them. Redrawn as bordered dots keyed to
+      system colours, which is the one signal the mode guarantees will render.
+   2. Every decorative layer is pure gradient. Gradients are dropped, leaving
+      only their compositing cost and, in the substrate's case, a hairline that
+      the mode *will* paint — a stray line across the middle of the viewport
+      with nothing left to explain it. All of it is removed.
+
+   Nothing is lost: these layers carry depth, never information.
+   ================================================================== */
+@media (forced-colors: active) {
+  .atmos,
+  .substrate,
+  .section-glow,
+  .grain-drift {
+    display: none;
+  }
+
+  /* `forced-color-adjust: none` is what allows a real colour through here, and
+     it is only defensible because the distinction is load-bearing: these are
+     the difference between "this subsystem is online" and "it is not". */
+  .led {
+    forced-color-adjust: none;
+    box-shadow: none;
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+  .led-on,
+  .led-amber {
+    background: Highlight;
+    border-color: Highlight;
+  }
+  .led-idle {
+    background: Canvas;
+  }
+
+  /* Panels are defined by a gradient and a translucent hairline; with the
+     gradient gone the border is the only thing that still says "surface". */
+  .panel,
+  .panel-flat {
+    border: 1px solid CanvasText;
+  }
+
+  /*
+   * The selected bench.
+   *
+   * The rail marks its selection with a coloured left border and a translucent
+   * wash, and this mode drops the wash and repaints the border in a system
+   * colour — leaving all the tabs bordered identically, i.e. no visible
+   * selection at all. `Highlight` is the palette entry the mode guarantees for
+   * exactly this, and the border widens so the state survives being rendered
+   * in a single flat colour.
+   */
+  .lab-tab.is-on {
+    border-left-color: Highlight;
+    border-bottom-color: Highlight;
+    border-left-width: 3px;
+    color: Highlight;
+  }
+
+  /* The scrim exists to guarantee contrast over the canvas. In this mode the
+     canvas is behind an opaque Canvas-coloured wash instead. */
+  .readability-scrim {
+    background: Canvas;
+    opacity: 1 !important;
+  }
+}
+
+/* ==================================================================
    REDUCED MOTION
    Not a downgrade — a different, equally complete presentation.
    All information stays reachable; only the motion stops.
@@ -1083,6 +4484,74 @@ html.lenis, html.lenis body { height: auto; }
     scroll-behavior: auto !important;
   }
   .caret { animation: none; opacity: 1; }
+
+  /*
+   * The scrim must not be allowed to snap.
+   *
+   * `MachineViewport` drives `--scrim` from scroll position on every frame,
+   * ramping it from 1 down to about 0.12 so the machine gets one clear screen
+   * on a phone. That is smooth *because* of the 0.45s transition above — and
+   * the blanket rule that zeroes every transition duration turns the same
+   * ramp into a hard cut between a dark screen and a bright one, several times
+   * over the course of a scroll.
+   *
+   * For the audience this media query exists to protect, a full-viewport
+   * brightness flash is precisely the wrong outcome: the setting asks for less
+   * motion and sensory load, and the blanket rule was delivering more. Holding
+   * the scrim fully opaque removes the effect rather than degrading it — the
+   * machine simply stays behind its readability wash, and the heading and
+   * caption on that screen (which carry everything it communicates) are
+   * unaffected.
+   */
+  .readability-scrim {
+    opacity: 1 !important;
+  }
+}
+
+/* ==================================================================
+   REDUCED TRANSPARENCY
+
+   A real accessibility setting on both iOS and Android, and one this site has
+   the parts to answer properly: the compact-viewport rules above already
+   define opaque, blur-free versions of every translucent surface for
+   performance reasons. This reuses them for the visitors who asked, at any
+   viewport width.
+
+   Translucency here is never load-bearing — it is depth, not information — so
+   removing it costs nothing but the effect itself.
+   ================================================================== */
+@media (prefers-reduced-transparency: reduce) {
+  .panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(180deg, #232630 0%, #0e1016 100%);
+  }
+
+  .panel-flat {
+    background: #0d0f16;
+  }
+
+  .mobile-nav {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-carbon);
+  }
+
+  /* The scrim is what guarantees text contrast over the canvas, so a request
+     for less transparency means it stops being a wash and becomes a floor. */
+  .readability-scrim,
+  .readability-scrim:where(*) {
+    background: var(--color-carbon);
+    opacity: 1 !important;
+  }
+
+  /* With an opaque scrim there is nothing behind these to see, so they are
+     only overdraw. */
+  .atmos,
+  .substrate,
+  .section-glow {
+    display: none;
+  }
 }
 
 /* ==================================================================

@@ -280,16 +280,40 @@ export function Monitor() {
   useEffect(() => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawOsScreen(ctx, {
-      activeProject,
-      emerged: projectEmerged,
-      projects: projects.map((p) => ({
-        slot: p.slot,
-        title: p.title,
-        stack: p.stack.slice(0, 3).join(' · '),
-      })),
+
+    const paint = () => {
+      drawOsScreen(ctx, {
+        activeProject,
+        emerged: projectEmerged,
+        projects: projects.map((p) => ({
+          slot: p.slot,
+          title: p.title,
+          stack: p.stack.slice(0, 3).join(' · '),
+        })),
+      });
+      texture.needsUpdate = true;
+    };
+
+    paint();
+
+    /*
+     * One corrective redraw once the face has loaded.
+     *
+     * The screen now draws in the site's actual monospace webfont rather than
+     * whatever the platform happened to supply (see osScreen's monoFamily), so
+     * the first paint can land before that face arrives and bake fallback glyph
+     * metrics into the texture — and since this effect only reruns when the
+     * content changes, nothing would ever correct it. `fonts.ready` settles in a
+     * microtask once the face is cached, so this is free on every visit but the
+     * first.
+     */
+    let stale = false;
+    void document.fonts.ready.then(() => {
+      if (!stale) paint();
     });
-    texture.needsUpdate = true;
+    return () => {
+      stale = true;
+    };
   }, [canvas, texture, activeProject, projectEmerged]);
 
   const uniforms = useMemo(

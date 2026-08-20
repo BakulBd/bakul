@@ -133,11 +133,19 @@ export const qualityProfiles: Record<Quality, QualityProfile> = {
 
 type PowerState = 'STANDBY' | 'ACTIVATING' | 'ONLINE';
 
-/** Neutral scene-drive settings — also the target of RESET SYSTEM. */
-const LAB_DEFAULTS = {
-  speed: 1,
-  light: 1,
-} as const;
+/**
+ * Unity gain on the light rig — the tuned look, and the target of RESET SYSTEM.
+ *
+ * There used to be a sibling `speed` here, and it was dead weight in the worst
+ * way: nothing ever wrote it, so it sat at 1 forever, and the two places that
+ * read it (BusTraffic, MorphField) multiplied it by `debugSpeed` in the very
+ * same expression. Two names for one number is a bug waiting for the day
+ * someone wires up one of them and cannot work out why the other still
+ * divides the result. `debugSpeed` survives because it is the one with a
+ * control attached; this survives because DebugConsole now has a slider for
+ * it (see below).
+ */
+const LIGHT_GAIN_DEFAULT = 1;
 
 interface MachineStore {
   /** Boot gate. The experience is inert until this reaches ONLINE. */
@@ -147,6 +155,18 @@ interface MachineStore {
 
   activeProject: number;
   activeSubsystem: string | null;
+  /**
+   * Selected milestone on the assembly line.
+   *
+   * Lives in the store rather than as local component state so `SoundBridge`
+   * can derive its cue from the transition like every other. It was previously
+   * `useState` inside SectionExperience, which forced that component to call
+   * `audio.play('lock')` directly — the one place on the site where a
+   * component fired its own sound, with a comment explaining that there was no
+   * transition for the bridge to observe. The fix is to give it one: the
+   * observation was correct, the conclusion was backwards.
+   */
+  activeMilestone: number;
 
   quality: Quality;
   reducedMotion: boolean;
@@ -169,11 +189,12 @@ interface MachineStore {
   /** Debug-mode override. Applied only while `debug` is true. */
   debugSpeed: number;
 
-  /** Scene-drive parameters — conduit pulse speed and the light rig's gain. */
-  lab: {
-    speed: number;
-    light: number;
-  };
+  /**
+   * Multiplier on every light in the rig — key, fill, rim and the ambient
+   * floor together, not one isolated lamp, so moving it reads as the room
+   * changing rather than a single bulb dimming. Scene.tsx applies it.
+   */
+  lightGain: number;
 
   beginActivation: () => void;
   completeActivation: () => void;
@@ -181,6 +202,7 @@ interface MachineStore {
   setActiveSection: (id: string) => void;
   setActiveProject: (i: number) => void;
   setActiveSubsystem: (id: string | null) => void;
+  setActiveMilestone: (i: number) => void;
   setQuality: (q: Quality) => void;
   setReducedMotion: (v: boolean) => void;
   setWebglFailed: (v: boolean) => void;
@@ -188,6 +210,7 @@ interface MachineStore {
   setDebug: (v: boolean) => void;
   setPaletteOpen: (v: boolean) => void;
   setDebugSpeed: (v: number) => void;
+  setLightGain: (v: number) => void;
   resetSystem: () => void;
 }
 
@@ -198,6 +221,7 @@ export const useMachine = create<MachineStore>((set, get) => ({
 
   activeProject: 0,
   activeSubsystem: null,
+  activeMilestone: 0,
 
   quality: 'high',
   reducedMotion: false,
@@ -215,7 +239,7 @@ export const useMachine = create<MachineStore>((set, get) => ({
 
   debugSpeed: 1,
 
-  lab: LAB_DEFAULTS,
+  lightGain: LIGHT_GAIN_DEFAULT,
 
   beginActivation: () => {
     if (get().powerState !== 'STANDBY') return;
@@ -242,6 +266,11 @@ export const useMachine = create<MachineStore>((set, get) => ({
     set({ activeProject: i });
   },
 
+  setActiveMilestone: (i) => {
+    if (get().activeMilestone === i) return;
+    set({ activeMilestone: i });
+  },
+
   setActiveSubsystem: (id) => set({ activeSubsystem: id }),
   setQuality: (q) => set({ quality: q }),
   setReducedMotion: (v) => set({ reducedMotion: v }),
@@ -250,6 +279,7 @@ export const useMachine = create<MachineStore>((set, get) => ({
   setDebug: (v) => set({ debug: v }),
   setPaletteOpen: (v) => set({ paletteOpen: v }),
   setDebugSpeed: (v) => set({ debugSpeed: v }),
+  setLightGain: (v) => set({ lightGain: v }),
 
   /** Easter-egg RESET SYSTEM — returns every override to a known-good state. */
   resetSystem: () => {
@@ -257,8 +287,9 @@ export const useMachine = create<MachineStore>((set, get) => ({
     set({
       debug: false,
       debugSpeed: 1,
-      lab: LAB_DEFAULTS,
+      lightGain: LIGHT_GAIN_DEFAULT,
       activeSubsystem: null,
+      activeMilestone: 0,
       paletteOpen: false,
       // Retracts anything currently pushed out through the screen — "reset"
       // has to mean the scene is back at rest, not just the debug panel.

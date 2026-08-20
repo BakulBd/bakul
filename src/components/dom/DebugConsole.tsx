@@ -31,6 +31,8 @@ export function DebugConsole() {
   const setQuality = useMachine((s) => s.setQuality);
   const debugSpeed = useMachine((s) => s.debugSpeed);
   const setDebugSpeed = useMachine((s) => s.setDebugSpeed);
+  const lightGain = useMachine((s) => s.lightGain);
+  const setLightGain = useMachine((s) => s.setLightGain);
 
   const [panicking, setPanicking] = useState(false);
   const [lines, setLines] = useState<string[]>([]);
@@ -170,7 +172,7 @@ export function DebugConsole() {
       <div className="max-h-[62vh] overflow-y-auto p-4">
         {/* ---- Panic trace ---- */}
         {lines.length > 0 && (
-          <pre className="m-0 mb-4 overflow-x-auto whitespace-pre-wrap font-[family-name:var(--font-fira)] text-[0.62rem] leading-relaxed text-[color:var(--color-alert)]">
+          <pre className="m-0 mb-4 overflow-x-auto whitespace-pre-wrap font-[family-name:var(--font-code)] text-[0.62rem] leading-relaxed text-[color:var(--color-alert)]">
             {lines.join('\n')}
             {panicking && <span className="caret">▌</span>}
           </pre>
@@ -192,7 +194,7 @@ export function DebugConsole() {
             <div key={k} className="flex justify-between gap-2 border-b border-[#1a1c23] pb-1">
               <dt className="t-label m-0">{k}</dt>
               <dd
-                className="m-0 font-[family-name:var(--font-fira)] text-[0.68rem] tabular-nums"
+                className="m-0 font-[family-name:var(--font-code)] text-[0.68rem] tabular-nums"
                 style={{ color }}
               >
                 {v}
@@ -234,6 +236,41 @@ export function DebugConsole() {
             step={0.05}
             value={debugSpeed}
             onChange={(e) => setDebugSpeed(Number(e.target.value))}
+            className="mt-1.5 w-full accent-[color:var(--color-alert)]"
+          />
+        </div>
+
+        {/*
+          Light rig gain.
+
+          This exists because the store already had the value and the renderer
+          already read it, and nothing had ever written it — so the whole
+          lighting rig ran at a hard-coded 1 behind a field that pretended to
+          be adjustable. Two ways out: delete the value and inline the
+          constant, or give it the control it was clearly built for. The
+          control wins, because this panel's entire premise is that the
+          numbers on it are real and the switches on it do something, and
+          `Lights()` in Scene.tsx multiplies the key, fill, rim and core lamps
+          by it together — one drag visibly relights the machine.
+
+          Ceiling of 2, not 4: past roughly 2.2 the emissive surfaces clip
+          against ACES filmic tone mapping and the metal goes flat white,
+          which is not a state worth being able to reach. 0 is left reachable
+          on purpose — a fully dark rig is how you see what the bloom and the
+          self-illuminated particle field are contributing on their own.
+        */}
+        <div className="mt-3">
+          <label htmlFor="dbg-light" className="t-label">
+            Light rig gain — {lightGain.toFixed(2)}×
+          </label>
+          <input
+            id="dbg-light"
+            type="range"
+            min={0}
+            max={2}
+            step={0.05}
+            value={lightGain}
+            onChange={(e) => setLightGain(Number(e.target.value))}
             className="mt-1.5 w-full accent-[color:var(--color-alert)]"
           />
         </div>

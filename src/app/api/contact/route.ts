@@ -22,13 +22,75 @@ interface Payload {
 const MAX = { name: 120, email: 200, message: 4000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Simple per-IP rate limit. Resets with the process; enough to blunt abuse. */
+/**
+ * Simple per-address rate limit. Resets with the process; enough to blunt abuse.
+ *
+ * ── What it is not ─────────────────────────────────────────────────────
+ * It is a speed bump, and the two reasons are worth stating so nobody mistakes
+ * it for a control:
+ *
+ *   · The key is a client-supplied string. `x-forwarded-for` is a request
+ *     header, and its leftmost element is whatever the *client* wrote — an edge
+ *     proxy appends to it. `clientIp` below prefers the headers a platform
+ *     writes itself for exactly this reason, but on a host that sets none of
+ *     them the identifier is forgeable and rotating it defeats the limit.
+ *   · The state is per-process. Serverless runs many, and each keeps its own
+ *     map, so the real allowance is LIMIT × however many instances are warm.
+ *
+ * A limiter that actually holds needs shared state (Upstash, Vercel KV, or the
+ * platform's own WAF). What this must do until then is be *bounded*, which it
+ * was not: an entry was created per distinct address and only ever replaced
+ * when that same address came back after its window had expired. An address
+ * that arrived once and never returned kept its entry for the life of the
+ * process. Combined with a forgeable key, that is unbounded memory growth
+ * driven by attacker-controlled input — the leak was the more serious half of
+ * the bug, because a limiter that can be evaded merely fails to help, while one
+ * that grows without limit takes the process down with it.
+ *
+ * Two bounds, because they cover different failures:
+ *
+ *   the sweep   removes windows that have already expired. Throttled to once a
+ *               minute so the O(n) pass cannot be triggered per request, which
+ *               keeps steady-state memory proportional to *live* windows rather
+ *               than to every address ever seen.
+ *   the cap     a flood of forged addresses produces thousands of entries that
+ *               are all still live, so the sweep would delete none of them. The
+ *               cap is what holds there. Map iterates in insertion order, so
+ *               evicting from the front drops the entries nearest to expiring.
+ *
+ * The cap is itself evadable — flooding forged addresses can evict a real
+ * attacker's entry — which is the same sentence as the first paragraph: shared
+ * state is the fix, and this is the bound until there is some.
+ */
 const hits = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 10 * 60 * 1000;
 const LIMIT = 5;
+/** Hard ceiling on tracked addresses. */
+const MAX_TRACKED = 5_000;
+/** Minimum gap between full sweeps of the map. */
+const SWEEP_MS = 60 * 1000;
+let lastSweep = 0;
 
 function rateLimited(ip: string): boolean {
   const now = Date.now();
+
+  if (now - lastSweep > SWEEP_MS) {
+    lastSweep = now;
+    for (const [key, entry] of hits) {
+      if (now > entry.resetAt) hits.delete(key);
+    }
+  }
+
+  // Still at the ceiling after sweeping: every window tracked is live, so make
+  // room from the front rather than letting the map grow past the cap.
+  if (hits.size >= MAX_TRACKED && !hits.has(ip)) {
+    let toDrop = hits.size - MAX_TRACKED + 1;
+    for (const key of hits.keys()) {
+      if (toDrop-- <= 0) break;
+      hits.delete(key);
+    }
+  }
+
   const entry = hits.get(ip);
 
   if (!entry || now > entry.resetAt) {
@@ -37,6 +99,27 @@ function rateLimited(ip: string): boolean {
   }
   entry.count++;
   return entry.count > LIMIT;
+}
+
+/**
+ * The best available identifier for the caller.
+ *
+ * Ordered by how much the value can be trusted, not by how common it is. The
+ * first three are written by the edge itself and overwrite anything a client
+ * sent, so they cannot be forged through it. `x-forwarded-for` is last and is
+ * the one that used to be first: it is a list a client can seed, and taking its
+ * leftmost element — which is the correct way to read the *original* client
+ * address behind a well-behaved proxy — is also exactly the element a client
+ * controls when there isn't one.
+ */
+function clientIp(request: Request): string {
+  const h = request.headers;
+  const candidate =
+    h.get('cf-connecting-ip') ??
+    h.get('x-vercel-forwarded-for') ??
+    h.get('x-real-ip') ??
+    h.get('x-forwarded-for')?.split(',')[0];
+  return candidate?.trim() || 'unknown';
 }
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
@@ -50,10 +133,7 @@ const escapeHtml = (v: string) =>
   );
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    request.headers.get('x-real-ip') ??
-    'unknown';
+  const ip = clientIp(request);
 
   if (rateLimited(ip)) {
     return NextResponse.json(

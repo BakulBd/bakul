@@ -1,0 +1,104 @@
+{
+  // ══════════════════════════════════════════════════════════════════════
+  // WORKSPACE EDITOR SETTINGS
+  //
+  // Committed deliberately. Everything here exists because this project uses
+  // Tailwind CSS v4, whose authoring model is CSS-first — `@theme`, `@layer`,
+  // `@utility`, `@variant` live in `src/app/globals.css` rather than in a
+  // `tailwind.config.js`. VS Code's built-in CSS language server validates
+  // against the plain CSS specification, so it reports every one of those as
+  // "Unknown at rule" — a false positive on a file the build compiles
+  // correctly (see `postcss.config.mjs`, which loads `@tailwindcss/postcss`).
+  //
+  // Without this file every contributor sees a wall of squiggles under valid,
+  // shipping CSS, which is how real diagnostics get ignored.
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ---- The fix for the false positives ----
+  // "ignore" rather than "warning": the rule cannot be satisfied, because the
+  // at-rules are genuinely not in the CSS spec — they are a preprocessor
+  // dialect. Downgrading the severity would keep the noise; switching the
+  // check off states plainly that this language server is not the authority
+  // on this file. The Tailwind extension is (see files.associations below).
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // `color-mix()`, `oklab`, `contain: strict`, `text-wrap: pretty` and
+  // `100dvh` are all used in globals.css and all resolve in every browser this
+  // site targets. The built-in server's support data lags the platform, so
+  // this check only ever reports things that already work.
+  "css.lint.unknownProperties": "ignore",
+  "css.lint.validProperties": ["composes"],
+
+  // ---- Hand the file to the language server that understands it ----
+  // With the Tailwind CSS IntelliSense extension installed this gives real
+  // completion and hover documentation for `@theme` tokens and utilities,
+  // which is strictly better than the generic CSS server it replaces.
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.quickSuggestions": {
+    // Class names live inside string literals in JSX, so completion has to be
+    // enabled there or Tailwind IntelliSense never triggers in a component.
+    "strings": "on"
+  },
+
+  // ---- Where this codebase writes class names ----
+  // Several components build a className from an array and join it — see
+  // `SortingBench.tsx`'s bar classes and `LabShell.tsx`'s tab state. Without
+  // these patterns the extension does not recognise those strings as class
+  // lists, so it offers no completion and no conflict detection inside them.
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\\{\\[([^\\]]*)\\]", "'([^']*)'"],
+    ["className=\\{`([^`]*)`\\}", "([^\\s]*)"],
+    ["class(?:Name)?\\s*[:=]\\s*[\"'`]([^\"'`]*)[\"'`]", "([^\\s]*)"]
+  ],
+  // The design system is a set of `--color-*` / `--font-*` theme tokens, and
+  // this project's own CSS is the only place they are defined. Pointing the
+  // extension at the real entry point means hovers resolve to actual values.
+  "tailwindCSS.experimental.configFile": "src/app/globals.css",
+
+  // ---- TypeScript ----
+  // Use the workspace's own TypeScript, not the one bundled with the editor:
+  // `npm run type-check` and the editor must agree, or a red squiggle means
+  // nothing. Also keeps auto-imports writing `@/lib/...` rather than a
+  // relative path that walks out of `src/`.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+
+  // ---- Formatting ----
+  // ESLint is the authority (`eslint.config.mjs`); there is no Prettier config
+  // in this repo, so no formatter is nominated here — a format-on-save with a
+  // formatter that disagrees with the committed style would rewrite files on
+  // every save. Only import organisation is automated, which is safe.
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+
+  // ---- Search & watching ----
+  // Excluding build output keeps a project-wide search from returning the
+  // compiled copy of every source file, which is otherwise the majority of
+  // results in a Next.js repo.
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/package-lock.json": true,
+    "**/tsconfig.tsbuildinfo": true
+  },
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+
+  // Trailing whitespace in a template literal is significant — the compiler
+  // bench's error caret is `' '.repeat(n) + '^'`, and the sorting bench builds
+  // class strings by joining. Trimming on save is still correct for source
+  // files; this is a reminder in code review terms, not a behaviour change.
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}

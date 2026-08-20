@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { frame, useMachine } from '@/store/machine';
 import { useCapabilities, useAdaptiveQuality } from '@/hooks/useCapabilities';
-import { useScrollEngine } from '@/hooks/useScrollEngine';
+import { useHashLanding, useScrollEngine } from '@/hooks/useScrollEngine';
 import { sections } from '@/lib/data/sections';
 
 import { ProgressRail, MobileNav } from './dom/ProgressRail';
@@ -12,6 +12,7 @@ import { CommandPalette } from './dom/CommandPalette';
 import { DebugConsole } from './dom/DebugConsole';
 import { SystemControls } from './dom/SystemControls';
 import { FilmGrain } from './dom/FilmGrain';
+import { Atmosphere } from './dom/Atmosphere';
 import { Backdrop } from './dom/Backdrop';
 import { SoundBridge } from './dom/SoundBridge';
 import { BootSequence } from './dom/BootSequence';
@@ -36,6 +37,12 @@ export function Experience() {
   useCapabilities();
   useAdaptiveQuality();
   useScrollEngine();
+  /*
+   * Mounted after the scroll engine, so an inbound `/#section-…` arrives at a
+   * page whose stations are already measured and whose machine is powered. The
+   * order matters and is not incidental — see `useHashLanding`.
+   */
+  useHashLanding();
 
   const webglFailed = useMachine((s) => s.webglFailed);
   const powerState = useMachine((s) => s.powerState);
@@ -189,6 +196,15 @@ export function Experience() {
         className="readability-scrim no-print pointer-events-none fixed inset-0 z-[5]"
       />
 
+      {/*
+        The room the machine stands in — slow masses of light, dust, horizon
+        bloom, depth fog. Above the scrim so it survives it, and *before* the
+        substrate: both sit on z-index 6, so DOM order is what decides which
+        paints on top, and the grid has to read as being drawn over the air
+        rather than smothered by it.
+      */}
+      <Atmosphere />
+
       {/* Perspective ground plane, above the scrim so it survives it. */}
       <Backdrop />
 
@@ -239,7 +255,6 @@ export function Experience() {
           be near each other.
         */}
         <MachineViewport
-          index="03"
           label="The Machine"
           title="It comes apart."
           caption="The chassis you have been scrolling past is not a backdrop — it is the site. Here it dissolves into the field it was built from. Everything on this page is rendered live in your browser: no video, no images, no pre-baked frames."

@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useMachine } from '@/store/machine';
+import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
-import { sections } from '@/lib/data/sections';
+import { haptic, silenceHaptics } from '@/lib/haptics';
+import { sections, timeline } from '@/lib/data/sections';
+import { BOOT_STAGES } from '@/components/machine/lib/blueprint';
 
 /**
- * THE SCORE — one place that decides what the site sounds like.
+ * THE SCORE — one place that decides what the site sounds like, and what it
+ * feels like on a device that can be felt.
  *
  * Every cue is derived here, from state, rather than being fired by whichever
  * component happened to cause the change. That is the difference between a site
@@ -104,36 +107,172 @@ export function SoundBridge() {
      * previous state without re-rendering anything.
      */
     return useMachine.subscribe((s, prev) => {
-      if (!audio.isEnabled()) return;
+      /*
+       * Haptics are NOT gated on audio being enabled.
+       *
+       * That gate would defeat the entire purpose: sound is muted by default,
+       * and the reason a phone needs a haptic channel at all is that a muted
+       * phone with no hover state currently receives no response to operating
+       * the machine. `haptic()` carries its own support and reduced-motion
+       * gates, so calling it unconditionally is safe — on a desktop and on iOS
+       * it does nothing at all.
+       *
+       * Only the mechanical events get a pulse. `hover`, `navigate` and
+       * `open`/`close` deliberately do not: they fire while scrolling and while
+       * moving through chrome, and a phone that buzzes continuously through a
+       * scroll is worse than one that never buzzes.
+       */
+      const soundOn = audio.isEnabled();
 
       /* Boot. Fires for the button and for scroll-to-activate alike. */
       if (s.powerState !== prev.powerState) {
-        if (s.powerState === 'ACTIVATING') audio.play('power');
-        else if (s.powerState === 'ONLINE') audio.play('online');
+        if (s.powerState === 'ACTIVATING') {
+          if (soundOn) audio.play('power');
+        } else if (s.powerState === 'ONLINE') {
+          if (soundOn) audio.play('online');
+          // The machine finishing its boot is the first thing worth feeling.
+          haptic('online');
+        }
       }
 
       /* Section changes re-voice the pad as well as announcing themselves, so
          the bed develops across a visit instead of holding one chord. */
-      if (s.activeSection !== prev.activeSection && s.powerState === 'ONLINE') {
+      if (soundOn && s.activeSection !== prev.activeSection && s.powerState === 'ONLINE') {
         audio.play('navigate');
         const i = sections.findIndex((sec) => sec.id === s.activeSection);
         if (i >= 0) audio.setTone(i);
       }
 
-      /* Mechanisms responding. */
-      if (s.activeProject !== prev.activeProject) audio.play('lock');
-      if (s.activeSubsystem !== prev.activeSubsystem && s.activeSubsystem) audio.play('lock');
+      /* Mechanisms responding — a bay locking into the rack, a subsystem
+         engaging, a milestone passing the reader head. One voice for all
+         three, because to a visitor they are the same class of event: a part
+         of the machine answering a selection. */
+      if (
+        s.activeProject !== prev.activeProject ||
+        (s.activeSubsystem !== prev.activeSubsystem && s.activeSubsystem) ||
+        s.activeMilestone !== prev.activeMilestone
+      ) {
+        if (soundOn) audio.play('lock');
+        haptic('lock');
+      }
 
       /* A project breaking out through the monitor is the site's biggest
          single gesture, so it gets the brightest voice. */
-      if (s.projectEmerged !== prev.projectEmerged && s.projectEmerged) audio.play('activate');
+      if (s.projectEmerged !== prev.projectEmerged && s.projectEmerged) {
+        if (soundOn) audio.play('activate');
+        haptic('activate');
+      }
 
-      if (s.paletteOpen !== prev.paletteOpen) audio.play(s.paletteOpen ? 'open' : 'close');
+      if (soundOn && s.paletteOpen !== prev.paletteOpen) {
+        audio.play(s.paletteOpen ? 'open' : 'close');
+      }
 
       /* Kernel panic, from either entry point. */
-      if (s.debug !== prev.debug && s.debug) audio.play('glitch');
+      if (s.debug !== prev.debug && s.debug) {
+        if (soundOn) audio.play('glitch');
+        haptic('error');
+      }
     });
   }, []);
+
+  /* ---------------- continuous score ---------------- */
+
+  /*
+   * THE BED, AND THE CUES THAT RIDE THE SCROLL.
+   *
+   * These three used to live in the 3D render loop (`Scene.tsx`'s Driver), and
+   * that was a real architectural fault rather than a tidiness question: the
+   * canvas is *optional by design* everywhere else in this codebase. It is
+   * deferred until power-on on a phone, its `frameloop` is set to 'never' when
+   * the tab is hidden, and it is never mounted at all when WebGL fails or the
+   * boundary catches. Every one of those states left the audio engine with no
+   * driver at all:
+   *
+   *   - Before the canvas mounted on mobile, `setLoad` was never called, so
+   *     the pad's filter sat at its resting cutoff no matter how hard the
+   *     visitor scrolled. The bed was deaf to the page.
+   *   - With `webglFailed`, it stayed deaf permanently — the content still
+   *     scrolled, the sound simply stopped answering it.
+   *
+   * Sound is a sibling of the visual layer, not a passenger in it. This loop
+   * owns the score, reads the same `frame` singleton the renderer reads, and
+   * behaves identically with or without a canvas.
+   *
+   * It runs only while sound is on: with audio muted there is nothing for it
+   * to drive, and an idle rAF on every visit is exactly the kind of cost this
+   * project measures rather than assumes.
+   */
+  useEffect(() => {
+    if (!audioEnabled) return;
+
+    let raf = 0;
+    /** Boot thresholds already crossed, so each relay clicks exactly once. */
+    const relayFired = new Set<number>();
+    let morphWasBelow = true;
+
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+
+      /*
+       * Scroll energy opens the pad's filter and lifts its air. `frame.velocity`
+       * is written by the scroll engine, which is pure DOM — so this is live
+       * from the first scroll, long before any canvas exists.
+       */
+      audio.setLoad(frame.velocity);
+
+      const { powerState, webglFailed } = useMachine.getState();
+
+      /*
+       * A relay clicks as each subsystem comes online, read from the same
+       * BOOT_STAGES list the POST screen prints its rows from and the 3D
+       * subsystems illuminate on — so the click, the light and the "OK" land
+       * on one frame instead of a beat apart.
+       *
+       * Skipped entirely without WebGL: there is no power ramp to cross those
+       * thresholds (the boot completes immediately instead), so firing them
+       * would mean eight relay clicks in a single frame for a boot the visitor
+       * never saw.
+       */
+      if (!webglFailed && powerState !== 'STANDBY' && !reducedMotion) {
+        for (const stage of BOOT_STAGES) {
+          if (frame.power >= stage.at && !relayFired.has(stage.at)) {
+            relayFired.add(stage.at);
+            audio.play('tick');
+          }
+        }
+      }
+
+      /*
+       * The signature transformation gets its own long filter sweep.
+       *
+       * Derived from the scroll position against the measured morph window
+       * rather than read from `frame.morph` — that value is computed by the
+       * renderer, so depending on it would put this cue straight back inside
+       * the canvas's lifetime. The window itself is measured DOM geometry, so
+       * the sound fires at exactly the scroll position the machine comes apart
+       * at, canvas or no canvas.
+       *
+       * Fired once, on the way in only: scrolling back up must not retrigger a
+       * two-and-a-half-second sweep, and scrubbing across the threshold would
+       * otherwise stack them.
+       */
+      const span = timeline.morphEnd - timeline.morphStart;
+      const morph = span > 0 ? (frame.t - timeline.morphStart) / span : 0;
+      if (!reducedMotion) {
+        if (morphWasBelow && morph >= 0.02) {
+          morphWasBelow = false;
+          audio.play('morph');
+        } else if (morph < 0.01) {
+          // Re-arm only after leaving the window properly, so a jitter either
+          // side of the threshold cannot fire it twice.
+          morphWasBelow = true;
+        }
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [audioEnabled, reducedMotion]);
 
   /* ---------------- interface feedback ---------------- */
 
@@ -176,6 +315,14 @@ export function SoundBridge() {
       const el = target.closest(INTERACTIVE);
       if (!el || isSilenced(el)) return;
       audio.play('press');
+      /*
+       * The tap itself, felt. Outside the audio gate for the same reason the
+       * state cues above are: this is the response a muted phone would
+       * otherwise never get. Only on a device without hover — a mouse already
+       * has the cursor, the hover cue and the panel lift to confirm a target,
+       * and a buzzing desktop would be a novelty rather than information.
+       */
+      if (!canHover) haptic('press');
     };
 
     /* Keyboard activation deserves the same confirmation a click gets. */
@@ -212,7 +359,15 @@ export function SoundBridge() {
     // Keyed to visibility only, deliberately — window `blur` also fires for
     // devtools and for another window taking focus, neither of which means the
     // visitor has left the page.
-    const sync = () => audio.setPageVisible(document.visibilityState === 'visible');
+    const sync = () => {
+      const visible = document.visibilityState === 'visible';
+      audio.setPageVisible(visible);
+      // A pattern still running as the visitor switches apps would buzz a
+      // pocket for a page that is no longer on screen — the tactile version of
+      // the background-audio problem above, and less forgivable because there
+      // is no tab to go and mute.
+      if (!visible) silenceHaptics();
+    };
     document.addEventListener('visibilitychange', sync);
     return () => document.removeEventListener('visibilitychange', sync);
   }, []);

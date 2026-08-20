@@ -22,9 +22,75 @@ import { SITE_DOMAIN } from '@/lib/site';
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = 'image/png';
 
-/** Read by crawlers as `og:image:alt` — the card's content for anyone who
- *  cannot see it, including link previews rendered as text. */
-export const OG_ALT = `${profile.name} — ${profile.title}. ${profile.education.degree} at ${profile.education.institution}, CGPA ${profile.education.cgpa}.`;
+/* ------------------------------------------------------------------ *
+ * CONTENT
+ *
+ * The card is a fixed composition with swappable copy, not a template each
+ * route re-invents. Every route that can be shared declares its text here and
+ * the layout below renders it, which is what keeps a second card from slowly
+ * becoming a second design — and, just as importantly, means the glyph subset
+ * is derived from the same object rather than maintained alongside it.
+ *
+ * The shape is deliberately fixed at six slots. Anything a route wants to say
+ * has to fit the composition; the composition does not bend per route.
+ * ------------------------------------------------------------------ */
+
+type CardContent = {
+  /** Small tracked rail, top-left, beside the status light. */
+  readonly kicker: string;
+  /** The display line, set in the site's headline face. */
+  readonly heading: string;
+  /** The cyan line beneath it — what the heading actually is. */
+  readonly subheading: string;
+  /** Chips: three or four words, upper-cased at render. */
+  readonly chips: readonly string[];
+  /** The single number worth leading with, in amber. */
+  readonly stat: string;
+  /** What the number refers to. */
+  readonly note: string;
+  /** The proof row: the concrete things behind the claim. */
+  readonly proof: readonly string[];
+  /** `og:image:alt` — the card's content for anyone who cannot see it,
+   *  including link previews that are rendered as text. */
+  readonly alt: string;
+};
+
+export const SHARE_CARDS = {
+  /*
+   * Home. Everything is read from the same data the page renders, so the
+   * preview can never drift out of step with the site it is advertising.
+   */
+  home: {
+    kicker: 'THE LIVING MACHINE',
+    heading: profile.name,
+    subheading: profile.title,
+    chips: profile.disciplines,
+    stat: `CGPA ${profile.education.cgpa}`,
+    note: profile.education.institution,
+    proof: projects.map((p) => p.title),
+    alt: `${profile.name} — ${profile.title}. ${profile.education.degree} at ${profile.education.institution}, CGPA ${profile.education.cgpa}.`,
+  },
+
+  /*
+   * The lab. It gets its own card because it is the one page on this site that
+   * is worth sharing on its own terms — an interactive artefact rather than a
+   * section of a profile — and inheriting the home card meant a link to the
+   * benches previewed as a CV. The name still leads the rail: whatever the
+   * page, the card's job is attribution first.
+   */
+  lab: {
+    kicker: `${profile.name.toUpperCase()} / DIAGNOSTICS`,
+    heading: 'The Lab',
+    subheading: 'Algorithms you can step through, one operation at a time',
+    chips: ['Sorting', 'Compilers', 'Interactive'],
+    stat: '2 benches',
+    note: 'Running in the browser, no server',
+    proof: ['Five instrumented sorts', 'Scanner, parser, IR, registers'],
+    alt: 'The Lab — two interactive engines: five instrumented comparison sorts with a scrubbable trace, and a complete compiler front end from scanner to register allocation.',
+  },
+} as const satisfies Record<string, CardContent>;
+
+export type ShareCardKey = keyof typeof SHARE_CARDS;
 
 const COLOR = {
   carbon: '#090a0f',
@@ -120,16 +186,17 @@ function backdropSvg(): string {
  * the one place nobody would ever see it before it went out.
  */
 const GLYPHS = [
-  profile.name,
-  profile.title,
-  profile.disciplines.join(''),
-  projects.map((p) => p.title).join(''),
-  profile.education.cgpa,
-  profile.education.institution,
+  // Derived from the cards themselves rather than listed again, so adding a
+  // route's copy above cannot leave its glyphs behind. Every string in every
+  // card, including the alt text — which costs nothing, since the subset is
+  // deduplicated by the font service and these are all Latin.
+  Object.values(SHARE_CARDS)
+    .flatMap((c) => [c.kicker, c.heading, c.subheading, c.stat, c.note, c.alt, ...c.chips, ...c.proof])
+    .join(''),
   SITE_DOMAIN,
-  'THE LIVING MACHINE CGPA 0123456789/·—•.:',
-  // Both cases of the full alphabet: the disciplines and section labels are
-  // upper-cased at render time, and uppercasing happens after subsetting.
+  '0123456789/·—•.:,',
+  // Both cases of the full alphabet: the chips and the rail are upper-cased at
+  // render time, and uppercasing happens after subsetting.
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 ].join('');
 
@@ -158,7 +225,9 @@ async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuff
  * CARD
  * ------------------------------------------------------------------ */
 
-export async function renderShareCard(): Promise<ImageResponse> {
+export async function renderShareCard(key: ShareCardKey = 'home'): Promise<ImageResponse> {
+  const card = SHARE_CARDS[key];
+
   /*
    * The card's name is set in the site's display face, not its body face.
    *
@@ -245,7 +314,7 @@ export async function renderShareCard(): Promise<ImageResponse> {
                 }}
               />
               <div style={{ display: 'flex', fontSize: 19, letterSpacing: 5, color: COLOR.ash }}>
-                THE LIVING MACHINE
+                {card.kicker}
               </div>
             </div>
 
@@ -286,7 +355,7 @@ export async function renderShareCard(): Promise<ImageResponse> {
                   lineHeight: 1.02,
                 }}
               >
-                {profile.name}
+                {card.heading}
               </div>
 
               <div
@@ -299,13 +368,13 @@ export async function renderShareCard(): Promise<ImageResponse> {
                   letterSpacing: -0.4,
                 }}
               >
-                {profile.title}
+                {card.subheading}
               </div>
 
               {/* Disciplines as physical chips rather than a bullet list — the
                   same vocabulary the site's panels use. */}
               <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-                {profile.disciplines.map((d) => (
+                {card.chips.map((d) => (
                   <div
                     key={d}
                     style={{
@@ -328,11 +397,11 @@ export async function renderShareCard(): Promise<ImageResponse> {
 
           {/* ---------- Proof ---------- */}
           {/*
-            A card that stops at the job title tells a recruiter scrolling a feed
-            nothing they could not have guessed from the name. The CGPA, the
-            institution and the actual shipped work are the reason to click —
-            and all three are read from the same data the page renders, so the
-            preview can never drift out of step with the site.
+            A card that stops at the heading tells someone scrolling a feed
+            nothing they could not have guessed from the title. The number, what
+            it refers to, and the concrete work behind it are the reason to
+            click — and on the home card all three are read from the same data
+            the page renders, so the preview cannot drift out of step with it.
           */}
           <div
             style={{
@@ -345,23 +414,21 @@ export async function renderShareCard(): Promise<ImageResponse> {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ display: 'flex', fontSize: 20, fontWeight: 600, color: COLOR.amber }}>
-                CGPA {profile.education.cgpa}
+                {card.stat}
               </div>
               <div style={{ display: 'flex', width: 4, height: 4, borderRadius: 999, background: COLOR.ashDim }} />
-              <div style={{ display: 'flex', fontSize: 20, color: COLOR.ash }}>
-                {profile.education.institution}
-              </div>
+              <div style={{ display: 'flex', fontSize: 20, color: COLOR.ash }}>{card.note}</div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              {projects.map((p, i) => (
-                <div key={p.slot} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {card.proof.map((item, i) => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   {i > 0 && (
                     <div
                       style={{ display: 'flex', width: 4, height: 4, borderRadius: 999, background: COLOR.rule }}
                     />
                   )}
-                  <div style={{ display: 'flex', fontSize: 20, color: COLOR.ash }}>{p.title}</div>
+                  <div style={{ display: 'flex', fontSize: 20, color: COLOR.ash }}>{item}</div>
                 </div>
               ))}
             </div>

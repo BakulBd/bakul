@@ -1,4 +1,4 @@
-import { renderShareCard, OG_SIZE, OG_CONTENT_TYPE, OG_ALT } from '@/lib/og';
+import { renderShareCard, OG_SIZE, OG_CONTENT_TYPE, SHARE_CARDS } from '@/lib/og';
 
 /**
  * Deliberately NOT `runtime = 'edge'`.
@@ -12,8 +12,8 @@ import { renderShareCard, OG_SIZE, OG_CONTENT_TYPE, OG_ALT } from '@/lib/og';
  */
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
-export const alt = OG_ALT;
+export const alt = SHARE_CARDS.home.alt;
 
 export default function OpengraphImage() {
-  return renderShareCard();
+  return renderShareCard('home');
 }

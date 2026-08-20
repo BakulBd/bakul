@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { sectionById, toneForPhase, type Phase } from '@/lib/data/sections';
+import { sectionById, sectionIndex, type Phase } from '@/lib/data/sections';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { useMachine } from '@/store/machine';
@@ -12,22 +12,22 @@ import { useMachine } from '@/store/machine';
  */
 
 /**
- * Ambient wash per phase — amber while the copy is about the physical
- * machine, cyan once it turns to results and outcomes. Tied to the site's
- * own narrative rather than picked for decoration.
+ * Whether a section gets an ambient wash at all.
  *
- * Derived from `toneForPhase`, the same function the 3D lighting rig reads,
- * rather than from a second hand-maintained table. The two used to be
- * separate lists of the same fact, which is a standing invitation for the
- * wash behind the copy and the light on the machine to disagree about which
- * half of the story the visitor is in.
+ * The wash's *colour* is no longer decided here. It used to be: this returned
+ * 'amber' or 'cyan' per phase and the CSS selected one of two fixed gradient
+ * pairs, which made the hand-off a step change at a phase boundary while the
+ * 3D lighting rig — reading the same narrative tone as a smooth scalar — was
+ * still mid-crossfade. The colour is now interpolated in CSS from the `--tone`
+ * custom property that the scroll engine publishes off `toneAt`, so both
+ * layers move together by construction. See `.section-glow` in globals.css.
  *
- * The boot phases deliberately have no wash: nothing has been powered on yet,
- * so there is no state for a colour to report.
+ * What remains a per-phase decision is whether there is anything to report:
+ * during boot nothing has been powered on yet, so a section in that state
+ * deliberately has no wash rather than a wash at tone zero.
  */
-function toneClassFor(phase: Phase): 'amber' | 'cyan' | undefined {
-  if (phase === 'BOOT' || phase === 'ACTIVATING') return undefined;
-  return toneForPhase(phase) === 1 ? 'cyan' : 'amber';
+function hasWash(phase: Phase): boolean {
+  return phase !== 'BOOT' && phase !== 'ACTIVATING';
 }
 
 /**
@@ -38,7 +38,6 @@ function toneClassFor(phase: Phase): 'amber' | 'cyan' | undefined {
 export function Section({
   id,
   label,
-  index,
   /**
    * Narrow sections hold the content to a left column so the 3D layer stays
    * visible beside it. Used where the scene is the point — the signature
@@ -49,7 +48,6 @@ export function Section({
 }: {
   id: string;
   label: string;
-  index: string;
   narrow?: boolean;
   children: ReactNode;
 }) {
@@ -58,7 +56,10 @@ export function Section({
   // choreography drift apart silently.
   const section = sectionById(id);
   const heightVh = (section?.height ?? 1) * 100;
-  const tone = section ? toneClassFor(section.phase) : undefined;
+  const wash = section ? hasWash(section.phase) : false;
+  // Read from the registry rather than passed in — see `sectionIndex` for the
+  // stale-numbering bug that made every section's number a derived value.
+  const index = sectionIndex(id);
 
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -145,7 +146,7 @@ export function Section({
       style={compact ? undefined : { minHeight: `${heightVh}vh` }}
       className="relative w-full"
     >
-      {tone && <div className="section-glow" data-tone={tone} aria-hidden="true" />}
+      {wash && <div className="section-glow" aria-hidden="true" />}
 
       <div
         className={
@@ -219,7 +220,7 @@ export function Reveal({
       style={{
         opacity: shown ? 1 : 0,
         transform: shown ? 'translateY(0)' : 'translateY(14px)',
-        transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+        transition: `opacity var(--dur-5) var(--ease-out-quart) ${delay}ms, transform var(--dur-5) var(--ease-out-quart) ${delay}ms`,
       }}
     >
       {children}
@@ -288,7 +289,7 @@ export function Heading({ id, children }: { id: string; children: ReactNode }) {
           className="block"
           style={{
             transform: shown ? 'translateY(0)' : 'translateY(105%)',
-            transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'transform var(--dur-6) var(--ease-out-quart)',
           }}
         >
           {children}
@@ -364,26 +365,69 @@ export function Counter({
   suffix?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState(0);
-  const started = useRef(false);
+  /*
+   * Starts at the real value, not at zero.
+   *
+   * This component is server-rendered like everything else, and `useState(0)`
+   * meant the HTML Next.js actually sends read "0" for every figure in the
+   * Impact section. So the five most quotable numbers on the site — the CGPA,
+   * the award, the 300+ scholarships — did not exist for anything that does
+   * not execute JavaScript, and did not exist for a visitor whose bundle
+   * failed to load. The count-up is an enhancement layered on top of a correct
+   * number, which is the same rule the 3D layer follows.
+   */
+  const [display, setDisplay] = useState(value);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setDisplay(value);
-      return;
-    }
+    // Already showing the true value, so there is nothing to do but leave it.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const io = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting || started.current) return;
-      started.current = true;
+    /*
+     * `raf` lives here, in effect scope.
+     *
+     * It used to be declared inside the observer callback with the
+     * `cancelAnimationFrame` returned from there — but a value returned from
+     * an IntersectionObserver callback goes nowhere at all. React only ever
+     * received the `io.disconnect()` below, so unmounting mid-count left the
+     * loop running and calling setState on a dead component once per frame
+     * until the animation happened to finish.
+     */
+    let raf = 0;
+    /** Have we wound the readout back to zero, i.e. is a count-up owed? */
+    let armed = false;
+
+    const io = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      if (!entry) return;
+
+      if (!entry.isIntersecting) {
+        /*
+         * Off screen. Reset to zero now, while nobody can see it happen, so
+         * the count-up has somewhere to start from. This is the normal path:
+         * Impact sits several screens down the page.
+         */
+        if (!armed) {
+          armed = true;
+          setDisplay(0);
+        }
+        return;
+      }
+
       io.disconnect();
+
+      /*
+       * Visible without ever having been off screen — above the fold, or
+       * landed on directly via a `#section-impact` fragment. Winding a number
+       * the visitor has already read back to zero so it can count up again is
+       * worse than not animating, so this leaves it settled.
+       */
+      if (!armed) return;
 
       const duration = 1250;
       const start = performance.now();
-      let raf = 0;
 
       const tick = (now: number) => {
         const p = Math.min(1, (now - start) / duration);
@@ -392,17 +436,40 @@ export function Counter({
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
-      return () => cancelAnimationFrame(raf);
     });
 
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [value]);
 
   return (
     <span ref={ref} className="tabular-nums">
       {display.toFixed(precision)}
-      {suffix}
+      {/*
+        THE SUFFIX IS NOT THE FIGURE.
+
+        Every suffix this takes is a unit or a scale — ' / 4.00', ' sem', '+' —
+        and each was being set at the full headline size, which states that
+        "4.00" carries the same weight as "3.96". It does not: one is the
+        reading and the other is the reference it is read against. An instrument
+        prints the value large and its scale small, and that is the whole reason
+        this is a typographic rule here rather than a per-card override.
+
+        It also fixes a measured overflow. `3.96 / 4.00` at 2.6rem needs about
+        201px of Space Grotesk; the five-up cell's content box is 160.8px at the
+        1240px container cap and 117.6px at 1024px, so the flagship number on
+        the page — the one a recruiter scans this section for — wrapped onto two
+        lines at every desktop width. At 0.5em the pair measures about 142px and
+        sits on one line, without shrinking the value itself to get there.
+
+        `tabular-nums` is on the parent, so `4.00` keeps its tabular advances.
+        Baseline alignment is the default for an inline span and is what a unit
+        wants — nothing here is a superscript.
+      */}
+      {suffix && <span style={{ fontSize: '0.5em' }}>{suffix}</span>}
     </span>
   );
 }

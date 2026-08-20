@@ -1,0 +1,35 @@
+{
+  // ──────────────────────────────────────────────────────────────────────────
+  // WORKSPACE EXTENSION RECOMMENDATIONS
+  //
+  // `settings.json` in this folder sets `files.associations` to hand every
+  // `.css` file to the `tailwindcss` language mode. That mode only exists if
+  // the Tailwind extension is installed — without it, VS Code falls back to
+  // plain-text CSS and you lose token autocomplete for our `@theme` variables.
+  //
+  // So the association and this recommendation are a pair: one is useless
+  // without the other. Committing both means a fresh clone gets prompted once
+  // and is then correctly configured, rather than every contributor
+  // rediscovering the same false `unknownAtRules` warnings on valid CSS.
+  // ──────────────────────────────────────────────────────────────────────────
+  "recommendations": [
+    // Tailwind CSS v4 IntelliSense. Required for the `tailwindcss` language
+    // mode, `@theme` awareness, and the `experimental.classRegex` patterns
+    // that teach it to read our array-joined `className={[...]}` style.
+    "bradlc.vscode-tailwindcss",
+
+    // ESLint. The repo ships a flat config (`eslint.config.mjs`); this surfaces
+    // its findings inline instead of only at `npm run lint` time.
+    "dbaeumer.vscode-eslint",
+
+    // PostCSS syntax support, so `postcss.config.mjs`'s pipeline and any
+    // nested syntax in `globals.css` highlight correctly.
+    "csstools.postcss"
+  ],
+
+  // Nothing is actively harmful here, but we call out the extension that most
+  // often fights this repo: Prettier. `editor.formatOnSave` is deliberately
+  // off in `settings.json` because `globals.css` uses hand-aligned comment
+  // rules and column-formatted token tables that a formatter would collapse.
+  "unwantedRecommendations": []
+}

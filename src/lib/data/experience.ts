@@ -53,7 +53,6 @@ export const milestones: Milestone[] = [
     points: [
       'Began the CSE programme in Dhaka, Bangladesh.',
       'Coursework spans data structures and algorithms, computer architecture, operating systems, computer networks, software engineering, AI, ML, data mining, NLP, and compiler design.',
-      'Maintaining a CGPA of 3.96 / 4.00.',
     ],
   },
   {

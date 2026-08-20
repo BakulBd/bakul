@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Send, Mail, Github, Linkedin, Phone, MapPin, Download } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
 import { audio } from '@/lib/audio/engine';
 import { profile } from '@/lib/data/profile';
+import { faq } from '@/lib/data/faq';
 import { Heading, Lead, Reveal, Section, Panel } from './Primitives';
 
 const CHANNEL_ICON = { Email: Mail, GitHub: Github, LinkedIn: Linkedin, Phone: Phone } as const;
@@ -94,7 +96,7 @@ export function SectionContact() {
   const sending = phase === 'sending';
 
   return (
-    <Section id="contact" label="Transmission" index="08">
+    <Section id="contact" label="Transmission">
       <Reveal>
         <Heading id="contact">Transmission</Heading>
         <Lead>
@@ -246,7 +248,7 @@ export function SectionContact() {
                         href={c.href}
                         target={c.href.startsWith('http') ? '_blank' : undefined}
                         rel={c.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className="font-[family-name:var(--font-fira)] text-sm text-[color:var(--color-ceramic)] underline decoration-[#33373f] underline-offset-4 transition-colors hover:text-[color:var(--color-cyan)] hover:decoration-[color:var(--color-cyan)]"
+                        className="link font-[family-name:var(--font-code)] text-sm"
                       >
                         {c.value}
                       </a>
@@ -271,15 +273,71 @@ export function SectionContact() {
         </Reveal>
       </div>
 
+      {/* ---------- Frequently asked ---------- */}
+      {/*
+        Native `<details>`, not a JavaScript accordion.
+
+        The browser already implements this widget correctly — keyboard
+        operation, the correct ARIA semantics, and, critically, in-page find
+        reveals a closed answer in current browsers rather than searching past
+        it. A hand-rolled version with `useState` would be more code, ship as
+        client JavaScript, and be worse at all three.
+
+        Placed at the end of Transmission on purpose: these are the questions
+        that arrive by email, so they belong immediately before the form that
+        would otherwise carry them. Answering them here means a recruiter gets
+        the answer now instead of waiting a day for a reply.
+
+        The same `faq` array is the source of the FAQPage node in lib/seo.ts —
+        one import, so the structured data cannot claim an answer this list
+        does not show.
+      */}
+      <Reveal delay={200}>
+        <div className="mt-14 border-t border-[#1a1c23] pt-9">
+          <h3 className="t-label emissive-cyan m-0">Frequently asked</h3>
+
+          <div className="mt-5 space-y-2.5">
+            {faq.map((item) => (
+              <details key={item.q} className="faq-item panel-flat px-5 py-4">
+                <summary className="t-mono flex cursor-pointer list-none items-start justify-between gap-4 text-sm text-[color:var(--color-ceramic)]">
+                  <span>{item.q}</span>
+                  <span
+                    aria-hidden="true"
+                    className="faq-item__marker mt-0.5 shrink-0 text-[color:var(--color-ash-dim)]"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="t-body mt-3.5 max-w-[72ch] text-sm">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </Reveal>
+
       {/* ---------- Footer ---------- */}
-      <Reveal delay={220}>
+      <Reveal delay={240}>
         <footer className="mt-14 border-t border-[#1a1c23] pt-7">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="t-label m-0">
               {profile.name} — {profile.status}
             </p>
-            <p className="t-label m-0">
-              Built with Next.js, React Three Fiber, and WebGL
+            {/*
+              The second and last door to /lab. Someone who scrolled the whole
+              page and is now at the bottom has run out of page, and this is
+              the only other thing there is to read; a footer link is where
+              that person looks. Plain text, not a button — the Projects strip
+              is the invitation, this is just the address.
+            */}
+            <p className="t-label m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Link
+                href="/lab"
+                className="link"
+              >
+                /lab
+              </Link>
+              <span aria-hidden="true" className="text-[color:var(--color-ash-dim)]">·</span>
+              <span>Built with Next.js, React Three Fiber, and WebGL</span>
             </p>
           </div>
         </footer>

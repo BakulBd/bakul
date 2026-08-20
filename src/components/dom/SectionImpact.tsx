@@ -1,6 +1,20 @@
 'use client';
 
-import { metrics, impactGroups } from '@/lib/data/impact';
+/*
+ * `impactGroups` is deliberately NOT imported.
+ *
+ * Its three groups restated facts this page already carries: CGPA and the
+ * Vice-Chancellor's Award appear in the hero plate and in the counters below,
+ * Code in Place and the Codeforces count appear in Core's credentials, and
+ * "three independently built projects" restated the entire Projects section.
+ * Repetition is what made this page feel long — not the amount it has to say.
+ *
+ * The export stays in the data module because `llms.txt` consumes it, so the
+ * machine-readable surface keeps full fidelity while the human-facing page
+ * states each fact once.
+ */
+import { metrics } from '@/lib/data/impact';
+
 import { Heading, Lead, Reveal, Section, Panel, Counter } from './Primitives';
 
 /**
@@ -12,7 +26,7 @@ import { Heading, Lead, Reveal, Section, Panel, Counter } from './Primitives';
  */
 export function SectionImpact() {
   return (
-    <Section id="impact" label="Impact" index="05">
+    <Section id="impact" label="Impact">
       <Reveal>
         <Heading id="impact">Impact</Heading>
         <Lead>
@@ -23,8 +37,21 @@ export function SectionImpact() {
 
       {/* ---------- Counters ---------- */}
       {/*
-        Five metrics — grid-cols-5 at the widest breakpoint keeps them in one
-        clean row instead of leaving a lone orphan card on a 4-up grid.
+        Five metrics in one row — but only where a row of five has the width to
+        be one. `grid-cols-5` was set at `lg`, and at 1024px that divides an
+        892px content column into 165.6px cells, or a 117.6px content box once
+        the panel's own padding is taken out. Five headline figures, five
+        labels, five two-line descriptions and five source lines were being
+        asked to live in a column narrower than the text inside it: the CGPA
+        wrapped outright, and `6 sem` cleared its cell by about 8px, which is
+        not clearance so much as coincidence.
+
+        The container caps at 1240px, so cells stop widening there — 208.8px,
+        a 160.8px content box — and that is the width the five-up row was
+        actually designed against. `xl` is where the layout first has it. From
+        1024 to 1279 the two-column tablet layout carries on instead, which is
+        the same arrangement already shipping from 768px up rather than a third
+        one invented for a 256px band.
 
         The first metric leads. Five identical cards in a row state that every
         figure here carries equal weight, and they do not: the CGPA is the one
@@ -34,26 +61,41 @@ export function SectionImpact() {
         setting; at five-up the row's own geometry does the ordering and it
         returns to a single cell.
       */}
-      <div className="mt-11 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <div className="mt-11 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
         {metrics.map((m, i) => {
           const lead = i === 0;
           return (
             <Reveal
               key={m.id}
               delay={i * 70}
-              className={lead ? 'col-span-2 lg:col-span-1' : ''}
+              className={lead ? 'col-span-2 xl:col-span-1' : ''}
             >
               <Panel className="h-full p-5 sm:p-6">
-                {/* Five columns at the widest breakpoint means less width per
-                    card than the old four-up grid budgeted for — a long suffix
-                    like " semesters" genuinely doesn't fit the old 2.9rem cap
-                    and was being silently clipped by the panel's own
-                    overflow:hidden. break-words is a safety net for any future
-                    suffix length; the smaller cap is the real fix. */}
+                {/* Five columns means less width per card than the old four-up
+                    grid budgeted for — a long suffix like " semesters"
+                    genuinely doesn't fit the old 2.9rem cap and was being
+                    silently clipped by the panel's own overflow:hidden.
+                    break-words is a safety net for any future suffix length;
+                    the smaller cap and `Counter`'s subordinate suffix are the
+                    real fixes.
+
+                    The lead's size was written `clamp(2.6rem, 11vw, 2.6rem)`,
+                    where the floor and the ceiling are the same number — so the
+                    preferred value could never be chosen and the whole
+                    expression was a fixed 2.6rem wearing the syntax of a fluid
+                    one. That mattered, because this card is the only one that
+                    spans the full row below the five-up breakpoint: its box
+                    grows from ~240px of content at 320px to ~900px at 1279px
+                    while its figure stayed the same height, so by tablet width
+                    the "lead" was a small number in a large panel. Now it
+                    actually tracks the width it is given, and `xl:` pins it
+                    back to 2.6rem at five-up where, as above, the row's
+                    geometry does the ordering and every card is the same size
+                    on purpose. */}
                 <p
                   className={`t-display break-words emissive-amber ${
                     lead
-                      ? 'text-[clamp(2.6rem,11vw,2.6rem)]'
+                      ? 'text-[clamp(2.6rem,7vw,3.6rem)] xl:text-[2.6rem]'
                       : 'text-[clamp(1.65rem,4vw,2.6rem)]'
                   }`}
                 >
@@ -68,26 +110,8 @@ export function SectionImpact() {
         })}
       </div>
 
-      {/* ---------- Grouped detail ---------- */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-3">
-        {impactGroups.map((group, gi) => (
-          <Reveal key={group.id} delay={120 + gi * 70}>
-            <Panel className="h-full p-6">
-              <h3 className="t-label emissive-cyan m-0">{group.label}</h3>
-              <ul className="mt-5 list-none space-y-4 p-0">
-                {group.entries.map((entry) => (
-                  <li key={entry.label} className="border-t border-[#24272f] pt-4">
-                    <p className="t-mono m-0 text-xs">{entry.label}</p>
-                    <p className="t-body m-0 mt-1.5 text-xs">{entry.detail}</p>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          </Reveal>
-        ))}
-      </div>
-
-      <Reveal delay={300}>
+      {/* Follows the last counter (delay 280) rather than the removed groups. */}
+      <Reveal delay={340}>
         <p className="t-label mt-7 normal-case tracking-normal text-[color:var(--color-ash-dim)]">
           Not shown, because they do not exist yet: production user counts, API traffic, uptime
           figures, published research, or industry awards.

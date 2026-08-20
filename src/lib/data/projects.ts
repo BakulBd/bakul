@@ -7,7 +7,9 @@
  * they're coursework, not independent builds, and the CV's own current
  * curation doesn't lead with them either. They still appear on the Assembly
  * Line (Experience section) as real history, and the algorithm step-trace
- * architecture is rebuilt live in the Experiment Lab.
+ * architecture is rebuilt live at /lab — the sorting bench there is that idea
+ * done properly, as a pure trace-generating engine rather than a UI that
+ * animates as it goes.
  *
  * Every field here is sourced from the CV and from github.com/BakulBd —
  * repository metadata and each project's own README, read before writing a

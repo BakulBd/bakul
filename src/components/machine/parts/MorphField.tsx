@@ -158,11 +158,11 @@ export function MorphField({ profile }: { profile: QualityProfile }) {
     const lu = linkMaterialRef.current?.uniforms;
     if (!u) return;
 
-    const { debug, debugSpeed, lab } = useMachine.getState();
+    const { debug, debugSpeed } = useMachine.getState();
 
-    // Lab speed scales the simulation clock itself, so slowing it down slows
-    // every motion in the field rather than just the drift.
-    const clamped = Math.min(dt, 0.05) * lab.speed * (debug ? debugSpeed : 1);
+    // The debug speed override scales the simulation clock itself, so slowing
+    // it down slows every motion in the field rather than just the drift.
+    const clamped = Math.min(dt, 0.05) * (debug ? debugSpeed : 1);
 
     /*
      * Presence: how much of the screen the field is entitled to.
@@ -180,9 +180,11 @@ export function MorphField({ profile }: { profile: QualityProfile }) {
     u.uTime.value += clamped;
     u.uMorph.value = frame.morph;
     u.uPower.value = frame.power * presence;
-    // A fixed baseline replaces the old user-adjustable noise slider — the
-    // lab controls that drove it were part of the Experiment Lab, which no
-    // longer exists, so the field keeps the same idle drift at a constant.
+    // A fixed baseline replaces the old user-adjustable noise slider. The
+    // field is scenery, not an instrument: its job is to answer the visitor's
+    // scroll, which `frame.velocity` already carries, and a second knob on top
+    // of that only let someone set it to a value that looked broken. The
+    // constant keeps a visible idle drift when the page is still.
     u.uVelocity.value = frame.velocity + 0.21;
     u.uPulse.value = frame.pulse;
     u.uGravity.value = 1;

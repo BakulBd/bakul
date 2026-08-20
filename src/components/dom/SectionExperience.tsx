@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { GraduationCap, Code2, Cpu, Wrench, Rocket, Sparkles, type LucideIcon } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
-import { audio } from '@/lib/audio/engine';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { milestones, stageOrder, type Stage } from '@/lib/data/experience';
@@ -27,9 +26,19 @@ const STAGE_ICON: Record<Stage, LucideIcon> = {
 };
 
 export function SectionExperience() {
-  const [active, setActive] = useState(0);
+  /*
+   * The selection lives in the store, not in local state.
+   *
+   * It was `useState` here, which meant this component had to fire its own
+   * `audio.play('lock')` — the single place on the site where a component
+   * played a sound directly instead of SoundBridge deriving it from a
+   * transition. Promoting it to the store gives the bridge the transition it
+   * needs, so a click, an arrow key and the scroll-driven advance all sound
+   * identical without this file knowing that audio exists.
+   */
+  const active = useMachine((s) => s.activeMilestone);
+  const setActive = useMachine((s) => s.setActiveMilestone);
   const [headTop, setHeadTop] = useState<number | null>(null);
-  const audioEnabled = useMachine((s) => s.audioEnabled);
   const trackRef = useRef<HTMLDivElement>(null);
   const compact = useIsCompact();
 
@@ -46,10 +55,6 @@ export function SectionExperience() {
      * relay click are simultaneous rather than merely close.
      */
     frame.pulse = 1;
-    // Fired here rather than from SoundBridge because the selected milestone is
-    // local component state, not store state — there is no transition for the
-    // bridge to observe.
-    if (audioEnabled) audio.play('lock');
   };
 
   /* Advance the line as the section scrolls. Coalesced to one read per
@@ -97,7 +102,11 @@ export function SectionExperience() {
 
     cards.forEach((c) => io.observe(c));
     return () => io.disconnect();
-  }, [compact]);
+    // `setActive` is a Zustand action — the same function reference for the
+    // lifetime of the store, so listing it costs nothing and never re-runs the
+    // effect. Listed anyway rather than silencing the rule, which would stop it
+    // checking `compact` too.
+  }, [compact, setActive]);
 
   /* Keep the reader head aligned to the active row's measured centre. */
   useEffect(() => {
@@ -135,7 +144,7 @@ export function SectionExperience() {
   const currentStageIndex = stageOrder.indexOf(current.stage);
 
   return (
-    <Section id="experience" label="Assembly Line" index="04">
+    <Section id="experience" label="Assembly Line">
       <Reveal>
         <Heading id="experience">Assembly Line</Heading>
         <Lead>
@@ -161,7 +170,7 @@ export function SectionExperience() {
               style={{
                 width: `calc((100% - 36px) * ${stageOrder.length > 1 ? currentStageIndex / (stageOrder.length - 1) : 0})`,
                 boxShadow: '0 0 10px var(--color-amber)',
-                transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)',
+                transition: 'width var(--dur-4) var(--ease-out-quart)',
               }}
               aria-hidden="true"
             />
@@ -287,6 +296,9 @@ export function SectionExperience() {
             ref={trackRef}
             role="listbox"
             aria-label="Career milestones"
+            /* States which region this line drives — see the note on that
+               region for why it is a named landmark and not a live one. */
+            aria-controls="milestone-detail"
             onKeyDown={onKeyDown}
             className="relative space-y-1.5 border-l border-[#24272f] pl-5"
           >
@@ -299,7 +311,7 @@ export function SectionExperience() {
                 top: headTop ?? 0,
                 opacity: headTop === null ? 0 : 1,
                 boxShadow: '0 0 14px var(--color-amber)',
-                transition: 'top 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.3s',
+                transition: 'top var(--dur-4) var(--ease-out-quart), opacity var(--dur-3) var(--ease-standard)',
               }}
             />
 
@@ -319,7 +331,8 @@ export function SectionExperience() {
                     background: isActive ? 'rgba(36,39,47,0.75)' : 'transparent',
                     borderLeft: `2px solid ${isActive ? 'var(--color-amber)' : 'transparent'}`,
                     transform: isActive ? 'translateX(6px)' : 'none',
-                    transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+                    transition:
+                      'transform var(--dur-4) var(--ease-out-quart), background-color var(--dur-3) var(--ease-standard), border-color var(--dur-3) var(--ease-standard)',
                   }}
                 >
                   <Icon
@@ -344,7 +357,23 @@ export function SectionExperience() {
 
         {/* ---------- Locked milestone detail ---------- */}
         <Reveal delay={160}>
-          <div aria-live="polite">
+          {/*
+            Named region, not a live region.
+
+            `active` is advanced by scroll position (see the useRafScroll
+            above), so `aria-live="polite"` here meant scrolling through this
+            section re-read the whole locked milestone — heading, organisation,
+            period and every bullet — at a screen-reader user repeatedly, as a
+            side effect of a gesture they did not aim at this panel. The
+            selection itself is already announced where it is made: the rows are
+            real `option`s carrying `aria-selected`, so arrow-key navigation
+            reports the change the visitor actually initiated.
+          */}
+          <div
+            id="milestone-detail"
+            role="region"
+            aria-label={`Milestone detail — ${current.title}`}
+          >
             <Panel className="p-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Status state={current.projected ? 'idle' : current.ongoing ? 'online' : 'amber'}>

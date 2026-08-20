@@ -113,24 +113,55 @@ export const subsystems = [
 ] as const;
 
 
-/** Certifications & awards — CV verbatim, no embellishment. */
+/**
+ * Certifications & awards — CV verbatim, no embellishment.
+ *
+ * `kind` exists for the structured data, not the UI: schema.org draws a real
+ * distinction between `Person.award` (an honour conferred *on* someone by a
+ * body that chose them) and `hasCredential` (something completed or attained).
+ * Emitting all three under one property would either overstate a course
+ * completion as an award or understate an award as a credential, and the whole
+ * point of the graph is that it asserts exactly what the page does. The rendered
+ * list in SectionCore treats them identically, as it should — a reader wants the
+ * facts, not the taxonomy.
+ */
+/**
+ * How many semesters the Vice-Chancellor's Award was conferred.
+ *
+ * The credential below states this in prose ("six academic semesters"), which
+ * is the right register for a list of honours and the wrong one for the hero's
+ * rating plate, where it has to be a numeral beside a "×". Rather than have the
+ * component hardcode a 6 that could silently fall out of step with the sentence
+ * underneath it, the numeral lives here and the prose is composed from it — one
+ * fact, one place, spelled two ways on purpose.
+ */
+export const AWARD_SEMESTERS = 6;
+
+/** The same count written out, for the prose that reads better spelled. */
+const AWARD_SEMESTERS_WORD = 'six';
+
 export const credentials = [
   {
     label: "Vice-Chancellor's Award",
     issuer: 'Green University of Bangladesh',
-    detail: 'Recipient across six academic semesters for outstanding academic performance',
+    detail: `Recipient across ${AWARD_SEMESTERS_WORD} academic semesters for outstanding academic performance`,
     year: null,
+    kind: 'award',
   },
   {
     label: 'Code in Place',
     issuer: 'Stanford University',
     detail: 'Python programming course',
     year: '2023',
+    kind: 'certification',
   },
   {
     label: 'Competitive Programming',
     issuer: 'Codeforces',
     detail: '100+ problems solved · rating 800+',
+    // Not an award: nobody conferred it. It is a verifiable attainment on a
+    // public profile, which is what `hasCredential` is for.
     year: null,
+    kind: 'certification',
   },
 ] as const;

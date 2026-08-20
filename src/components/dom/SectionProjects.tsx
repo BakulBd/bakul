@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { projects, type Project } from '@/lib/data/projects';
+import { benchCountPhrase, benchList } from '@/lib/lab/catalogue';
 import { ProjectVisual } from './ProjectVisual';
 import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
 
@@ -78,7 +81,7 @@ function ModuleDetail({ project, bounded = true }: { project: Project; bounded?:
         {project.stack.map((tech) => (
           <li
             key={tech}
-            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-fira)] text-xs"
+            className="panel-flat px-3 py-1.5 font-[family-name:var(--font-code)] text-xs"
           >
             {tech}
           </li>
@@ -305,7 +308,7 @@ export function SectionProjects() {
   const current = projects[activeProject] ?? projects[0];
 
   return (
-    <Section id="projects" label="Project Bay" index="02">
+    <Section id="projects" label="Project Bay">
       <Reveal>
         <Heading id="projects">Project Bay</Heading>
         {/* Kept to two lines. The old version spent its last sentence
@@ -350,6 +353,10 @@ export function SectionProjects() {
             role="listbox"
             aria-label="Project rack"
             aria-orientation="vertical"
+            /* Names the region this rack drives, so the relationship between
+               "the thing I am selecting in" and "the thing that changes" is
+               stated in the markup rather than only implied by the layout. */
+            aria-controls="module-detail"
             onKeyDown={onKeyDown}
             className="panel-scroll max-h-[calc(100dvh-31rem)] space-y-2 pr-1"
           >
@@ -375,7 +382,8 @@ export function SectionProjects() {
                       : undefined,
                     boxShadow: isActive && !isEmpty ? '0 0 34px -16px var(--color-amber)' : undefined,
                     opacity: isEmpty ? 0.6 : 1,
-                    transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1), border-color 0.3s, box-shadow 0.3s',
+                    transition:
+                      'transform var(--dur-4) var(--ease-out-quart), border-color var(--dur-3) var(--ease-standard), box-shadow var(--dur-3) var(--ease-standard)',
                   }}
                 >
                   <span className="t-mono mt-0.5 text-[0.68rem] text-[color:var(--color-ash-dim)]">
@@ -426,13 +434,13 @@ export function SectionProjects() {
                         {p.stack.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
-                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-fira)] text-[0.62rem] leading-none text-[color:var(--color-ash)]"
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.62rem] leading-none text-[color:var(--color-ash)]"
                           >
                             {tech}
                           </span>
                         ))}
                         {p.stack.length > 3 && (
-                          <span className="font-[family-name:var(--font-fira)] text-[0.62rem] text-[color:var(--color-ash-dim)]">
+                          <span className="font-[family-name:var(--font-code)] text-[0.62rem] text-[color:var(--color-ash-dim)]">
                             +{p.stack.length - 3}
                           </span>
                         )}
@@ -449,12 +457,94 @@ export function SectionProjects() {
 
         {/* ---------- Active module detail ---------- */}
         <Reveal delay={140}>
-          <div aria-live="polite">
+          {/*
+            NOT a live region, and that is the fix rather than an omission.
+
+            This used to be `<div aria-live="polite">`. But `activeProject` is
+            advanced by scroll position (see the useRafScroll above), so a
+            screen-reader user who simply scrolled through this section had the
+            *entire* case study read aloud at them on every bay change — the
+            title, all five prose readouts, and the full stack list — over and
+            over, mid-scroll, with no way to stop it. A polite live region is
+            for a change the visitor asked for and would otherwise miss. This
+            is neither: it is a large, visible region that changes as a side
+            effect of scrolling.
+
+            The pattern that actually belongs here is the one the rack already
+            half-implements. The listbox announces its own selection when a
+            visitor moves through it with the arrow keys — that is the
+            user-initiated change, and `aria-selected` already carries it. All
+            this region needs is to be reachable and named, so it is a landmark
+            with a name that says which module it is showing, and the rack now
+            points at it with `aria-controls`.
+          */}
+          <div
+            id="module-detail"
+            role="region"
+            aria-label={`Module detail — ${current.title}`}
+          >
             <ModuleDetail project={current} />
           </div>
         </Reveal>
       </div>
       )}
+
+      {/* ---------- Bench access ---------- */}
+      {/*
+        The one in-page door to /lab, deliberately placed here and nowhere else.
+
+        /lab is a second document, not a seventh station. It is kept out of the
+        `sections` registry in lib/data/sections.ts on purpose: that registry
+        drives camera choreography — every entry needs a settle point on the
+        scroll timeline and a cell in the mobile nav's six-column grid, and a
+        route that leaves the page has neither. Adding it there would have
+        bought a nav pill at the cost of wrapping "Experience" onto two lines
+        at 390px and inventing a settle `t` for a section that never scrolls
+        past.
+
+        So the link goes where the claim it supports already lives: projects.ts
+        states that the algorithm step-trace architecture from the coursework
+        visualiser is rebuilt live in the Lab. This strip is where a reader who
+        just read the rack can go check that. It sits after both the compact
+        list and the wide rack, so there is exactly one of it per render.
+
+        `next/link` rather than `<a>`: the route is prefetched on hover, so the
+        bench is warm before the click, and the transition keeps the audio
+        graph and Lenis instance alive instead of tearing the app down.
+
+        The blurb is generated from `BENCHES` rather than written out here.
+        This is the furthest surface from the Lab that still makes a claim
+        about what is in it, which is exactly what makes it the one nobody
+        remembers: it read "Two engines — five sorting algorithms, and a
+        compiler front-end" for as long as it took a third bench to ship
+        behind it. An undercount here is worse than a stale sentence, because
+        this sentence is the only argument for the click — a visitor who is
+        told there are two things they are not interested in never finds out
+        there is a third. Naming the benches instead of describing each one
+        also keeps this to two lines at 390px however many there are.
+      */}
+      <Reveal delay={200}>
+        <Link
+          href="/lab"
+          className="panel-flat group mt-11 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4 transition-colors hover:border-[color:var(--color-cyan)] sm:px-6"
+        >
+          <span className="min-w-0">
+            <span className="t-label block">Bench access — /lab</span>
+            <span className="t-body m-0 mt-1.5 block text-sm">
+              {benchCountPhrase()} running live in this tab —{' '}
+              {benchList({ lower: true })} — each one instrumented, so every
+              number beside it was measured while it ran.
+            </span>
+          </span>
+          <span
+            className="t-mono flex shrink-0 items-center gap-1.5 text-xs text-[color:var(--color-ash-dim)] transition-colors group-hover:text-[color:var(--color-cyan)]"
+            aria-hidden="true"
+          >
+            Open the Lab
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+      </Reveal>
     </Section>
   );
 }
