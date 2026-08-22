@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { Check, ChevronLeft, ChevronRight, Copy, Pause, Play, RotateCcw, X } from 'lucide-react';
 import { haptic } from '@/lib/haptics';
 import { ratio, type Verification } from '@/lib/lab/core/verify';
+import { useScrollableFocus } from '@/hooks/useScrollableFocus';
 
 /**
  * SHARED BENCH CONTROLS
@@ -187,6 +188,92 @@ export function Segmented<T extends string>({
       </div>
 
       {selected?.hint && <p className="lab-field__hint">{selected.hint}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * SCROLLING TABLE
+ * ------------------------------------------------------------------ */
+
+/**
+ * A table that is wider than the bay it sits in, in its own scroll container.
+ *
+ * The wrapper is not new — every bench had `<div className="lab-table-wrap">`
+ * written out by hand, thirteen times. What is new is that the container
+ * becomes a keyboard stop while, and only while, it actually scrolls.
+ *
+ * ── Why it was broken ───────────────────────────────────────────────────
+ * `overflow-x: auto` on a box containing nothing focusable is scrollable with a
+ * wheel or a finger and unreachable from a keyboard: arrow keys scroll the
+ * focused scroller, and there is no way to focus this one. On a phone every one
+ * of these tables overflows, so the measured results — the entire point of the
+ * bench — were partly unreachable without a pointer. axe reports it as
+ * `scrollable-region-focusable`, serious impact, and it was firing on the Lab
+ * at 390px.
+ *
+ * See `useScrollableFocus` for why the stop is conditional rather than always
+ * present, and how the condition stays correct when a slider changes the number
+ * of rows.
+ *
+ * ── Why the label is read from the caption ──────────────────────────────
+ * A focusable element needs an accessible name, and the honest name for this
+ * box is whatever the table inside it already calls itself. Every one of these
+ * tables carries an `sr-only` `<caption>` — "The 5 processes generated from
+ * seed 7", "Comparison counts for five algorithms at eight input sizes" — which
+ * is both more specific than anything a prop would carry and impossible to get
+ * out of step with the table, because it *is* the table's own description.
+ *
+ * Passing `label` overrides it, for the one case the caption cannot serve: a
+ * wrapper around something that is not a `<table>`.
+ */
+export function TableWrap({
+  children,
+  label,
+  className = 'lab-table-wrap',
+}: {
+  children: ReactNode;
+  /** Overrides the caption-derived name. Only needed for non-table content. */
+  label?: string;
+  /** `lab-gantt-wrap` for the scheduler's chart, which has its own padding. */
+  className?: string;
+}) {
+  const { attach, scrollable, ref } = useScrollableFocus<HTMLDivElement>();
+  const [caption, setCaption] = useState('');
+
+  /*
+   * Read after paint rather than passed in. The caption is `sr-only` text
+   * rendered by the same component tree, so by the time this runs it is in the
+   * DOM; re-running on `scrollable` picks up a caption whose text changed with
+   * the data (the scheduler's names its process count) at the moment the name
+   * actually starts being announced.
+   */
+  useEffect(() => {
+    if (!scrollable || label) return;
+    const text = ref.current?.querySelector('caption')?.textContent?.trim();
+    if (text) setCaption(text);
+  }, [scrollable, label, ref]);
+
+  const name = label ?? caption;
+
+  return (
+    <div
+      ref={attach}
+      className={className}
+      /*
+       * `group`, not `region`: a landmark for a table that happens to be too
+       * wide would add an entry to the landmark list for a layout accident, and
+       * a bench with three tables would add three.
+       *
+       * Both attributes are withheld until there is a name to announce, so the
+       * one frame between the container becoming scrollable and the caption
+       * being read never produces an unnamed tab stop.
+       */
+      {...(scrollable && name
+        ? { tabIndex: 0, role: 'group' as const, 'aria-label': name }
+        : {})}
+    >
+      {children}
     </div>
   );
 }

@@ -98,7 +98,9 @@ export function SectionContact() {
   return (
     <Section id="contact" label="Transmission">
       <Reveal>
-        <Heading id="contact">Transmission</Heading>
+        <Heading id="contact" plain="Contact details and CV">
+          Transmission
+        </Heading>
         <Lead>
           Open to graduate research opportunities, collaboration, and interesting problems. The form
           sends a real message; every direct channel is listed beside it.
@@ -248,7 +250,9 @@ export function SectionContact() {
                         href={c.href}
                         target={c.href.startsWith('http') ? '_blank' : undefined}
                         rel={c.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        className="link font-[family-name:var(--font-code)] text-sm"
+                        /* `link-channel` adds the vertical hit area on touch —
+                           see the `pointer: coarse` block in globals.css. */
+                        className="link link-channel font-[family-name:var(--font-code)] text-sm"
                       >
                         {c.value}
                       </a>
@@ -298,7 +302,10 @@ export function SectionContact() {
 
           <div className="mt-5 space-y-2.5">
             {faq.map((item) => (
-              <details key={item.q} className="faq-item panel-flat px-5 py-4">
+              /* Padding moved to the summary — see `.faq-item` in globals.css:
+                 the card's own padding made 16px of apparently-pressable area
+                 that did nothing, and left the real target 22px tall. */
+              <details key={item.q} className="faq-item panel-flat">
                 <summary className="t-mono flex cursor-pointer list-none items-start justify-between gap-4 text-sm text-[color:var(--color-ceramic)]">
                   <span>{item.q}</span>
                   <span

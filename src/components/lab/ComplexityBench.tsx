@@ -13,7 +13,7 @@ import { distributions, type Distribution } from '@/lib/lab/sorting';
 import { parseSeed, randomSeed } from '@/lib/lab/core/rng';
 import { benchFragment, benchPath } from '@/lib/lab/catalogue';
 import { haptic } from '@/lib/haptics';
-import { Bay, CopyButton, Segmented, Stat, VerifyBadge, num, type Option } from './Controls';
+import { Bay, CopyButton, num, Segmented, Stat, TableWrap, type Option, VerifyBadge } from './Controls';
 
 /**
  * COMPLEXITY BENCH
@@ -277,9 +277,12 @@ export function ComplexityBench() {
           columns={2}
         />
 
+        {/* `metricOptions` above carries each metric's note as its `hint`, and
+            `Segmented` renders the selected option's hint directly beneath the
+            group. A second `<p>` here printed the identical sentence again, on
+            the very next line — "The operation the complexity classes are
+            stated in terms of." twice, in a 320px column. */}
         <Segmented label="Measure" options={metricOptions} value={metric} onChange={setMetric} />
-
-        <p className="lab-note">{METRICS.find((m) => m.id === metric)?.note}</p>
 
         <div className="lab-seed">
           <p className="lab-seed__row">
@@ -475,7 +478,7 @@ export function ComplexityBench() {
         title="Measure"
         note="Each size is exactly twice the last, so the ratio underneath each count is what growth looks like without any fitting."
       >
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table lab-table--tight">
             <caption className="sr-only">
               {metricLabel} counted at each array size, with the ratio to the previous size, for
@@ -518,7 +521,7 @@ export function ComplexityBench() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         <p className="lab-note">
           A ratio settling near <strong>4.00</strong> is a doubling of n quadrupling the work —
@@ -533,7 +536,7 @@ export function ComplexityBench() {
         title="Classify"
         note="The left column is a bound from a textbook. The right two were measured just now, on this input."
       >
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table">
             <caption className="sr-only">
               Textbook worst-case bound compared with the growth measured on {shapeLabel} input
@@ -566,7 +569,7 @@ export function ComplexityBench() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         <p className="lab-note">
           These columns are expected to disagree, and every disagreement here is correct.

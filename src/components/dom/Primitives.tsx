@@ -152,7 +152,13 @@ export function Section({
         className={
           compact
             ? 'relative z-[1] py-14'
-            : 'sticky top-0 z-[1] flex min-h-[100dvh] items-center py-24'
+            : /* `py-24` was a literal here and a `31rem` reserve was a literal in
+                 SectionProjects; the two had to agree about how much of the
+                 screen this padding was taking away from the panel, and they
+                 could not, because neither could see the other. Both now read
+                 the same token pair — see THE PINNED-STAGE BUDGET in
+                 globals.css for what the disagreement cost. */
+              'sticky top-0 z-[1] flex min-h-[100dvh] items-center py-[var(--pin-pad)]'
         }
       >
         <div
@@ -248,7 +254,53 @@ export function Reveal({
  * inner span — so the heading's own box, which `aria-labelledby` and the skip
  * link both resolve against, is always its real size and position.
  */
-export function Heading({ id, children }: { id: string; children: ReactNode }) {
+/**
+ * A section's h2.
+ *
+ * ── Why there is a second, invisible half ───────────────────────────────
+ * The visible headings on this page are the machine's own vocabulary: The
+ * Core, Project Bay, Assembly Line, Transmission. They are the right words for
+ * the design and the wrong words on their own for anyone who is not looking at
+ * it, because none of them names what the section actually contains.
+ *
+ * That has a cost with a specific audience before it has one with a crawler.
+ * A screen reader's heading list — the primary way a non-visual user navigates
+ * a long document — reads, in full: "System standby. The Core. Project Bay.
+ * Assembly Line. Impact. Transmission." Six headings, and only one of them
+ * says what is under it. There is no way to get from that list to "where is
+ * the work history" without opening each section and reading it, which is
+ * exactly the labour a heading list exists to remove.
+ *
+ * `plain` is the answer, and it is deliberately a small one: a clarifying
+ * phrase inside the same `h2`, visually hidden, so the heading's text is
+ * "Assembly Line — Experience and education" to anything reading the document
+ * and "Assembly Line" to anything looking at it. The design does not change by
+ * a pixel.
+ *
+ * It also happens to be worth something in search, since an `h2` is a strong
+ * on-page signal and five of the six were spending theirs on words nobody
+ * queries. That is a real benefit and it is not the reason: the phrase has to
+ * be an honest description of the section for the accessibility case to hold
+ * at all, and an honest description is the only kind worth publishing. Nothing
+ * here repeats a keyword, and nothing is hidden that is not simply the plain
+ * name of the thing directly below it.
+ *
+ * `Impact` passes no `plain`, because "Impact" already is one.
+ */
+export function Heading({
+  id,
+  plain,
+  children,
+}: {
+  id: string;
+  /**
+   * A plain-language description of the section, appended to the heading for
+   * assistive technology and crawlers and hidden from sight. Omit where the
+   * visible heading already names its own contents.
+   */
+  plain?: string;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLHeadingElement>(null);
   const [shown, setShown] = useState(false);
 
@@ -295,6 +347,13 @@ export function Heading({ id, children }: { id: string; children: ReactNode }) {
           {children}
         </span>
       </span>
+
+      {/* Outside the masked, translating wrapper above: that box is
+          `overflow: hidden` and animates its child from 105% to 0, and an
+          `sr-only` element inside it would be clipped to a 1px box that is then
+          transformed — which is enough for some screen readers to skip it. Out
+          here it is simply text at the end of the heading. */}
+      {plain && <span className="sr-only"> — {plain}</span>}
     </h2>
   );
 }
@@ -309,12 +368,30 @@ export function Panel({
   children,
   className = '',
   as: Tag = 'div',
+  hidden = false,
 }: {
   children: ReactNode;
   className?: string;
   as?: 'div' | 'article' | 'li';
+  /**
+   * Renders the panel but keeps it out of the layout and the accessibility
+   * tree — the tabbed-content pattern, where every panel is in the document
+   * and one is shown.
+   *
+   * Passed through rather than left to the caller to wrap in a `<div hidden>`,
+   * because a wrapper changes what the panel's parent is. `SectionExperience`
+   * puts nine of these in one region and shows one; a wrapper div around each
+   * would be nine anonymous boxes between the region and its panels, and the
+   * next person to give that region a grid or a flex direction would find it
+   * laying out the wrappers instead of the panels.
+   */
+  hidden?: boolean;
 }) {
-  return <Tag className={`panel ${className}`}>{children}</Tag>;
+  return (
+    <Tag className={`panel ${className}`} hidden={hidden}>
+      {children}
+    </Tag>
+  );
 }
 
 /**

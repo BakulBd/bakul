@@ -19,32 +19,36 @@ const jetbrains = JetBrains_Mono({
   weight: ['400'],
 });
 
+/*
+ * Inter, as the variable face — and no `weight`, deliberately.
+ *
+ * The obvious-looking optimisation is to pin `weight: ['400', '600']`: those
+ * are the only two instances the site paints, 400 for all body copy and 600 for
+ * `.btn-primary` and nothing else. Every other numeric weight in the tree is
+ * 700 on `.t-display` and `.plate__fig`, which are Space Grotesk, or the three
+ * in `lib/og.tsx`, which Satori renders on the server with no browser font
+ * involved at all. On the face of it Inter is shipping a whole weight axis to
+ * serve two points on it — the same argument that correctly trimmed the two
+ * faces around it to a single cut each.
+ *
+ * It was tried, on a clean build with `.next` removed, and it changes nothing.
+ * Inter's latin subset arrives as one 48,432-byte variable file either way,
+ * down to the same content hash: Google no longer serves static cuts of Inter,
+ * so a weight-pinned request returns the same variable file cited by both
+ * `@font-face` rules rather than two smaller ones. Pinning buys a longer
+ * declaration and a 700 fallback that no longer exists if Space Grotesk fails
+ * to load.
+ *
+ * Recorded here rather than left as a silent omission, because the change looks
+ * right, matches what the two faces around it genuinely do, and is worth
+ * exactly zero bytes.
+ */
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
 });
 
-/*
- * Display face — headings and the hero only.
- *
- * Inter is an outstanding interface and reading face and stays exactly where
- * it is for body copy. What it is not is distinctive: Inter + JetBrains Mono
- * is the default developer-portfolio stack, and setting the largest words on
- * the page in it means the one element a visitor sees first says nothing
- * about this site that it does not also say about a thousand others.
- *
- * Space Grotesk earns the slot on its own terms rather than for novelty. It
- * is a grotesque drawn from proportional-drawing roots, so its skeleton is
- * the same engineering-drawing lineage the whole site is built on, and its
- * quirks — the flat-sided 'a', the angular 'k', the squared terminals — read
- * as machined rather than humanist. At hero size those details are what make
- * the name look set rather than typed.
- *
- * Only weight 700: `.t-display` is the sole consumer and asks for one weight,
- * so shipping the variable range would be downloading instances that are
- * never painted.
- */
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',

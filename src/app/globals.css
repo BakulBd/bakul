@@ -165,6 +165,134 @@
   --shadow-1: 0 2px 8px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
   --shadow-2: 0 24px 60px -32px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
   --shadow-3: 0 36px 80px -36px rgba(0, 0, 0, 0.85), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+
+  /* ==================================================================
+     THE PINNED-STAGE BUDGET
+
+     On a wide viewport the Projects and Experience sections pin: one screen
+     holds the section number, the heading, the lead, the rack and the open
+     panel, and the scroll length becomes dwell time rather than travel. That
+     only works while all of it fits, and two numbers decided whether it did —
+     `py-24` on the sticky stage and a `calc(100dvh - 31rem)` cap on the panel
+     — written as literals in two files that had no way to know about each
+     other.
+
+     They did not fit. Measured in Chromium, with the case study's own `<dl>`
+     as the subject, because it is the last thing in the panel and therefore the
+     first thing squeezed. Panel height, and how much of the case study was on
+     screen inside it:
+
+                     panel    case study visible
+       2560 x 1440    772px    471 of 471   whole
+       1920 x 1080    584px    283 of 471   60%, rest behind a scroll
+       1440 x  900    404px    103 of 564   18%, about one readout
+       1366 x  768    272px      0 of 564   nothing
+
+     Zero at the bottom of that table. Not truncated — on a 1366x768 laptop the
+     five readouts naming the problem, the architecture, the hard part and the
+     result rendered at no height at all, and the panel was a title, some chips
+     and a button. One readout of five at 1440x900. The best writing on the site
+     was reaching the widest part of its audience as an empty box.
+
+     ── Why it happened ──────────────────────────────────────────────────
+     31rem is 496px of reserved overhead, and the actual overhead is about
+     428px at 1440 wide: 192px of `py-24`, ~44px of section number, ~67px of
+     heading, ~81px of lead, 44px of grid margin. So the cap was ~68px
+     pessimistic before the arithmetic even ran — and then 900 - 496 leaves
+     404px for a panel whose header, title, chips and buttons alone need ~301px,
+     and 768 - 496 leaves 272px, which is less than those fixed parts on their
+     own. The `<dl>` is the panel's only `flex-1` child, so it is where the
+     entire shortfall lands: it does not overflow, it collapses.
+
+     ── The fix ──────────────────────────────────────────────────────────
+     Both numbers become one pair of tokens that shrink together as the window
+     gets shorter, so the padding a short window gives up is exactly the space
+     the panel gets back. `--pin-pad` is the stage's vertical padding;
+     `--pin-reserve` is everything above and below the panel, and it stays at
+     `2 x --pin-pad` plus the ~236px of heading, lead and margins that do not
+     change with viewport height.
+
+     Re-measured at the same four sizes:
+
+                     panel            case study visible
+       2560 x 1440    772px           471 of 471   unchanged
+       1920 x 1080    584px           283 of 471   unchanged
+       1440 x  900    404 -> 516px    103 -> 215   18% -> 38%
+       1366 x  768    272 -> 432px      0 -> 131   0%  -> 23%
+
+     A 768px-tall window still scrolls inside the panel to reach all five
+     readouts, and that is honest: five prose blocks, a rack and a hero heading
+     do not fit in 768px and no arrangement of them will. What it no longer does
+     is show none of them. `.panel-scroll` already fades its edges and draws a
+     real scrollbar, so the remainder reads as "more here" rather than as the
+     end.
+
+     The two tall sizes are untouched by construction — every breakpoint below
+     is `max-height`, so a window with the room keeps the composition it was
+     designed with.
+
+     Every breakpoint is `max-height`, keyed to the axis that is actually
+     scarce. A 2560x800 window is short, not large, and was being handed the
+     tall layout on the strength of its width.
+     ================================================================== */
+  --pin-pad: 6rem;
+  --pin-reserve: 31rem;
+
+  /* ==================================================================
+     MEASURE — how wide a line of prose is allowed to get
+
+     Typography's oldest rule and the one this file was breaking in the
+     widest places on the site. Comfortable reading runs 45–75 characters a
+     line; past about 80 the eye loses the return sweep and has to hunt for
+     the start of the next line, which is felt as the text being hard to
+     read rather than as the column being too wide.
+
+     Measured in Chromium at 1440px, before this existed:
+
+       .lab-bay__note        889px   ~112ch
+       .lab-note             889px   ~110ch
+       Impact disclaimer    1108px   ~137ch
+
+     None of the three had a `max-width` at all. They were fine while every
+     bay they lived in was a 320px control column, and they inherited the
+     full 928px the moment a bay spanned — so the widest, most authoritative
+     paragraphs in the Lab were the least readable ones on the site.
+
+     Two values rather than one, because two things are being set:
+
+       --measure       body copy and notes. 68ch, mid-range, chosen so the
+                       lab's 0.8rem notes and the site's 1rem body both land
+                       inside the comfortable band rather than one of them
+                       sitting at an edge of it.
+       --measure-wide  a lead or a standfirst, which is read once and at a
+                       larger size, where a slightly longer line reads as
+                       confident rather than tiring.
+
+     Anything already capped in `ch` at a call site keeps its own value —
+     these are for the classes that had none.
+     ================================================================== */
+  --measure: 68ch;
+  --measure-wide: 74ch;
+}
+
+/* A laptop panel: 900px and below, and the 1080p windows that lose 130px to
+   browser chrome and a bookmarks bar. Half the padding, and every pixel of it
+   handed to the panel. */
+@media (max-height: 940px) {
+  :root {
+    --pin-pad: 2.5rem;
+    --pin-reserve: 24rem;
+  }
+}
+
+/* 768px-class screens, and anything a visitor has dragged down to half-height.
+   Padding drops to the minimum that still separates the stage from the edge of
+   the frame. */
+@media (max-height: 820px) {
+  :root {
+    --pin-pad: 1.5rem;
+    --pin-reserve: 21rem;
+  }
 }
 
 
@@ -383,9 +511,46 @@ html.lenis, html.lenis body { height: auto; }
 /* Styling only. The element is a native <details>, so the open/close
    behaviour, the keyboard handling and the ARIA semantics are the browser's,
    not ours — all that is left to do is remove the default triangle (which no
-   two engines draw the same) and rotate our own marker. */
+   two engines draw the same) and rotate our own marker.
+
+   ── Where the padding lives, and why it moved ─────────────────────────────
+   It was on the `<details>` (`px-5 py-4`), which made the card the right size
+   and the target the wrong one. `<summary>` is what opens a disclosure, so the
+   clickable strip was the summary's own line box — measured at 22px tall
+   inside a 54px card. The 16px of padding above and below it looked exactly as
+   pressable as the question and did nothing.
+
+   That is the classic disclosure defect and it is worst on a phone, where the
+   miss is a tap that appears to have been ignored. It also sits 2px under the
+   24x24 floor of WCAG 2.2 SC 2.5.8 — it clears that rule only through the
+   spacing exception, which is a technicality rather than a design.
+
+   Moving the padding onto the summary makes the target the card: full width,
+   full height, 54px tall, exactly the area that already looks pressable. The
+   answer takes the same inline padding back so the two stay in one column. */
 .faq-item {
   transition: border-color var(--dur-2) var(--ease-standard);
+}
+
+.faq-item > summary {
+  padding: 0.9rem 1.25rem;
+  /* 44px even before the question wraps, which is the site's own floor
+     everywhere else a finger is involved. */
+  min-height: 2.75rem;
+}
+
+.faq-item > summary + * {
+  padding-inline: 1.25rem;
+  padding-bottom: 1.1rem;
+}
+
+/* The summary's bottom padding is target area, and target area is only needed
+   where there is a target. Open, the answer directly below supplies the
+   separation and the two paddings stack into a gap about twice the size the
+   answer's own top margin was designed for. Closed — the state a finger is
+   actually aiming at — the full 0.9rem stays. */
+.faq-item[open] > summary {
+  padding-bottom: 0.35rem;
 }
 .faq-item:hover { border-color: rgba(160, 168, 185, 0.3); }
 .faq-item[open] { border-color: rgba(0, 229, 255, 0.28); }
@@ -395,10 +560,13 @@ html.lenis, html.lenis body { height: auto; }
 .faq-item summary::-webkit-details-marker { display: none; }
 .faq-item summary { list-style: none; }
 
+/* Inset rather than offset: the ring now traces a target the full width of the
+   card, and a 4px outward offset on that would be drawn outside the card's own
+   border and clipped by the neighbour above it. */
 .faq-item summary:focus-visible {
   outline: 2px solid var(--color-cyan);
-  outline-offset: 4px;
-  border-radius: var(--r-1);
+  outline-offset: -3px;
+  border-radius: var(--r-3);
 }
 
 .faq-item__marker {
@@ -855,6 +1023,93 @@ html.lenis, html.lenis body { height: auto; }
   to   { background-position: 0 -274px, 0 -422px, 0 -178px, 0 -626px; }
 }
 
+/* ---- The deep field ----
+   The furthest thing in the room, and the answer to a real hole: every mass in
+   this layer sits at or below the horizon, so the upper half of the frame was
+   an empty rectangle of carbon that the eye read as the end of the space
+   rather than as its distance.
+
+   Points half the size of the dust and a third of its brightness, drifting at
+   roughly a fifth of its rate. That ratio is the whole effect — a single
+   particulate field at one speed is a texture, and two at different speeds is
+   parallax, which the visual system resolves as depth before it resolves
+   anything else. Masked to fade out before the horizon so it never competes
+   with the bloom or lands on top of the floor, where a star would be a defect.
+
+   Five tiles this time rather than four, at coprime sizes sharing no factor
+   with the dust's — otherwise the two fields would periodically align and the
+   deeper one would betray itself as a copy of the nearer one. */
+.atmos__deep {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(0.9px 0.9px at 12% 18%, rgba(240, 242, 245, 0.34), transparent 100%),
+    radial-gradient(0.7px 0.7px at 63% 9%, rgba(0, 229, 255, 0.3), transparent 100%),
+    radial-gradient(1px 1px at 34% 41%, rgba(240, 242, 245, 0.26), transparent 100%),
+    radial-gradient(0.8px 0.8px at 84% 31%, rgba(255, 176, 64, 0.22), transparent 100%),
+    radial-gradient(0.6px 0.6px at 51% 63%, rgba(240, 242, 245, 0.24), transparent 100%);
+  background-size: 173px 173px, 241px 241px, 331px 331px, 419px 419px, 127px 127px;
+  /* Dense overhead, gone by the horizon. A hard cut would draw a line across
+     the sky; the two-stop fade is what makes the field simply run out. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 34%, transparent 58%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 34%, transparent 58%);
+  /* 560s against the dust's 120s. Slow enough that it is never caught moving
+     and only ever noticed as the frame having changed. */
+  animation: atmos-deep 560s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes atmos-deep {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  /* Whole multiples of each tile again, so all five wrap on the same frame. */
+  to   { background-position: 0 -346px, 0 -482px, 0 -662px, 0 -838px, 0 -254px; }
+}
+
+/* ---- Light shafts ----
+   The room had a floor, haze and a horizon: a plane and its distance. What it
+   never said anything about was its height, so it read as a landscape rather
+   than as an interior — and the machine standing in it is lit from above by a
+   rig that the background gave no evidence of.
+
+   Three beams raking down at slightly different angles, each one a pair of
+   stops in a single linear-gradient rather than an element of its own. Angles
+   near — but never at — the vertical, because three parallel beams read as a
+   pattern and three that converge slightly read as one source above the frame.
+
+   No `filter: blur()`. The softness is in the gradient's own stops, resolved
+   once at paint; a blurred element would be re-filtered on every composite of
+   an animating layer, which is the one cost this whole file is written to
+   avoid. */
+.atmos__shafts {
+  position: absolute;
+  /* Overhangs the viewport on every side so the sway never walks an edge of
+     the gradient into frame. */
+  inset: -25% -35%;
+  --shaft: color-mix(in oklab, rgba(255, 176, 64, 0.055) calc((1 - var(--tone)) * 100%), rgba(120, 240, 255, 0.05));
+  background-image:
+    linear-gradient(97deg, transparent 0 13%, var(--shaft) 17%, var(--shaft) 20%, transparent 25%),
+    linear-gradient(101deg, transparent 0 45%, var(--shaft) 48%, var(--shaft) 52%, transparent 58%),
+    linear-gradient(94deg, transparent 0 74%, var(--shaft) 77%, var(--shaft) 79%, transparent 84%);
+  /* Brightest where they enter the frame, gone before they reach the floor —
+     a shaft that survived to the ground plane would have to explain what it
+     was landing on. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.62) 38%, transparent 72%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.62) 38%, transparent 72%);
+  /* 73s: coprime-ish with 47 / 61 / 38, so the sway never phases with the
+     masses it is falling through. */
+  animation: atmos-shafts 73s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Lateral sway only, and small. Light shafts in a still room do not move; what
+   moves is the air between them, and a 3vw drift is the smallest amount that
+   reads as that rather than as an animation. 0% is the identity, so the
+   reduced-motion freeze lands on the designed composition. */
+@keyframes atmos-shafts {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(3vw, 0, 0) scaleY(1.04); }
+}
+
 /* ---- Horizon bloom ----
    Light pooling where the ground plane meets the vanishing point. This is the
    single element doing the most work here: it is what makes the grid below
@@ -870,11 +1125,106 @@ html.lenis, html.lenis body { height: auto; }
      horizon, which is further away than the near accent but nearer than the
      key mass behind it. */
   transform: translateY(calc(-38% + var(--scroll) * -7vh));
-  background: radial-gradient(
-    ellipse 50% 50% at 50% 100%,
-    color-mix(in oklab, rgba(255, 140, 0, 0.14) calc((1 - var(--tone)) * 100%), rgba(0, 229, 255, 0.15)) 0%,
-    transparent 72%
+  /*
+   * Two layers, and the second one is what took this from a glow to a light.
+   *
+   * The pool alone is a soft ellipse: correct, and the same shape every dark
+   * hero section on the web uses. What a real lit horizon has that the ellipse
+   * does not is an *anamorphic core* — the wide, extremely shallow streak an
+   * emissive line leaves through a lens, far wider than it is tall and pinched
+   * to a hot centre. It is the single detail that separates a rendered frame
+   * from a gradient, and it costs one more background layer on an element that
+   * was already being painted.
+   *
+   * Declared first so it paints on top of the pool it sits inside. Its height
+   * is a fraction of the pool's, which is the whole point: matching heights
+   * would just be a brighter ellipse.
+   */
+  background:
+    /* The streak. 92% wide, 7% tall, centred on the horizon line. */
+    radial-gradient(
+      ellipse 46% 3.5% at 50% 100%,
+      color-mix(in oklab, rgba(255, 196, 128, 0.5) calc((1 - var(--tone)) * 100%), rgba(160, 245, 255, 0.5)) 0%,
+      color-mix(in oklab, rgba(255, 160, 48, 0.16) calc((1 - var(--tone)) * 100%), rgba(0, 229, 255, 0.17)) 38%,
+      transparent 100%
+    ),
+    /* The pool it sits in — unchanged. */
+    radial-gradient(
+      ellipse 50% 50% at 50% 100%,
+      color-mix(in oklab, rgba(255, 140, 0, 0.14) calc((1 - var(--tone)) * 100%), rgba(0, 229, 255, 0.15)) 0%,
+      transparent 72%
+    );
+}
+
+/* ---- Velocity streaks ----
+   The room's answer to being moved through quickly.
+
+   `--flow` is smoothed scroll velocity, and until now exactly one thing on the
+   page read it: the substrate, which scales its flow rate by it. So the floor
+   accelerated underneath a room that stayed perfectly still — the two halves of
+   the same space disagreeing about whether anything was happening.
+
+   This is the other half. Two fans of fine streaks raking in from the left and
+   right edges of the frame, at an angle that converges on the vanishing point,
+   with opacity driven directly by `--flow`. At rest the multiplier is zero and
+   this element is invisible and costs nothing; under a fast scroll it is the
+   frame edges smearing, which is what a camera moving through a lit volume
+   actually does.
+
+   Opacity only — no transform, no animation, no keyframes. `--flow` is
+   quantised to twenty steps by the scroll engine, so the whole range is twenty
+   composited opacity changes on one already-painted layer, and there is nothing
+   here for a reduced-motion rule to freeze: a visitor who is not scrolling
+   never sees it, and one who is scrolling is the one causing it.
+
+   Masked away from the centre of the frame, because that is where the reading
+   column is and a streak crossing body text is not atmosphere, it is a defect. */
+.atmos__streak {
+  position: absolute;
+  inset: 0;
+  --streak: color-mix(in oklab, rgba(255, 176, 64, 0.5) calc((1 - var(--tone)) * 100%), rgba(120, 240, 255, 0.5));
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      transparent 0 9px,
+      color-mix(in srgb, var(--streak) 34%, transparent) 9px 10px,
+      transparent 10px 23px
+    ),
+    repeating-linear-gradient(
+      80deg,
+      transparent 0 13px,
+      color-mix(in srgb, var(--streak) 26%, transparent) 13px 14px,
+      transparent 14px 31px
+    );
+  /* Edges only. Two stops per side rather than one, so the fans arrive rather
+     than switch on at a boundary. */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0%, rgba(0, 0, 0, 0.35) 14%, transparent 30%,
+    transparent 70%, rgba(0, 0, 0, 0.35) 86%, #000 100%
   );
+  mask-image: linear-gradient(
+    to right,
+    #000 0%, rgba(0, 0, 0, 0.35) 14%, transparent 30%,
+    transparent 70%, rgba(0, 0, 0, 0.35) 86%, #000 100%
+  );
+  /* Cubed, not linear. A linear ramp puts visible streaks on the frame during
+     the ordinary reading-pace scroll this effect has no business commenting on;
+     cubing holds it at nothing until the visitor is genuinely travelling. */
+  opacity: calc(var(--flow) * var(--flow) * var(--flow) * 0.6);
+  /*
+   * The one `will-change` on this layer that is not redundant.
+   *
+   * Elements running a transform animation are promoted by the compositor
+   * anyway, so the declaration on the auroras is belt and braces. This element
+   * has no animation at all — its opacity is recomputed whenever the scroll
+   * engine writes `--flow`, which is up to twenty times across the velocity
+   * range. Unpromoted, each of those is a repaint of a full-viewport
+   * repeating-gradient during the fastest scroll on the page, which is exactly
+   * when there is no budget for one. Promoted, all twenty are a compositor
+   * opacity change on a texture painted once.
+   */
+  will-change: opacity;
 }
 
 /* ---- Depth fog ----
@@ -903,6 +1253,43 @@ html.lenis, html.lenis body { height: auto; }
   .atmos__aurora--3 { display: none; }
   .atmos__dust { opacity: 0.4; }
   .atmos__bloom { bottom: 38vh; height: 32vh; }
+
+  /*
+   * Two of the three new layers go, and for opposite reasons.
+   *
+   * The deep field is sub-pixel work: its points are 0.6–1px at a third of the
+   * dust's brightness, and a phone's device pixel ratio resolves that as an
+   * even wash — the parallax it exists to create is invisible, so it is pure
+   * overdraw on the device least able to spare it.
+   *
+   * The streaks go because the mask that keeps them off the reading column
+   * assumes a reading column with margins beside it. At full width there are no
+   * margins: the fans would rake straight across body text.
+   *
+   * The shafts stay, dimmed. They are three stops in one gradient, they cost a
+   * single composited translate, and verticality is the thing a phone's tall
+   * frame has the *most* room to show — dropping them here would take the new
+   * depth away from the viewport that benefits from it most.
+   */
+  .atmos__deep,
+  .atmos__streak { display: none; }
+
+  /*
+   * The shafts stay, dimmed and still.
+   *
+   * `animation: none` is the load-bearing half. An element running a transform
+   * animation is composited by definition — a promoted, full-viewport texture
+   * held in GPU memory for as long as the page is open, which at a phone's
+   * device pixel ratio is several megabytes for a 73-second sway nobody is
+   * watching. Without the animation the shafts are a painted background on an
+   * already-composited parent: the verticality survives, the layer does not.
+   */
+  .atmos__shafts {
+    opacity: 0.7;
+    inset: -20% -25%;
+    animation: none;
+    will-change: auto;
+  }
 }
 
 /*
@@ -921,7 +1308,19 @@ html.lenis, html.lenis body { height: auto; }
  * is the audience least served by it.
  */
 @media (prefers-reduced-motion: reduce) {
-  .atmos__dust { display: none; }
+  .atmos__dust,
+  /* Same rule, same reason: a field of small high-contrast points frozen
+     mid-drift is noise with no remaining purpose. */
+  .atmos__deep { display: none; }
+
+  /*
+   * The streaks are switched off outright rather than left to the blanket
+   * animation freeze, because the freeze does not reach them — their opacity
+   * is a live function of `--flow`, not a keyframe, so they would keep
+   * flashing in and out of the frame on every scroll for exactly the audience
+   * that asked for less of that.
+   */
+  .atmos__streak { display: none; }
 }
 
 /* ==================================================================
@@ -968,6 +1367,12 @@ html.lenis, html.lenis body { height: auto; }
      second crawl the old single-cell loop ran at, so the floor's idle speed is
      unchanged and only its response to scrolling is new. */
   --sub-dur: 30s;
+  /* How often a surge of charge runs the length of the rails. Deliberately not
+     a divisor or multiple of --sub-dur (30s), the sweep (21s) or the contact
+     breathe (17s): four periods that share a factor will land together on a
+     regular beat, and a background that pulses in time with itself stops
+     reading as a room and starts reading as a loop. */
+  --sub-pulse-dur: 8s;
 
 
   /* ---- The floor's colour ----
@@ -1063,6 +1468,94 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes substrate-flow {
   0%   { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(0, var(--sub-block), 0); }
+}
+
+/*
+ * CHARGE — a surge of light running down the major rails toward the viewer.
+ *
+ * The one thing the floor could not previously say. Convergence, subdivision
+ * and a lit horizon all describe a *surveyed* surface; none of them says it is
+ * connected to anything. A pulse travelling along the rails does, and it says
+ * it in the same figure the machine's own `BusTraffic` part draws — so the
+ * ground and the thing standing on it stop being two separate ideas.
+ *
+ * ── Why it reads as depth and the grid alone does not ────────────────────
+ * The plane is under a 76deg rotateX, so a band moving at a constant rate in
+ * the plane's own coordinate space accelerates on screen as it nears — slow and
+ * compressed at the horizon, fast and stretched at the front edge. That
+ * acceleration is not decoration: it is exactly the cue the visual system uses
+ * to resolve a receding surface, and it is free here because the perspective
+ * transform on the parent produces it. A band drawn flat and eased by hand
+ * would be an approximation of something the browser is already computing.
+ *
+ * ── Why it is one element and one transform ─────────────────────────────
+ * The rails and the band that lights them are baked into a single element:
+ * `background-image` draws the vertical lines at the major pitch, `mask-image`
+ * shapes them into a comet with a hot leading edge and a long tail, and the
+ * only thing that animates is `translate3d`. There is no mask-position
+ * animation anywhere in here, deliberately — it is not reliably composited, and
+ * a repaint of a full-width layer once per frame is precisely the cost this
+ * whole layer is arranged to avoid.
+ *
+ * ── Registration ────────────────────────────────────────────────────────
+ * The rails are drawn at `--sub-block`, the same pitch as the grid's major
+ * rules, so the charge runs *along* lines that exist rather than between them.
+ * Both are children of the same untransformed plane, so they cannot drift.
+ *
+ * Speed is scaled by `--flow-rate` like the grid's, so scrolling fast sends the
+ * surges through faster too — the floor's two motions stay one motion.
+ */
+.substrate__pulse {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Starts above the plane's own top edge, so the surge enters from beyond the
+     horizon rather than materialising inside the frame. */
+  top: -70%;
+  height: 55%;
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--sub-ink) 46%, transparent) 0 1px,
+    transparent 1px var(--sub-block)
+  );
+  /* The comet. Hot at the bottom — the leading edge, since travel is toward
+     the viewer — with the tail trailing back up toward the vanishing point. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.18) 46%,
+    rgba(0, 0, 0, 0.62) 78%,
+    #000 94%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.18) 46%,
+    rgba(0, 0, 0, 0.62) 78%,
+    #000 94%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  animation: substrate-pulse calc(var(--sub-pulse-dur) * var(--flow-rate)) linear infinite;
+  will-change: transform, opacity;
+}
+
+/*
+ * 0% is off the top and fully transparent, which is what the reduced-motion
+ * freeze lands on: no bright band parked across the floor, just the floor.
+ *
+ * The opacity envelope matters as much as the travel. Without it the surge
+ * would appear and disappear at hard edges — the plane's own mask hides the
+ * far end but not the near one, so a band at full strength reaching the front
+ * edge would simply be cut off. Fading it out over the last fifth means it
+ * arrives, passes, and is gone, which is the difference between a pulse and a
+ * loop.
+ */
+@keyframes substrate-pulse {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  14%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translate3d(0, 310%, 0); opacity: 0; }
 }
 
 /*
@@ -1195,6 +1688,19 @@ html.lenis, html.lenis body { height: auto; }
   /* The raking light is the least legible element here and the only one that
      is pure decoration — a phone spends that budget on the grid instead. */
   .substrate__sweep { display: none; }
+
+  /*
+   * The charge stays.
+   *
+   * It is the cheapest element on the floor — one gradient, one static mask,
+   * one composited transform — and it is the only one that is *more* legible on
+   * a phone, because the plane is shallower there and the whole run of the
+   * surge fits inside a frame the visitor is holding a foot from their face.
+   * Dropping it would take the floor's one piece of life away on the viewport
+   * where the floor is otherwise faintest. Slowed a little, since the shorter
+   * plane means the same duration would read as a flick.
+   */
+  .substrate__pulse { --sub-pulse-dur: 9.5s; top: -60%; height: 48%; }
 
   .substrate__contact { height: 9vh; width: 130vw; margin-left: -65vw; }
 }
@@ -2053,6 +2559,7 @@ html.lenis, html.lenis body { height: auto; }
     padding: 0.9rem 1.35rem;
   }
 
+
   /* Grey flash on tap is the browser guessing at feedback; the components
      here state their own pressed state. */
   a,
@@ -2116,16 +2623,22 @@ html.lenis, html.lenis body { height: auto; }
 
 .lab-route__lead {
   margin-top: 1.1rem;
+  max-width: var(--measure-wide);
   font-size: clamp(0.98rem, 2.4vw, 1.12rem);
   line-height: 1.65;
   color: var(--color-ash);
+  /* The first sentence anyone reads on this route, at the largest body size on
+     it. `pretty` rather than `balance`: it runs to four lines on a desktop,
+     past the point where a balancing pass still helps. */
+  text-wrap: pretty;
 }
 
 .lab-route__foot {
   margin-top: 3.5rem;
   border-top: 1px solid rgba(120, 128, 145, 0.16);
   padding-top: 1.6rem;
-  max-width: 74ch;
+  /* Same 74ch it always was, now stated once. See MEASURE above. */
+  max-width: var(--measure-wide);
 }
 
 .lab-route__foot-title {
@@ -2347,6 +2860,148 @@ html.lenis, html.lenis body { height: auto; }
 }
 .lab-rail::-webkit-scrollbar { display: none; }
 
+/*
+ * THE SCROLL IS MADE VISIBLE, WHICH IS THE WHOLE POINT OF HIDING THE BAR.
+ *
+ * Six benches do not fit across a phone. Measured at 390px: the strip's content
+ * is 772px wide inside a 355px box, so 417px — more than half the rack — sits
+ * off the right edge. With the scrollbar suppressed there was nothing at all
+ * saying so. The rack's own header comment above names this exact failure as
+ * the reason the *desktop* layout is a column ("on a phone the later tabs sit
+ * off-screen behind a scroll nobody knows is there"), and then the phone layout
+ * shipped with it. A visitor on a phone could reach three of six benches and
+ * had no way to learn the other three existed.
+ *
+ * ── What this is not ────────────────────────────────────────────────────
+ * An arrow button is a second control for a gesture the visitor already has,
+ * and it has to know whether there is anything left to scroll to. An absolutely
+ * positioned overlay has to be kept in sync with the box's scroll offset. Both
+ * mean a scroll listener, and a scroll listener on this page competes with the
+ * one driving the entire machine.
+ *
+ * A plain always-on gradient needs neither, and is what the fallback at the
+ * foot of this block is — but on its own it is wrong at both ends: it fogs the
+ * first tab at rest, and it goes on claiming there is more to see after the
+ * visitor has reached the last bench.
+ *
+ * An earlier attempt used `mask-attachment: local` to make two opaque plates
+ * scroll with the content and cancel each fade at its own end of the travel.
+ * That is the classic trick and it does not work: `mask-attachment` is not in
+ * CSS Masking Level 1 at all, and `-webkit-mask-attachment` — despite the
+ * prefix — is not implemented in Blink either. Verified against Chrome 151:
+ * `CSS.supports('-webkit-mask-attachment', 'local')` is false and the computed
+ * `mask-image` was `none`. It would have shipped as dead CSS in every browser.
+ *
+ * ── What it is ──────────────────────────────────────────────────────────
+ * A scroll-driven animation, which is the feature that exists for precisely
+ * this and needs no script. `scroll(self inline)` makes this element's own
+ * horizontal scroll the animation's timeline, and the keyframes below open the
+ * left fade as soon as the strip has moved and close the right fade as it
+ * arrives at the end. Two registered custom properties carry the two widths, so
+ * what is being interpolated is a pair of lengths and the mask is rebuilt from
+ * them — you cannot interpolate a gradient, but you can interpolate the numbers
+ * inside one.
+ *
+ * ── Why it disables itself correctly ────────────────────────────────────
+ * A scroll timeline whose container has no scrollable overflow is *inactive*,
+ * and an animation attached to an inactive timeline has no effect — so the base
+ * values below apply, both fades are zero-width, and the mask is a no-op. That
+ * covers the desktop rail (a column, no horizontal overflow) and a future phone
+ * wide enough to fit every bench, with no media query and nothing to keep in
+ * step. The affordance appears exactly when there is something to afford.
+ */
+@property --rail-fade-l {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --rail-fade-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes lab-rail-fade {
+  /* Parked at the left end: nothing hidden behind you, everything ahead. */
+  0%   { --rail-fade-l: 0px;      --rail-fade-r: 2.25rem; }
+  /* Both open through the middle of the travel. The 7%/93% shoulders are what
+     stop the fades snapping on and off at the extremes of a short strip. */
+  7%   { --rail-fade-l: 2.25rem;  --rail-fade-r: 2.25rem; }
+  93%  { --rail-fade-l: 2.25rem;  --rail-fade-r: 2.25rem; }
+  /* Parked at the right end: the last bench is fully lit, not fogged. */
+  100% { --rail-fade-l: 2.25rem;  --rail-fade-r: 0px; }
+}
+
+.lab-rail {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--rail-fade-l),
+    #000 calc(100% - var(--rail-fade-r)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--rail-fade-l),
+    #000 calc(100% - var(--rail-fade-r)),
+    transparent 100%
+  );
+  /* Longhands, not the shorthand: `animation:` resets `animation-timeline` to
+     `auto`, so a shorthand written after it silently puts this back on the
+     document timeline — where a zero duration means it never runs. */
+  animation-name: lab-rail-fade;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: scroll(self inline);
+}
+
+/*
+ * The blanket reduced-motion rule at the foot of this file collapses every
+ * animation to 0.001ms, which for a scroll-driven animation is meaningless —
+ * duration is not what advances it — but `animation-iteration-count: 1` in that
+ * same rule is enough to leave this stuck at its first keyframe on some
+ * engines, which is a permanent right fade and no left one. Restated here as a
+ * static fade on both edges instead: reduced motion asks for less movement, not
+ * for the affordance to be taken away, and a symmetric fade is honest at every
+ * scroll position even if it is not precise at the two ends.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .lab-rail {
+    animation: none;
+    --rail-fade-l: 1.5rem;
+    --rail-fade-r: 1.5rem;
+  }
+}
+
+/*
+ * No scroll-driven animations: Safari before 26, Firefox before 144. They get
+ * the always-on right-edge fade, which is the half of the affordance that is
+ * right at the position everyone starts from — the strip opens at scrollLeft 0
+ * with the last three benches hidden, and this says so. It stays after the
+ * visitor reaches the end, which is the cost of not being able to ask where
+ * they are without script.
+ */
+@supports not (animation-timeline: scroll(self inline)) {
+  .lab-rail {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.25rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.25rem), transparent);
+    animation: none;
+  }
+
+  /* The desktop rail is a column and never overflows, so the fade would be
+     2.25rem of permanently dimmed tab at the bottom of the rack. The
+     scroll-timeline path needs no equivalent rule — an inactive timeline
+     already switches it off. */
+  @media (min-width: 1024px) {
+    .lab-rail {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+}
+
 .lab-rail__group {
   display: flex;
   gap: 0.35rem;
@@ -2384,6 +3039,20 @@ html.lenis, html.lenis body { height: auto; }
   scroll-snap-align: center;
   transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
+/*
+ * 44px, met rather than assumed.
+ *
+ * 0.7rem of padding either side of a 0.76rem mono cap came to roughly 39px —
+ * under the 44px floor every other control on this site is measured against
+ * (see `.btn` in the `pointer: coarse` block, and the rail rows at 2256). The
+ * benches are the one part of the site a visitor operates rather than reads,
+ * and their top-level navigation was the smallest target in it.
+ *
+ * Set unconditionally, not inside a `pointer: coarse` query: the horizontal
+ * strip is the phone layout, and a 44px row is not too big for a mouse. The
+ * desktop rail overrides the padding below and keeps its own metrics.
+ */
+.lab-tab { min-height: 2.75rem; }
 .lab-tab svg { width: 15px; height: 15px; flex-shrink: 0; }
 .lab-tab:hover { color: var(--color-ceramic); }
 .lab-tab.is-on {
@@ -2475,11 +3144,14 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 .lab-blurb {
-  max-width: 74ch;
+  max-width: var(--measure-wide);
   font-family: var(--font-sans);
   font-size: 0.92rem;
   line-height: 1.6;
   color: var(--color-ash);
+  /* The bench's standfirst — three or four lines, read once. `pretty` is the
+     right algorithm for that shape; `balance` is for headings. */
+  text-wrap: pretty;
 }
 
 /* Reserved space for a bench whose chunk is still in flight. A fixed height
@@ -2532,21 +3204,66 @@ html.lenis, html.lenis body { height: auto; }
    Neither bay lost anything: the pairs in row one are unchanged, and the two
    strays gained the 608px they were being denied.
 
-   ── What is still open, and why it is not papered over ──────────────────
+   ── The second hole, and how it is closed ───────────────────────────────
    The four benches whose only narrow bay is their control panel — sorting,
-   complexity, pathfinding, scheduler — still leave the second cell of row one
-   empty. It cannot be closed by moving the chart into that cell: at the 1240px
+   complexity, pathfinding, scheduler — left the second cell of row one empty.
+   It could not be closed by moving the chart into that cell: at the 1240px
    container cap the cell measures 592px against the 928px a spanning bay gets,
    and those bays span *precisely* because a narrower column makes their charts
    and tables scroll sideways. Trading a void for horizontal scrolling on the
    one thing the page exists to show is not a fix.
 
-   The real answer is a full-width control strip above the chart, and it needs
-   three things settled against a real browser rather than guessed at here: a
-   note that annotates one specific control has to stay with it once the body
-   wraps, `.lab-seed`'s top border stops reading as a divider the moment it is
-   not at the foot of a vertical stack, and the scheduler's four-column process
-   table has a real minimum width that decides how many controls fit on a line. */
+   ── How it is closed ────────────────────────────────────────────────────
+   Not with a control strip. The note above proposed one and then listed three
+   reasons it could not be settled by reasoning alone; all three are real, and
+   all three are consequences of the same wrong assumption — that the controls
+   have to move. They do not. Bay 02 does.
+
+   The empty cell is beside the control panel, in row one. The bay that wants
+   to be there is the one directly after it — the chart, the grid, the timeline:
+   whatever this bench's primary output is. So that bay is placed there, and
+   every bay *after* it keeps spanning the full width exactly as before.
+
+     01 Controls  |  02 Primary output
+     03 ....... full width .......
+     04 ....... full width .......
+
+   ── Why not simply put every bay in the second column ───────────────────
+   Because that was tried first and it is the trade the note above warned
+   against, in the words it warned against it in. A sidebar layout narrows every
+   content bay from 928px to 588px, and measured in Chromium at 1440x900 that
+   put three of the four benches into horizontal scrolling:
+
+     complexity   .lab-table-wrap   547px of client for 706px of table
+     pathfinding  .lab-table-wrap   547px of client for 658px of table
+     scheduler    .lab-table-wrap   547px of client for 577px of table
+
+   Those tables fit at 928px and had never scrolled on a desktop. Trading a void
+   for sideways-scrolling data is not a fix, and it was only visible because it
+   was measured — the layout looks completely correct in a screenshot.
+
+   Placing one bay instead of all of them costs nothing: re-measured, all four
+   benches report zero horizontally overflowing elements and zero page overflow,
+   with bay 02 at 588px and every later bay at its original 928px.
+
+   ── What the controls gain ──────────────────────────────────────────────
+   Being in row one with a tall neighbour makes the control panel *sticky* over
+   the height of that row. Every one of these benches is operated from bay 01
+   and read in bay 02 — change the input size and look at the chart, change the
+   policy and look at the timeline — and until now that meant scrolling back up
+   to the controls each time. They now travel with the reader for as long as the
+   output beside them is on screen.
+
+   ── Why `:has()` and not a class ────────────────────────────────────────
+   The alternative is a `--sidebar` modifier on the four benches that qualify,
+   which is a fact about a bench's bay list restated in a second place and
+   maintained by hand. The selector below reads the bay list itself: one narrow
+   bay and no second one means this layout, two means the existing paired row.
+   Add a bay to a bench and the layout follows without anyone remembering to.
+
+   Where `:has()` is unsupported the block does not apply and the bench falls
+   back to the previous layout, which is the correct failure: the old
+   arrangement with the void, not a broken new one. */
 @media (min-width: 1024px) {
   .lab-bench {
     grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
@@ -2563,6 +3280,65 @@ html.lenis, html.lenis body { height: auto; }
      already behind it. */
   .lab-bay--narrow {
     grid-column: auto;
+  }
+
+  /* ── Benches with a single narrow bay ─────────────────────────────────
+     `:has(.lab-bay--narrow)` selects benches that have one; the `~` inside the
+     `:not()` excludes those that have a second. Both halves are needed — a
+     bench with two narrow bays already pairs them in row one and must keep the
+     layout it has. */
+  .lab-bench:has(.lab-bay--narrow):not(:has(.lab-bay--narrow ~ .lab-bay--narrow)) .lab-bay--narrow {
+    grid-column: 1;
+    grid-row: 1;
+    /* `start`, or the panel stretches to the height of its whole row and sticky
+       has nothing left to do. */
+    align-self: start;
+    position: sticky;
+    /* Clear of anything fixed at the top, on the same measurement the rail
+       beside it uses — the two must agree or they read as two different ideas
+       about where the top of the page is. */
+    top: calc(var(--nav-h) + 1.5rem);
+    /* The scheduler's bay 01 carries its whole process table and can be taller
+       than the viewport; without a ceiling, sticky pins its top and puts the
+       New workload button permanently out of reach. With one, the panel scrolls
+       internally and every control stays reachable at any window height. The
+       benches whose controls already fit are unaffected — `max-height` only
+       binds when it is exceeded. */
+    max-height: calc(100dvh - var(--nav-h) - 3rem);
+    overflow-y: auto;
+    /* A control panel that has quietly scrolled is a control panel with hidden
+       controls, so it keeps the same scrollbar treatment as the other
+       instrument surfaces rather than hiding it. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 128, 145, 0.35) transparent;
+    overscroll-behavior: contain;
+  }
+
+  /* The primary output, into the cell that was empty. The adjacent-sibling
+     selector is what keeps this to exactly one bay: bays 03 and later match
+     nothing here and keep the full-width rule above. */
+  .lab-bench:has(.lab-bay--narrow):not(:has(.lab-bay--narrow ~ .lab-bay--narrow)) .lab-bay--narrow + .lab-bay {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/*
+ * Sticky is switched off when the window is short.
+ *
+ * At 1024px wide and 600px tall — a laptop with a browser toolbar and a
+ * bookmarks bar, or any window someone has dragged down to half-height — the
+ * ceiling above resolves to around 400px, and pinning a control panel that then
+ * scrolls internally inside a page that also scrolls is two nested scrolls for
+ * a reader who has no vertical room for either. Below this height the panel
+ * simply sits at the top of the bench and goes with the page, which is what the
+ * layout did before and is the right answer when height is the scarce axis.
+ */
+@media (min-width: 1024px) and (max-height: 700px) {
+  .lab-bench:has(.lab-bay--narrow):not(:has(.lab-bay--narrow ~ .lab-bay--narrow)) .lab-bay--narrow {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
@@ -2595,10 +3371,12 @@ html.lenis, html.lenis body { height: auto; }
 
 .lab-bay__note {
   margin-top: 0.5rem;
+  max-width: var(--measure);
   font-family: var(--font-sans);
   font-size: 0.8rem;
   line-height: 1.55;
   color: var(--color-ash-dim);
+  text-wrap: pretty;
 }
 
 .lab-bay__body {
@@ -2637,17 +3415,21 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 .lab-field__hint {
+  max-width: var(--measure);
   font-family: var(--font-sans);
   font-size: 0.76rem;
   line-height: 1.5;
   color: var(--color-ash-dim);
+  text-wrap: pretty;
 }
 
 .lab-note {
+  max-width: var(--measure);
   font-family: var(--font-sans);
   font-size: 0.82rem;
   line-height: 1.6;
   color: var(--color-ash);
+  text-wrap: pretty;
 }
 .lab-note code {
   font-family: var(--font-code);
@@ -4466,6 +5248,107 @@ html.lenis, html.lenis body { height: auto; }
   .readability-scrim {
     background: Canvas;
     opacity: 1 !important;
+  }
+}
+
+/* ==================================================================
+   TOUCH TARGETS — the overrides that have to come last
+
+   There is a `@media (pointer: coarse)` block much further up this file, and
+   these rules belong to it by intent. They cannot live in it, and the reason is
+   the one CSS mistake that looks most like a working change:
+
+   A MEDIA QUERY ADDS NO SPECIFICITY.
+
+   `@media (pointer: coarse) { .lab-range { height: 30px } }` written at line
+   2100 and `.lab-range { height: 22px }` written at line 3445 are two rules of
+   identical specificity, and the later one wins — on every device, including
+   the touchscreens the first one was written for. The override was authored,
+   shipped, and silently did nothing; it was caught by measuring the element in
+   an emulated phone (316x22, unchanged) rather than by reading the CSS, which
+   looks completely correct.
+
+   So the rules that override a component sit after that component. This block
+   is last, and anything added to it inherits that guarantee.
+
+   ── What they fix ────────────────────────────────────────────────────────
+   Both are controls whose *element* is the size of a track and whose target is
+   the size of a thumb — 22px and 3px respectively, against the 24x24 floor of
+   WCAG 2.2 SC 2.5.8 and against a fingertip, which is about 9mm.
+   ================================================================== */
+@media (pointer: coarse) {
+  /*
+   * The Lab's sliders are how every bench is actually operated: input size,
+   * register budget, map width, process count, playback speed. On a phone all
+   * of them were a 15px circle on a 22px strip.
+   *
+   * The thumb goes to 22px and the strip to 30px, so the whole control is a
+   * drag surface and the thumb clears the target floor once its own hit area is
+   * counted. The track stays 3px — this is about what a finger can catch, not
+   * about making the control louder.
+   */
+  .lab-range {
+    height: 30px;
+  }
+  .lab-range::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    /* Half the thumb, less half the 3px track, keeps it centred on the rail. */
+    margin-top: -9.5px;
+  }
+  .lab-range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  /*
+   * The volume control in the system dock measured 80x3. Three pixels: the
+   * height of its own track, because that is what the element was sized to.
+   * It is revealed by a tap on the mute button, so it is a control a touch
+   * visitor is specifically routed to and then cannot hold.
+   *
+   * The track is repainted as a background on a taller transparent box rather
+   * than being made thicker — a 24px-tall bar would be a different control.
+   */
+  .volume-slider {
+    height: 24px;
+    background: none;
+  }
+  .volume-slider::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: var(--r-pill);
+    background: linear-gradient(90deg, var(--color-cyan) 0%, rgba(0, 229, 255, 0.22) 100%);
+  }
+  .volume-slider::-moz-range-track {
+    height: 3px;
+    border-radius: var(--r-pill);
+    background: linear-gradient(90deg, var(--color-cyan) 0%, rgba(0, 229, 255, 0.22) 100%);
+  }
+  .volume-slider::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    margin-top: -7.5px;
+  }
+  .volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  /*
+   * The four direct channels — email, GitHub, LinkedIn, phone — are the
+   * highest-intent links on the site and were 18px-tall strips of text. They
+   * cleared SC 2.5.8 only through its spacing exception, which says nothing
+   * about whether a thumb can land on them.
+   *
+   * `inline-block` is what makes the padding count: vertical padding on an
+   * inline element paints but does not enlarge the line box, so an inline
+   * anchor's hit area is its text however much padding it carries. Scoped to
+   * its own class rather than to `.link`, which is also used inside sentences
+   * where a block would break the line.
+   */
+  .link-channel {
+    display: inline-block;
+    padding-block: 0.35rem;
   }
 }
 

@@ -87,6 +87,28 @@ export function SystemControls() {
 
   return (
     <div
+      /*
+       * A named landmark, not a bare div.
+       *
+       * This dock is `position: fixed` outside `<main>`, which is correct — it
+       * is chrome, not content — but it left three controls sitting in no
+       * landmark at all. For a screen-reader user navigating by landmark (the
+       * primary way of moving around a page this long) the quality readout, the
+       * command palette and the mute button were simply not on the map, and axe
+       * flags it as `region`: "some page content is not contained by landmarks".
+       *
+       * `role="region"` with a name is the landmark; `aria-label` is what makes
+       * it one — an unnamed region is not exposed as a landmark at all.
+       *
+       * `role="toolbar"` was the other candidate and is arguably the more
+       * precise description of a row of buttons. It is not a landmark, so it
+       * would have described the widget accurately and left it exactly as
+       * unreachable as before. A toolbar also promises roving-tabindex arrow-key
+       * navigation between its controls, which this dock does not implement —
+       * claiming the role without the behaviour is worse than not claiming it.
+       */
+      role="region"
+      aria-label="System controls"
       className="no-print fixed right-3 top-3 z-50 flex items-center gap-1 rounded-full border p-1 lg:right-5 lg:top-5"
       style={{
         borderColor: 'rgba(130,138,155,0.2)',

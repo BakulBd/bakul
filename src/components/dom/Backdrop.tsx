@@ -16,10 +16,10 @@
  * the same object.
  *
  * ── What makes it read as a floor rather than a pattern ───────────────────
- * Four things, in the order the eye resolves them:
+ * Five things, in the order the eye resolves them:
  *
  *   1. CONVERGENCE. A short perspective focal length, so the lines actually
- *      meet. This is the only one of the four that a flat grid also has.
+ *      meet. This is the only one of the five that a flat grid also has.
  *   2. SUBDIVISION. Minor cells inside major blocks, five to one — drafting
  *      convention. It gives the eye two scales to judge distance by instead
  *      of one, which is what separates a surveyed surface from graph paper.
@@ -28,6 +28,13 @@
  *      simply stops being drawn.
  *   4. TRAVEL. The floor streams at the speed the visitor is scrolling, not
  *      at a rate fixed at design time — see below.
+ *   5. CHARGE. A surge of light runs down the major rails, out of the
+ *      vanishing point and toward the viewer. Perspective alone is a claim
+ *      about geometry; something moving *along* the converging lines is what
+ *      turns that claim into a demonstration, because the eye reads the
+ *      acceleration of the surge as it nears as depth in a way it cannot read
+ *      a static gradient. It also, finally, makes the floor a circuit rather
+ *      than a drawing of one.
  *
  * ── Synced, not merely simultaneous ──────────────────────────────────────
  * Nothing here is decoration laid over the machine; every value it draws with
@@ -51,7 +58,7 @@
  * no re-render, and no JavaScript at all in this file.
  *
  * ── Cost ────────────────────────────────────────────────────────────────
- * Six elements and no JavaScript. Every line, rail, band and glow is a
+ * Seven elements and no JavaScript. Every line, rail, band and glow is a
  * gradient painted once; the motion is `translate3d` and `background-position`
  * on composited layers, looping by exactly one major block so it is seamless
  * at both grid scales. Nothing here invalidates layout or repaints per frame,
@@ -65,13 +72,20 @@ export function Backdrop() {
   return (
     <div aria-hidden="true" className="no-print substrate">
       {/* The floor plane, laid down in 3D and faded out towards the horizon.
-          Both children are inside it so they share its foreshortening — a band
-          of light that ignored the perspective would read as a bar drawn on
-          the screen rather than as light falling on the floor. */}
+          All three children are inside it so they share its foreshortening — a
+          band of light or a surge of charge that ignored the perspective would
+          read as a bar drawn on the screen rather than as something happening
+          on the floor. */}
       <div className="substrate__plane">
         {/* Minor + major lattice, carried on one element so the two scales can
             never drift out of registration. */}
         <div className="substrate__grid" />
+        {/* Charge running along the major rails, toward the viewer. The grid
+            said the floor was surveyed; this is what says it is powered — and
+            it is the one element here whose figure the 3D machine already
+            draws (see parts/BusTraffic.tsx), so the floor and the machine on
+            it are now making the same statement. */}
+        <div className="substrate__pulse" />
         {/* Raking light crossing the floor, on a period coprime with the
             grid's so the two never fall into a visible beat. */}
         <div className="substrate__sweep" />

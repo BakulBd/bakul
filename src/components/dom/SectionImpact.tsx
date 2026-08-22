@@ -112,7 +112,15 @@ export function SectionImpact() {
 
       {/* Follows the last counter (delay 280) rather than the removed groups. */}
       <Reveal delay={340}>
-        <p className="t-label mt-7 normal-case tracking-normal text-[color:var(--color-ash-dim)]">
+        {/* Capped, like every other paragraph on the page.
+
+            This one had no `max-width` and sat under a full-width counter grid,
+            so it measured 1108px — around 137 characters a line, comfortably
+            the longest measure on the site and roughly twice what is
+            comfortable to read. It is also the most important sentence in the
+            section: the one that says which numbers are deliberately absent,
+            which is the claim the whole section's credibility rests on. */}
+        <p className="t-label mt-7 max-w-[var(--measure)] normal-case tracking-normal text-[color:var(--color-ash-dim)]">
           Not shown, because they do not exist yet: production user counts, API traffic, uptime
           figures, published research, or industry awards.
         </p>

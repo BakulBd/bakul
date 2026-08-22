@@ -24,17 +24,7 @@ import { frameAt, stepAt } from '@/lib/lab/core/trace';
 import { parseSeed, randomSeed } from '@/lib/lab/core/rng';
 import { benchFragment, benchPath } from '@/lib/lab/catalogue';
 import { haptic } from '@/lib/haptics';
-import {
-  Bay,
-  CopyButton,
-  Segmented,
-  Slider,
-  Stat,
-  Transport,
-  VerifyBadge,
-  num,
-  type Option,
-} from './Controls';
+import { Bay, CopyButton, num, Segmented, Slider, Stat, TableWrap, Transport, type Option, VerifyBadge } from './Controls';
 
 /**
  * SCHEDULER BENCH — the view layer over `lib/lab/scheduler.ts`.
@@ -394,7 +384,6 @@ export function SchedulerBench() {
     [comparison],
   );
 
-  const shapeNote = findShape(shape)?.note ?? '';
 
   /** Ticks the chart draws. The full span once finished, the cursor's before. */
   const span = outcome.span;
@@ -453,7 +442,6 @@ export function SchedulerBench() {
             <CopyButton value={permalink} label="Copy link" done="Link copied" />
           </div>
 
-          <p className="lab-note">{shapeNote}</p>
         </div>
 
         {/*
@@ -462,7 +450,7 @@ export function SchedulerBench() {
           beside the chart because it is an input, and the distinction between
           what was asked for and what was granted is the whole subject.
         */}
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table lab-table--tight">
             <caption className="sr-only">
               The {workload.procs.length} processes generated from seed {seed}
@@ -492,7 +480,7 @@ export function SchedulerBench() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       </Bay>
 
       {/* ---------------- the schedule ---------------- */}
@@ -558,7 +546,7 @@ export function SchedulerBench() {
           not-yet-simulated rather than as idle, because a half-played chart and
           a finished one with a gap in it mean different things.
         */}
-        <div className="lab-gantt-wrap">
+        <TableWrap className="lab-gantt-wrap">
           <table
             className="lab-gantt"
             aria-label={`Gantt chart, ${policy.full} — ${caption}`}
@@ -662,7 +650,7 @@ export function SchedulerBench() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         {/*
           The ready queue, in the policy's own order.
@@ -732,7 +720,7 @@ export function SchedulerBench() {
           proves it — check four recomputes this entire table independently and
           compares.
         */}
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table lab-table--tight">
             <caption className="sr-only">
               Per-process timings under {policy.full}
@@ -765,7 +753,7 @@ export function SchedulerBench() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       </Bay>
 
       {/* ---------------- the comparison ---------------- */}
@@ -774,7 +762,7 @@ export function SchedulerBench() {
         title="Compare"
         note="All five policies over the workload above. Every number is measured from a real simulation — none of them is a formula."
       >
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table">
             <caption className="sr-only">
               Five policies over the same {workload.procs.length} processes from seed {seed}
@@ -812,7 +800,7 @@ export function SchedulerBench() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         <p className="lab-note">
           Every policy finishes at the same tick, because the same total work has to be done and

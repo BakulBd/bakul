@@ -40,7 +40,9 @@ export function SectionCore() {
   return (
     <Section id="core" label="Core">
       <Reveal>
-        <Heading id="core">The Core</Heading>
+        <Heading id="core" plain="Skills, tools and education">
+          The Core
+        </Heading>
         {/*
           A lead written for this section, not `profile.summary`.
 

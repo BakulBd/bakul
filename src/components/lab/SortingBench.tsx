@@ -12,17 +12,7 @@ import {
 import { parseSeed, randomSeed } from '@/lib/lab/core/rng';
 import { benchFragment, benchPath } from '@/lib/lab/catalogue';
 import { haptic } from '@/lib/haptics';
-import {
-  Bay,
-  CopyButton,
-  Segmented,
-  Slider,
-  Stat,
-  Transport,
-  VerifyBadge,
-  num,
-  type Option,
-} from './Controls';
+import { Bay, CopyButton, num, Segmented, Slider, Stat, TableWrap, Transport, type Option, VerifyBadge } from './Controls';
 
 /**
  * SORTING BENCH
@@ -597,7 +587,7 @@ export function SortingBench() {
         title="Compare"
         note="Every one of these numbers is counted from a real trace of the same input — none of them is a formula."
       >
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table">
             <caption className="sr-only">
               All five algorithms run against the current input: {n} {shapeLabel} elements from
@@ -640,7 +630,7 @@ export function SortingBench() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         <p className="lab-note">
           Run this on <strong>Sorted</strong> input to see bubble sort&rsquo;s early exit beat

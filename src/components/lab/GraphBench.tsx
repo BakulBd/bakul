@@ -23,17 +23,7 @@ import { frameAt, stepAt, tallyThrough } from '@/lib/lab/core/trace';
 import { parseSeed, randomSeed } from '@/lib/lab/core/rng';
 import { benchFragment, benchPath } from '@/lib/lab/catalogue';
 import { haptic } from '@/lib/haptics';
-import {
-  Bay,
-  CopyButton,
-  Segmented,
-  Slider,
-  Stat,
-  Transport,
-  VerifyBadge,
-  num,
-  type Option,
-} from './Controls';
+import { Bay, CopyButton, num, Segmented, Slider, Stat, TableWrap, Transport, type Option, VerifyBadge } from './Controls';
 
 /**
  * PATHFINDING BENCH — the view layer over `lib/lab/graph.ts`.
@@ -333,7 +323,6 @@ export function GraphBench() {
     [grid, algorithm, run],
   );
 
-  const shapeNote = shapes.find((s) => s.id === shape)?.note ?? '';
   const routeCells = new Set(frame.route);
   const cells = Array.from(frame.state);
 
@@ -388,7 +377,6 @@ export function GraphBench() {
             <CopyButton value={permalink} label="Copy link" done="Link copied" />
           </div>
 
-          <p className="lab-note">{shapeNote}</p>
         </div>
       </Bay>
 
@@ -510,7 +498,7 @@ export function GraphBench() {
         title="Compare"
         note="All four searches over the grid above. Every number is counted from a real run — none of them is a formula."
       >
-        <div className="lab-table-wrap">
+        <TableWrap>
           <table className="lab-table">
             <caption className="sr-only">
               Four searches over the same {grid.cols} by {grid.rows} {shape} grid from seed {seed}
@@ -546,7 +534,7 @@ export function GraphBench() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
 
         <p className="lab-note">
           On <strong>Terrain</strong> the first two columns disagree on purpose: breadth-first

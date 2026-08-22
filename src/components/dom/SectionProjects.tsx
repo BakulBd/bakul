@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
+import { useScrollableFocus } from '@/hooks/useScrollableFocus';
 import { useRafScroll } from '@/hooks/useRafScroll';
 import { useIsCompact } from '@/hooks/useViewport';
 import { projects, type Project } from '@/lib/data/projects';
@@ -32,25 +33,46 @@ import { Heading, Lead, Reveal, Section, Readout, Status } from './Primitives';
  * scrolling; only the case-study text in the middle, whose length genuinely
  * varies project to project, scrolls internally when it has to.
  */
-function ModuleDetail({ project, bounded = true }: { project: Project; bounded?: boolean }) {
+function ModuleDetail({
+  project,
+  bounded = true,
+  hidden = false,
+}: {
+  project: Project;
+  bounded?: boolean;
+  /**
+   * Renders the bay but keeps it out of the layout and the accessibility tree.
+   *
+   * On the panel's own root rather than on a wrapper the caller supplies: the
+   * wide layout renders all three bays into one region, and three anonymous
+   * wrapper divs between that region and its panels are three boxes that the
+   * next person to give the region a grid would find it laying out instead of
+   * the panels.
+   */
+  hidden?: boolean;
+}) {
   /*
    * `bounded` is the pinned-layout constraint, and it only makes sense while
    * the layout is actually pinned.
    *
-   * On a phone `calc(100vh - 31rem)` resolves to about 350px, and the case
-   * study — five readouts of real prose, the best writing on this site — was
-   * being folded into a ~120px masked scroll box below the title and chips.
+   * On a phone `calc(100dvh - var(--pin-reserve))` resolves to about 350px, and
+   * the case study — five readouts of real prose, the best writing on this
+   * site — was being folded into a ~120px masked scroll box below the title
+   * and chips.
    * In practice that rendered as a blank gap: the content was technically
    * scrollable and effectively invisible. Unbounded, the panel is simply as
    * tall as its content and the page scrolls, which is what a phone does
    * anyway.
    */
-  const cap = bounded ? 'max-h-[calc(100dvh-31rem)]' : '';
+  const cap = bounded ? 'max-h-[calc(100dvh-var(--pin-reserve))]' : '';
   const scroll = bounded ? 'panel-scroll' : '';
+
+  /* Makes the readouts below keyboard-scrollable, but only while they overflow. */
+  const caseStudy = useScrollableFocus<HTMLDListElement>();
 
   if (project.status === 'empty') {
     return (
-      <div className={`panel flex flex-col p-6 sm:p-7 ${cap}`}>
+      <div className={`panel flex flex-col p-6 sm:p-7 ${cap}`} hidden={hidden}>
         <Status state="idle">Bay {project.slot} — Empty</Status>
         <h3 className="t-mono mt-4 text-xl text-[color:var(--color-ash-dim)]">SLOT AVAILABLE</h3>
         <p className="t-body mt-4 max-w-[52ch] text-sm">
@@ -68,7 +90,7 @@ function ModuleDetail({ project, bounded = true }: { project: Project; bounded?:
   }
 
   return (
-    <article className={`panel flex flex-col p-6 sm:p-7 ${cap}`}>
+    <article className={`panel flex flex-col p-6 sm:p-7 ${cap}`} hidden={hidden}>
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Status state="online">Bay {project.slot} — Online</Status>
         <span className="t-label">{project.period}</span>
@@ -107,7 +129,38 @@ function ModuleDetail({ project, bounded = true }: { project: Project; bounded?:
       {/* One word per label — "Technical challenge" was the only two-word
           label here and it wrapped, dragging its own row out of alignment
           with the four above it. */}
-      <dl className={`mt-7 min-h-0 flex-1 m-0 ${scroll} ${bounded ? 'pr-2' : ''}`}>
+      {/*
+        KEYBOARD ACCESS TO THE CASE STUDY.
+
+        In the pinned layout this `<dl>` is the panel's only `flex-1` child, so
+        it is where every pixel of shortfall lands and it scrolls internally on
+        any window shorter than about 1440px. It contains prose and nothing
+        focusable — which means arrow keys had nothing to scroll, and a
+        keyboard-only visitor could read as far as the fold and no further.
+        Problem, solution, architecture, challenge and result: partly
+        unreachable, on most laptops, without a pointer. WCAG 2.1.1, and axe
+        reports it at serious impact.
+
+        The pinned-stage budget fix made this *more* pressing rather than less:
+        it enlarged the scroll box, it did not remove it. Five prose blocks and
+        a rack do not fit in 768px of window under any arrangement, so the
+        scroll is permanent and had to become operable instead.
+
+        The stop appears only while the box actually scrolls — see
+        `useScrollableFocus` for why an unconditional `tabindex` would be the
+        wrong trade, and note that the compact layout passes `bounded={false}`
+        and therefore never scrolls or takes a stop at all.
+
+        The `null` role is load-bearing: the scroll container here is the `<dl>`
+        itself, and the hook's `group` default replaced its implicit list role,
+        orphaning every `<dt>` and `<dd>` inside it. That is a serious `dlitem`
+        violation introduced by fixing a serious keyboard one — caught only
+        because the audit was re-run after the fix rather than before it.
+      */}
+      <dl
+        {...caseStudy.props(`Case study — ${project.title}`, null)}
+        className={`mt-7 min-h-0 flex-1 m-0 ${scroll} ${bounded ? 'pr-2' : ''}`}
+      >
         <Readout k="Problem" v={project.problem} />
         <Readout k="Solution" v={project.solution} />
         <Readout k="Architecture" v={project.architecture} />
@@ -310,7 +363,9 @@ export function SectionProjects() {
   return (
     <Section id="projects" label="Project Bay">
       <Reveal>
-        <Heading id="projects">Project Bay</Heading>
+        <Heading id="projects" plain="Software projects and case studies">
+          Project Bay
+        </Heading>
         {/* Kept to two lines. The old version spent its last sentence
             explaining that more bays could be added later — filler that cost
             three lines of vertical space on a phone and pushed the rack
@@ -358,7 +413,7 @@ export function SectionProjects() {
                stated in the markup rather than only implied by the layout. */
             aria-controls="module-detail"
             onKeyDown={onKeyDown}
-            className="panel-scroll max-h-[calc(100dvh-31rem)] space-y-2 pr-1"
+            className="panel-scroll max-h-[calc(100dvh-var(--pin-reserve))] space-y-2 pr-1"
           >
             {projects.map((p, i) => {
               const isActive = i === activeProject;
@@ -483,7 +538,69 @@ export function SectionProjects() {
             role="region"
             aria-label={`Module detail — ${current.title}`}
           >
-            <ModuleDetail project={current} />
+            {/*
+              EVERY BAY IS RENDERED. ONE IS SHOWN.
+
+              This used to be `<ModuleDetail project={current} />` — the active
+              bay and nothing else — and the cost of that was the largest single
+              hole in what this site publishes about itself.
+
+              The case studies are the best and most specific writing here:
+              five prose readouts per project naming the problem, the
+              architecture, the hard part and the outcome. Only one of the three
+              was ever in the served HTML. The rack beside this panel lists all
+              three titles, so the document said the other two existed and then
+              declined to say anything about them.
+
+              Who that cost:
+
+                · Crawlers that do not run JavaScript, which is most of them
+                  outside Googlebot — and specifically the answer engines
+                  (GPTBot, ClaudeBot, PerplexityBot, Bingbot's AI surfaces) that
+                  a name query increasingly resolves through. They read one
+                  project and inferred the rest.
+                · The page's own metadata. `layout.tsx` describes this site to
+                  every unfurler as presenting "an AI exam-proctoring platform,
+                  a real-time multiplayer game server, and AI-scaffolded
+                  learning research" — and until this change two of those three
+                  appeared nowhere in the body of the document. A description
+                  making a claim the page does not support is the one structured
+                  mismatch worth being careful about.
+                · `lib/seo.ts` publishes a `SoftwareSourceCode` node per project
+                  with `@id` `/#project-<slot>`. Two of those three `@id`s
+                  resolved to nothing in the document — a structured-data claim
+                  with no referent.
+                · Anyone with JavaScript off or broken, who got one case study
+                  and a rack of dead buttons.
+
+              The fix is the ordinary tabpanel pattern rather than anything
+              clever: render every panel, mark the inactive ones `hidden`. That
+              is what `hidden` is for, it is what a listbox controlling a detail
+              region is specified to do, and Google has been explicit since
+              mobile-first indexing that content in tabs is indexed and weighted
+              normally. Nothing is duplicated and nothing is hidden text in the
+              spam sense — this is one panel per bay, all three reachable, one
+              visible at a time, exactly as the interface behaves.
+
+              ── What it costs ──────────────────────────────────────────────
+              Two more panels of markup, about 4 kB before compression, and
+              React reconciles three static prose trees instead of one on a
+              change that already re-renders this subtree. `hidden` is
+              `display: none`, so the two inactive panels are never laid out,
+              never painted and never composited — the runtime cost of this is
+              in the parse, and it is paid once.
+
+              `ProjectVisual` is not among the extra cost: it renders only when
+              `bounded` is false, which is the compact layout, and this branch
+              is the wide one. So the hidden panels are prose and chips.
+
+              The compact branch above already renders all three in full, which
+              is why this was invisible for so long — a phone got the whole
+              document and a desktop did not.
+            */}
+            {projects.map((p) => (
+              <ModuleDetail key={p.slot} project={p} hidden={p.slot !== current.slot} />
+            ))}
           </div>
         </Reveal>
       </div>

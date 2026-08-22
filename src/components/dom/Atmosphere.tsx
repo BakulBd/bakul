@@ -40,19 +40,34 @@
  *            machine instead of on a timer that approximates it.
  *
  *   --tone   [0,1], mechanical amber -> computational cyan, published by the
- *            scroll engine from `toneAt()`. The aurora and the horizon bloom
- *            mix their colour from it, so the room's light changes hue as the
- *            visitor moves through the argument. It is the same scalar the 3D
- *            light rig reads: one source of truth for "where are we".
+ *            scroll engine from `toneAt()`. The aurora, the shafts and the
+ *            horizon bloom mix their colour from it, so the room's light
+ *            changes hue as the visitor moves through the argument. It is the
+ *            same scalar the 3D light rig reads: one source of truth for
+ *            "where are we".
  *
- * Neither is a prop. Passing them through React would mean re-rendering this
- * component to change them, at which point it would stop being free.
+ *   --scroll absolute progress through the document, [0,1]. Every mass carries
+ *            a per-depth offset derived from it, so the room is moved through
+ *            rather than only animated in place.
+ *
+ *   --flow   smoothed scroll velocity, [0,1] — `frame.velocity`. Read by the
+ *            streak layer alone, which is invisible at rest and rakes in from
+ *            the frame edges under speed. The substrate has scaled its flow
+ *            rate by this for a while; the air did not, so the floor used to
+ *            accelerate underneath a room that stayed perfectly still.
+ *
+ * None of the four is a prop. Passing them through React would mean
+ * re-rendering this component to change them, at which point it would stop
+ * being free.
  *
  * The element order below is load-bearing and matches the paint order the CSS
- * assumes: masses first, then dust over them, then the bloom, then fog last so
- * it sits in front of everything and pushes it all back. See `THE ATMOSPHERE`
- * in globals.css for the geometry and the reduced-motion, reduced-transparency
- * and small-viewport handling.
+ * assumes, back to front: the aurora masses, then the deep field, then the
+ * shafts falling through them, then the near dust, the horizon bloom, the
+ * velocity streaks, and fog last so it sits in front of everything and pushes
+ * it all back. Nothing here uses z-index — DOM order is the depth order, which
+ * is the only arrangement that stays true when a layer is added. See
+ * `THE ATMOSPHERE` in globals.css for the geometry and the reduced-motion,
+ * reduced-transparency and small-viewport handling.
  */
 export function Atmosphere() {
   return (
@@ -63,12 +78,30 @@ export function Atmosphere() {
       <div className="atmos__aurora atmos__aurora--2" />
       <div className="atmos__aurora atmos__aurora--3" />
 
+      {/* The deep field — the furthest thing in the room, and the reason the
+          upper half is no longer empty dark. Finer and dimmer than the dust
+          below it, drifting at roughly a fifth of its rate: differential
+          motion between two particulate fields is what reads as distance. */}
+      <div className="atmos__deep" />
+
+      {/* Shafts of light raking down from above. The one axis the room had no
+          statement about was its height — a floor, haze and a horizon describe
+          a plane and its distance, never a volume with a ceiling. */}
+      <div className="atmos__shafts" />
+
       {/* Fine drift. Pans its own background-position, never the element —
           transforming this would inflate document.scrollWidth. */}
       <div className="atmos__dust" />
 
       {/* Light pooling at the horizon, where the ground plane meets the dark. */}
       <div className="atmos__bloom" />
+
+      {/* Speed. The only element here that reads --flow rather than --tone or
+          --scroll: streaks rake in from the edges of the frame in proportion
+          to how fast the visitor is actually travelling, and are completely
+          invisible at rest. The substrate already accelerates with velocity;
+          this is what makes the air do it too. */}
+      <div className="atmos__streak" />
 
       {/* Depth fog. Last, so it is in front of the rest of the layer. */}
       <div className="atmos__fog" />

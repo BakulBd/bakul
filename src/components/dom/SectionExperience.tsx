@@ -146,7 +146,9 @@ export function SectionExperience() {
   return (
     <Section id="experience" label="Assembly Line">
       <Reveal>
-        <Heading id="experience">Assembly Line</Heading>
+        <Heading id="experience" plain="Experience, education and leadership">
+          Assembly Line
+        </Heading>
         <Lead>
           {compact
             ? 'Progression from student to builder, in order — every milestone in full, oldest first.'
@@ -374,34 +376,67 @@ export function SectionExperience() {
             role="region"
             aria-label={`Milestone detail — ${current.title}`}
           >
-            <Panel className="p-7">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Status state={current.projected ? 'idle' : current.ongoing ? 'online' : 'amber'}>
-                  {current.projected ? 'Projected' : current.ongoing ? 'Active' : 'Complete'}
-                </Status>
-                <span className="t-label">{current.stage}</span>
-              </div>
+            {/*
+              EVERY MILESTONE IS RENDERED. ONE IS SHOWN.
 
-              <h3 className="t-display mt-4 text-[clamp(1.35rem,3vw,2rem)]">{current.title}</h3>
+              This panel used to be built from `current` alone, so the served
+              HTML carried the reader's bullets for exactly one of the nine
+              milestones. The timeline beside it already lists all nine titles
+              and periods — so the document named every stage of this person's
+              progression and then described a single one of them.
 
-              {current.org && <p className="t-mono mt-2 text-sm emissive-cyan">{current.org}</p>}
-              <p className="t-label mt-2">{current.period}</p>
+              What that omitted is the substance of the section: what was
+              actually built at each step, which technologies, which
+              organisation, what came of it. Stanford's Code in Place, the OOP
+              coursework, the algorithms visualiser the Lab is descended from,
+              two elected GUCC terms, the mentoring role in the AI and Data
+              Science department — eight of those nine entries existed in the
+              document as a date and a title with nothing behind them.
 
-              <ul className="mt-6 list-none space-y-3 p-0">
-                {current.points.map((point, i) => (
-                  <li key={i} className="t-body flex gap-3 text-sm">
-                    <span className="mt-2 h-px w-4 shrink-0 bg-[color:var(--color-amber-dim)]" aria-hidden="true" />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
+              The same reasoning as the project rack, and the same fix: render
+              every panel, mark the inactive ones `hidden`. See the long note in
+              `SectionProjects.tsx` for who this was costing and why the tabbed
+              pattern is the right shape rather than a workaround.
 
-              {current.projected && (
-                <p className="t-label mt-6 border-t border-[#24272f] pt-4 normal-case tracking-normal text-[color:var(--color-ash-dim)]">
-                  This is a stated intention, not a completed milestone.
-                </p>
-              )}
-            </Panel>
+              ── Why the extra cost is smaller here than it looks ────────────
+              Nine panels rather than one, but each is a status chip, a heading,
+              two lines and three or four bullets — roughly 6 kB of markup
+              before compression for the whole set. `hidden` is `display: none`,
+              so the eight inactive panels are never laid out and never painted.
+
+              The compact branch above already renders all nine in full. As with
+              the projects, the desktop layout was the one publishing less.
+            */}
+            {milestones.map((m) => (
+              <Panel key={m.id} className="p-7" hidden={m.id !== current.id}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Status state={m.projected ? 'idle' : m.ongoing ? 'online' : 'amber'}>
+                    {m.projected ? 'Projected' : m.ongoing ? 'Active' : 'Complete'}
+                  </Status>
+                  <span className="t-label">{m.stage}</span>
+                </div>
+
+                <h3 className="t-display mt-4 text-[clamp(1.35rem,3vw,2rem)]">{m.title}</h3>
+
+                {m.org && <p className="t-mono mt-2 text-sm emissive-cyan">{m.org}</p>}
+                <p className="t-label mt-2">{m.period}</p>
+
+                <ul className="mt-6 list-none space-y-3 p-0">
+                  {m.points.map((point, i) => (
+                    <li key={i} className="t-body flex gap-3 text-sm">
+                      <span className="mt-2 h-px w-4 shrink-0 bg-[color:var(--color-amber-dim)]" aria-hidden="true" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {m.projected && (
+                  <p className="t-label mt-6 border-t border-[#24272f] pt-4 normal-case tracking-normal text-[color:var(--color-ash-dim)]">
+                    This is a stated intention, not a completed milestone.
+                  </p>
+                )}
+              </Panel>
+            ))}
           </div>
         </Reveal>
       </div>

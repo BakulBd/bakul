@@ -184,6 +184,64 @@ export function LabShell({
   };
 
   /*
+   * KEEP THE SELECTED BENCH IN VIEW IN THE RAIL.
+   *
+   * On a phone the rail is a horizontal strip, and it does not fit: measured at
+   * 390px, its content is 772px wide inside a 355px box. So three of the six
+   * benches are off the right edge at rest — and one of those three can be the
+   * selected one.
+   *
+   * Every way of arriving at a bench without touching the rail produces exactly
+   * that: `/lab?bench=scheduler` from the command palette or a shared link, a
+   * `#bench-…` fragment, or a number-key shortcut. The page then opens with the
+   * right bench loaded below and a rail in which nothing visible is selected,
+   * which reads as "nothing is selected" rather than as "the selection is over
+   * there". The scroll affordance added to `.lab-rail` says there is more to
+   * see; it cannot say that what you are looking for is already among it.
+   *
+   * ── Why scrollLeft and not scrollIntoView ───────────────────────────────
+   * `scrollIntoView` walks up to the nearest scrollable ancestor, and when it
+   * finds no room there it escalates to the window — which on this page means
+   * yanking the visitor down the document as a side effect of a tab being
+   * selected. `SectionProjects` documents that exact bug at length. Writing
+   * `scrollLeft` on the rail cannot touch anything but the rail.
+   *
+   * ── Why it does nothing on a desktop ────────────────────────────────────
+   * The desktop rail is a column with no horizontal overflow, so `scrollWidth`
+   * equals `clientWidth`, the clamp below resolves to 0, and the assignment is
+   * a no-op. No media query, nothing to keep in step with the CSS.
+   */
+  const isFirstRailSync = useRef(true);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const tab = rail.querySelector<HTMLElement>(`#lab-tab-${CSS.escape(benchId)}`);
+    if (!tab) return;
+
+    // Centre the tab, then clamp so the strip never scrolls past either end —
+    // otherwise selecting the first or last bench leaves a gap at the edge.
+    const target = tab.offsetLeft - (rail.clientWidth - tab.offsetWidth) / 2;
+    const max = rail.scrollWidth - rail.clientWidth;
+    const left = Math.max(0, Math.min(target, max));
+
+    /*
+     * Instant on the first run, smooth after.
+     *
+     * The first run is the page arriving at a bench the visitor asked for by
+     * URL: there is no "before" for a transition to explain, and animating the
+     * rail during load is motion nobody initiated. Every later run follows an
+     * arrow key or a number shortcut, where the movement is the feedback.
+     */
+    rail.scrollTo({
+      left,
+      behavior: isFirstRailSync.current ? 'auto' : 'smooth',
+    });
+    isFirstRailSync.current = false;
+  }, [benchId]);
+
+  /*
    * Number keys jump straight to a bench.
    *
    * The guard is the important part: the compiler bench is a text field the
@@ -324,6 +382,28 @@ export function LabShell({
           className="lab-panel"
         >
           <header className="lab-panel__head">
+            {/*
+              THE BENCH'S OWN HEADING.
+
+              The document outline used to go h1 "The Lab" -> h3 "Configure",
+              skipping h2 entirely: the panel header named the course and the
+              engine's source path but never the bench, so the only heading
+              between the page title and the individual bays was a bay's own.
+              axe reports it as `heading-order`, and it is the outline a screen
+              reader user navigates the page by — six instruments, and the
+              heading list named none of them.
+
+              `sr-only` because the visible name is already unmissable: it is
+              the selected tab in the rail beside this panel, and printing it
+              again at the top of the panel would be the same word twice on one
+              screen. What was missing was never the label, it was the level.
+
+              Not `aria-level` on the existing course line, and not promoting a
+              bay to h2 — the bays are parts of the bench, and making bay 01 the
+              bench's heading would be inventing a hierarchy that does not match
+              what is on screen.
+            */}
+            <h2 className="sr-only">{current.label}</h2>
             <p className="lab-panel__course t-label emissive-cyan">
               {current.course}
             </p>

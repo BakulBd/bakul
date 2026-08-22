@@ -13,7 +13,7 @@ import {
 } from '@/lib/lab/compiler';
 import { benchFragment, benchPath } from '@/lib/lab/catalogue';
 import { haptic } from '@/lib/haptics';
-import { Bay, CopyButton, Slider, Stat, VerifyBadge, num } from './Controls';
+import { Bay, CopyButton, num, Slider, Stat, TableWrap, VerifyBadge } from './Controls';
 
 /**
  * COMPILER BENCH
@@ -445,7 +445,7 @@ export function CompilerBench() {
               </p>
             )}
 
-            <div className="lab-table-wrap">
+            <TableWrap>
               <table className="lab-table lab-table--ir">
                 <caption className="sr-only">
                   Three-address instructions with assigned registers
@@ -471,7 +471,7 @@ export function CompilerBench() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
 
             <p className="lab-note">
               The <strong>Freed</strong> column is the interesting one: a register reappears
