@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Power, ArrowRight, Download, Github } from 'lucide-react';
 import { frame, useMachine } from '@/store/machine';
 import { profile, AWARD_SEMESTERS } from '@/lib/data/profile';
@@ -14,6 +14,7 @@ import {
   TURBINE_PIVOTS,
   type Group,
 } from '@/components/machine/lib/blueprint';
+import { IdentityReveal } from './IdentityReveal';
 
 /**
  * FIRST 10 SECONDS (§3) — power-on self test.
@@ -117,6 +118,11 @@ export function BootSequence() {
   const beginActivation = useMachine((s) => s.beginActivation);
 
   const [power, setPower] = useState(0);
+
+  /* Handed to `IdentityReveal`, which reads this element's rendered box and
+     computed font to build its particle field, and otherwise never sees the
+     rest of this component. */
+  const nameRef = useRef<HTMLHeadingElement>(null);
 
   // Mirror the frame-loop power value into React at a low rate. Reading it
   // every frame in state would defeat the point of the frame singleton, so we
@@ -243,10 +249,32 @@ export function BootSequence() {
         and a screen reader were given was, for several seconds, not the text a
         sighted visitor was looking at. One element serves both now.
       */}
-      <h1 className="t-display mt-5 text-[clamp(3rem,13vw,8.5rem)] leading-[0.92]">
-        {profile.name.split(' ')[0]}
-        <span className="text-[color:var(--color-ash)]"> {profile.name.split(' ')[1]}</span>
-      </h1>
+      {/*
+        The heading itself is completely unstyled by the reveal — same
+        classes, same two-tone split, same markup that was here before any
+        of this existed. `IdentityReveal` is a sibling, not a wrapper: it
+        reads this element's own rendered box and font to build its particle
+        field, and toggles nothing here but `style.opacity`, which is a paint
+        property and therefore never removes the heading from the DOM or the
+        accessibility tree. See IdentityReveal.tsx for the whole case for why
+        it is built this way — the short version is that "the real name was
+        never touched" has to remain true even while a five-second animation
+        is standing in front of it.
+      */}
+      <div className="relative">
+        <h1 ref={nameRef} className="t-display mt-5 text-[clamp(3rem,13vw,8.5rem)] leading-[0.92]">
+          {profile.name.split(' ')[0]}
+          {/* The leading space stays inside the string, not as a `{' '}`
+              expression: two adjacent JSX children make React emit a
+              `<!-- -->` text separator between them, and this heading's
+              markup is the one place on the site worth keeping free of it. */}
+          <span className="text-[color:var(--color-ash)]">
+            {` ${profile.name.split(' ')[1]}`}
+          </span>
+        </h1>
+
+        <IdentityReveal nameRef={nameRef} />
+      </div>
 
       <p className="t-mono mt-4 text-[clamp(0.85rem,2.2vw,1.15rem)] emissive-cyan">
         {profile.title}
