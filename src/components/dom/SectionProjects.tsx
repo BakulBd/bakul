@@ -489,13 +489,13 @@ export function SectionProjects() {
                         {p.stack.slice(0, 3).map((tech) => (
                           <span
                             key={tech}
-                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.62rem] leading-none text-[color:var(--color-ash)]"
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.7rem] lg:text-[0.62rem] leading-none text-[color:var(--color-ash)]"
                           >
                             {tech}
                           </span>
                         ))}
                         {p.stack.length > 3 && (
-                          <span className="font-[family-name:var(--font-code)] text-[0.62rem] text-[color:var(--color-ash-dim)]">
+                          <span className="font-[family-name:var(--font-code)] text-[0.7rem] lg:text-[0.62rem] text-[color:var(--color-ash-dim)]">
                             +{p.stack.length - 3}
                           </span>
                         )}

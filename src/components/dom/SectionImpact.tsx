@@ -70,7 +70,16 @@ export function SectionImpact() {
               delay={i * 70}
               className={lead ? 'col-span-2 xl:col-span-1' : ''}
             >
-              <Panel className="h-full p-5 sm:p-6">
+              {/*
+                  A flex column so the attribution can be pinned to the floor
+                  of the card rather than floating wherever the description
+                  above it happens to stop. Measured across the five-up row,
+                  the "Source —" lines were starting at five different heights
+                  and sitting between 25px and 61px off the card's bottom edge
+                  — the cards are all the same height, so the eye reads that
+                  ragged row of attributions as five cards of different sizes.
+              */}
+              <Panel className="flex h-full flex-col p-5 sm:p-6">
                 {/* Five columns means less width per card than the old four-up
                     grid budgeted for — a long suffix like " semesters"
                     genuinely doesn't fit the old 2.9rem cap and was being
@@ -102,7 +111,11 @@ export function SectionImpact() {
                   <Counter value={m.value} precision={m.precision} suffix={m.suffix} />
                 </p>
                 <h3 className="t-mono mt-3 text-xs">{m.label}</h3>
-                <p className="t-body mt-2 text-xs">{m.detail}</p>
+                {/* `flex-1` on the description, not `mt-auto` on the source:
+                    the description absorbs the slack, which pins the source to
+                    the bottom *and* keeps its original `mt-4` breathing room on
+                    the tallest card, where `mt-auto` would have collapsed it. */}
+                <p className="t-body mt-2 flex-1 text-xs">{m.detail}</p>
                 <p className="t-label mt-4 border-t border-[#24272f] pt-3">Source — {m.source}</p>
               </Panel>
             </Reveal>

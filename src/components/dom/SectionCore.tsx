@@ -112,7 +112,7 @@ export function SectionCore() {
                         {sub.items.map((item) => (
                           <span
                             key={item}
-                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.62rem] leading-none normal-case tracking-normal text-[color:var(--color-ash)]"
+                            className="rounded border border-[#2b2f38] bg-[rgba(20,23,30,0.7)] px-1.5 py-0.5 font-[family-name:var(--font-code)] text-[0.7rem] lg:text-[0.62rem] leading-none normal-case tracking-normal text-[color:var(--color-ash)]"
                           >
                             {item}
                           </span>

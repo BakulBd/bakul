@@ -138,7 +138,7 @@ export function SystemControls() {
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--color-ceramic)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--color-cyan)]"
+        className="flex h-11 w-11 items-center justify-center rounded-full text-[color:var(--color-ceramic)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--color-cyan)] lg:h-9 lg:w-9"
         aria-label="Open quick navigation"
         title="Quick navigation (⌘K)"
       >
@@ -179,7 +179,7 @@ export function SystemControls() {
         onClick={handleToggleAudio}
         onMouseEnter={() => audioEnabled && revealVolume(4000)}
         onFocus={() => audioEnabled && revealVolume(9000)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--color-ceramic)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--color-cyan)]"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-[color:var(--color-ceramic)] transition-colors hover:bg-white/[0.06] hover:text-[color:var(--color-cyan)] lg:h-9 lg:w-9"
         aria-pressed={audioEnabled}
         aria-label={audioEnabled ? 'Turn sound off' : 'Turn sound on'}
         title={audioEnabled ? 'Sound on' : 'Sound off'}

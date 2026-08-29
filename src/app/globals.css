@@ -744,6 +744,25 @@ html.lenis, html.lenis body { height: auto; }
   border: 1px solid rgba(130, 138, 155, 0.22);
   transition: border-color var(--dur-2) var(--ease-standard), box-shadow var(--dur-2) var(--ease-standard);
 }
+/*
+ * 16px on touch, and not a pixel less.
+ *
+ * iOS Safari zooms the viewport whenever a focused input's text is under
+ * 16px, so at 0.875rem tapping "Name" magnified the page and left the visitor
+ * to pinch back out before they could read what they were typing into. The
+ * fix is the font size, never `maximum-scale=1` — that would trade a small
+ * annoyance for taking pinch-zoom away from everyone who needs it.
+ *
+ * Keyed on `pointer: coarse` rather than a width, because the trigger is the
+ * input method: a 1280px-wide tablet has the behaviour and a 700px-wide
+ * desktop window does not.
+ */
+@media (pointer: coarse) {
+  .field {
+    font-size: 1rem;
+  }
+}
+
 .field::placeholder { color: var(--color-ash-dim); }
 .field:focus {
   outline: none;
@@ -1761,6 +1780,25 @@ html.lenis, html.lenis body { height: auto; }
   box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
   cursor: pointer;
 }
+/*
+ * A bigger grip on touch. The rail stays a hairline — it is a readout as much
+ * as a control — but an 11px thumb is sized for a cursor, and dragging it with
+ * a fingertip means covering the very thing you are trying to set.
+ */
+@media (pointer: coarse) {
+  .volume-slider {
+    height: 6px;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+  }
+  .volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .volume-slider::-moz-range-thumb {
   width: 11px;
   height: 11px;
@@ -1900,7 +1938,15 @@ html.lenis, html.lenis body { height: auto; }
   /* 56px — comfortably past the 44px minimum touch target, and the source of
      truth for how much bottom clearance the page reserves. */
   min-height: var(--nav-h);
-  padding: 0.5rem 0.125rem;
+  /*
+   * Horizontal padding trimmed to a hairline to buy the label its last two
+   * pixels. At 0.125rem the longest label overflowed its cell by exactly 1px
+   * on a 390px handset — enough to trigger the ellipsis on the most common
+   * screen size there is. The cells are already separated by the gap between
+   * short labels and by their own icons; the padding was not doing visible
+   * work, and the alternative was shrinking the type back down again.
+   */
+  padding: 0.5rem 0.0625rem;
   text-align: center;
   transition: color var(--dur-2) var(--ease-standard);
   -webkit-tap-highlight-color: transparent;
@@ -1908,8 +1954,28 @@ html.lenis, html.lenis body { height: auto; }
 
 .mobile-nav__label {
   font-family: var(--font-mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.04em;
+  /*
+   * Was a flat 0.5rem — 8px, on the primary navigation of the phone build.
+   * Small enough that the labels read as texture under the icons rather than
+   * as words, which is the wrong trade when they are the only thing naming
+   * where each tab goes. iOS tab bars sit at ~10px and Material's at 12sp;
+   * this now lands in that band on a normal handset and still gives way
+   * gracefully on a folded 280px screen, where the ellipsis guard below has
+   * always been the fallback.
+   */
+  font-size: clamp(0.53rem, 2.4vw, 0.65rem);
+  /*
+   * Tracking pulled in from 0.04em to buy the width back.
+   *
+   * Enlarging the label is only an improvement if the label still fits: at
+   * 0.04em the longest item ("Experience") stopped fitting its cell on a
+   * 390px handset and started showing as "EXPERIEN…", trading one legibility
+   * problem for another. Tighter letter-spacing recovers roughly the width
+   * the larger size costs, so all six labels render in full from 360px up and
+   * the ellipsis is back to being what it was designed as — the fallback for
+   * a folded 280px screen, not the normal case.
+   */
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   line-height: 1;
   /* Never let the longest label ("Experience") widen its own cell. */
@@ -3474,6 +3540,19 @@ html.lenis, html.lenis body { height: auto; }
   transition: background 0.18s ease, color 0.18s ease;
   min-height: 2.15rem;
 }
+/*
+ * 44px on touch. These segmented options are how a phone visitor picks an
+ * algorithm and a dataset — the primary control on the Lab — and 2.15rem
+ * (34px) is a small thing to hit accurately with a thumb, especially in a row
+ * of three or four sitting shoulder to shoulder. The compact density stays on
+ * pointer devices, where it is the right call.
+ */
+@media (pointer: coarse) {
+  .lab-seg__opt {
+    min-height: 2.75rem;
+  }
+}
+
 .lab-seg__opt:hover { color: var(--color-ceramic); }
 .lab-seg__opt.is-on {
   background: linear-gradient(180deg, var(--color-titanium-2) 0%, var(--color-titanium) 100%);
@@ -3719,6 +3798,39 @@ html.lenis, html.lenis body { height: auto; }
 /* The wrapper scrolls, not the table: a table that is itself the scroll
    container loses its sticky header, and on a phone the IR listing is wider
    than any viewport. */
+/*
+ * TOUCH LEGIBILITY FLOOR FOR THE LAB'S INSTRUMENT LABELS.
+ *
+ * The Lab reads like test equipment on purpose, and small mono caps are a
+ * large part of why. Measured on a handset, though, a dozen of those labels
+ * were landing between 9.6px and 10.9px — the metric keys ("Comparisons",
+ * "Writes"), the table headers, the field names. They are not decoration:
+ * they are what tells you which number you are looking at.
+ *
+ * So this is a floor, not a redesign. Everything below is lifted to
+ * 0.6875rem, which is the site's own `.t-label` size rather than a new value
+ * invented for phones — the smallest type the design system already considers
+ * a readable label. Pointer devices keep the tighter original density, and
+ * the wide tables were already horizontally scrollable, so nothing here can
+ * push content out of reach.
+ */
+@media (pointer: coarse) {
+  .lab-stat__k,
+  .lab-field__label,
+  .lab-seed__key,
+  .lab-panel__course,
+  .lab-panel__source,
+  .lab-step__kind,
+  .lab-bay__n,
+  .lab-verify__label,
+  .lab-verify__score,
+  .lab-verify__detail,
+  .lab-table th,
+  .lab-table td {
+    font-size: 0.6875rem;
+  }
+}
+
 .lab-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
